@@ -1,6 +1,7 @@
 const express = require('express');
 const QRCode = require('qrcode');
 const { custoTotal } = require('../services/inteligencia');
+const asyncHandler = require('../middleware/async');
 
 const money = (v) => v == null ? 'R$ 0,00' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 const num = (v, u = 'm²') => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' ' + u;
@@ -26,8 +27,7 @@ const DOC_ICONS = {
 module.exports = (prisma) => {
   const r = express.Router();
 
-  r.get('/:id', async (req, res, next) => {
-    try {
+  r.get('/:id', asyncHandler(async (req, res) => {
     const i = await prisma.imovel.findUnique({
       where: { id: +req.params.id },
       include: { fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, documentos: true },
@@ -253,8 +253,7 @@ module.exports = (prisma) => {
   </div>
 </div>
 </body></html>`);
-    } catch (e) { next(e); }
-  });
+  }));
 
   return r;
 };

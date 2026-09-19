@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Handshake, PencilSimple, Plus, Trash, WarningCircle } from '@phosphor-icons/react';
+import { ArrowRight, CheckCircle, Handshake, PencilSimple, Plus, Presentation, Trash, WarningCircle } from '@phosphor-icons/react';
 import { api } from '../lib/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -60,8 +60,13 @@ export default function Oportunidades() {
   const filtered = useMemo(() => list.filter(o => !stage || o.etapa === stage), [list, stage]);
   const columns = [
     { id: 'imovel', header: 'Imóvel', accessorFn: o => `${o.imovel?.codigo || ''} ${o.imovel?.endereco || ''} ${o.imovel?.bairro || ''}`, cell: ({ row }) => <Link className="collection-cell-stack collection-title-link" to={`/imoveis/${row.original.imovelId}`}><span className="collection-code">{row.original.imovel?.codigo}</span><strong>{row.original.imovel?.endereco || 'Imóvel indisponível'}</strong><small>{row.original.imovel?.bairro}</small></Link> },
-    { id: 'empresa', header: 'Empresa', accessorFn: o => `${o.empresa?.nome || ''} ${o.empresa?.segmento || ''}`, cell: ({ row }) => <span className="collection-cell-stack"><strong>{row.original.empresa?.nome || 'Empresa indisponível'}</strong><small>{row.original.empresa?.segmento || 'Sem segmento'}</small></span> },
+    { id: 'empresa', header: 'Empresa', accessorFn: o => `${o.empresa?.nome || ''} ${o.empresa?.segmento || ''} ${o.empresa?.contatoNome || ''}`, cell: ({ row }) => {
+      const e = row.original.empresa;
+      const contato = [e?.contatoNome, e?.telefone || e?.email].filter(Boolean).join(' · ');
+      return <span className="collection-cell-stack"><strong>{e?.nome || 'Empresa indisponível'}</strong><small>{e?.segmento || 'Sem segmento'}</small>{contato ? <small>{contato}</small> : null}</span>;
+    } },
     { accessorKey: 'etapa', header: 'Etapa', cell: ({ row, getValue }) => <select className={`collection-stage-select stage-${getValue()}`} value={getValue()} disabled={moving === row.original.id} aria-label={`Etapa de ${row.original.imovel?.codigo} para ${row.original.empresa?.nome}`} onChange={e => move(row.original, e.target.value)}>{Object.entries(ETAPAS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> },
+    { id: 'apresentacao', header: 'Apresentação', enableSorting: false, cell: ({ row }) => <a className="collection-title-link" href={`/apresentacao/${row.original.imovelId}`} target="_blank" rel="noreferrer" aria-label={`Abrir apresentação de ${row.original.imovel?.codigo}`}><Presentation size={18} /> Abrir</a> },
     { accessorKey: 'observacao', header: 'Observações', cell: ({ getValue }) => <span className="collection-regions" title={getValue() || ''}>{getValue() || '—'}</span> },
     { accessorKey: 'atualizadoEm', header: 'Última atualização', cell: ({ getValue }) => new Date(getValue()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <div className="collection-row-actions"><button className="icon-button" aria-label={`Editar oportunidade de ${row.original.empresa?.nome}`} onClick={() => openEdit(row.original)}><PencilSimple size={18} /></button><button className="icon-button collection-delete" aria-label={`Excluir oportunidade de ${row.original.empresa?.nome}`} onClick={() => { setFormError(''); setDeleting(row.original); }}><Trash size={18} /></button></div> },

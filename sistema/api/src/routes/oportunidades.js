@@ -1,34 +1,38 @@
 const express = require('express');
 const auth = require('../middleware/auth');
+const asyncHandler = require('../middleware/async');
 
 module.exports = (prisma) => {
   const r = express.Router();
   r.use(auth);
 
-  r.get('/', async (req, res) => {
+  r.get('/', asyncHandler(async (req, res) => {
     res.json(await prisma.oportunidade.findMany({
       orderBy: { atualizadoEm: 'desc' },
       include: { imovel: true, empresa: true },
     }));
-  });
+  }));
 
-  r.post('/', async (req, res) => {
+  r.post('/', asyncHandler(async (req, res) => {
     const { imovelId, empresaId, etapa, observacao } = req.body;
     res.json(await prisma.oportunidade.create({
       data: { imovelId: +imovelId, empresaId: +empresaId, etapa: etapa || 'apresentado', observacao },
       include: { imovel: true, empresa: true },
     }));
-  });
+  }));
 
-  r.put('/:id', async (req, res) => {
+  r.put('/:id', asyncHandler(async (req, res) => {
     const { etapa, observacao } = req.body;
-    res.json(await prisma.oportunidade.update({ where: { id: +req.params.id }, data: { etapa, observacao }, include: { imovel: true, empresa: true } }));
-  });
+    const data = {};
+    if (etapa !== undefined) data.etapa = etapa;
+    if (observacao !== undefined) data.observacao = observacao;
+    res.json(await prisma.oportunidade.update({ where: { id: +req.params.id }, data, include: { imovel: true, empresa: true } }));
+  }));
 
-  r.delete('/:id', async (req, res) => {
+  r.delete('/:id', asyncHandler(async (req, res) => {
     await prisma.oportunidade.delete({ where: { id: +req.params.id } });
     res.json({ ok: true });
-  });
+  }));
 
   return r;
 };

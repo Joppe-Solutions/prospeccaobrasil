@@ -1,11 +1,12 @@
 const express = require('express');
 const auth = require('../middleware/auth');
+const asyncHandler = require('../middleware/async');
 
 module.exports = (prisma) => {
   const r = express.Router();
   r.use(auth);
 
-  r.get('/', async (req, res) => {
+  r.get('/', asyncHandler(async (req, res) => {
     const [imoveis, disponiveis, empresas, oportunidades, porStatus, recentes] = await Promise.all([
       prisma.imovel.count(),
       prisma.imovel.count({ where: { status: 'disponivel' } }),
@@ -15,7 +16,7 @@ module.exports = (prisma) => {
       prisma.imovel.findMany({ orderBy: { criadoEm: 'desc' }, take: 5, include: { fotos: { where: { principal: true }, take: 1 } } }),
     ]);
     res.json({ imoveis, disponiveis, empresas, oportunidades, porStatus, recentes });
-  });
+  }));
 
   return r;
 };

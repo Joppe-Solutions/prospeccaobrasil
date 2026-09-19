@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useSearchParams } from 'react-router-dom';
 import { ArrowRight, Buildings, CheckCircle, Handshake, Plus, SlidersHorizontal } from '@phosphor-icons/react';
 import { api, fmtMoney, fmtNum, STATUS } from '../lib/api';
 import DataTable from '../components/DataTable';
@@ -8,16 +8,28 @@ import './collections.css';
 
 export default function Imoveis() {
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const statusParam = searchParams.get('status') || '';
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [status, setStatus] = useState('');
+  const [status, setStatus] = useState(statusParam && STATUS[statusParam] ? statusParam : '');
   const [tipo, setTipo] = useState('');
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try { setList(await api('/imoveis')); } catch (e) { setError(e.message); } finally { setLoading(false); }
   }, []);
   useEffect(() => { load(); }, [load, location.key]);
+  useEffect(() => {
+    const next = statusParam && STATUS[statusParam] ? statusParam : '';
+    setStatus(next);
+  }, [statusParam]);
+  const updateStatus = (value) => {
+    setStatus(value);
+    const next = new URLSearchParams(searchParams);
+    if (value) next.set('status', value); else next.delete('status');
+    setSearchParams(next, { replace: true });
+  };
   const filtered = useMemo(() => list.filter(i => (!status || i.status === status) && (!tipo || i.tipo === tipo)), [list, status, tipo]);
   const columns = useMemo(() => [
     { id: 'imovel', header: 'Imóvel', accessorFn: i => `${i.codigo} ${i.titulo || ''} ${i.endereco} ${i.numero || ''} ${i.bairro || ''}`, cell: ({ row }) => {
@@ -44,7 +56,7 @@ export default function Imoveis() {
     </div>
     <section className="panel collection-panel">
       <div className="collection-section-head"><div><h2>Seu portfólio</h2><p>Consulte, organize e encontre o imóvel certo.</p></div><div className="collection-tabs" aria-label="Tipo de negócio">{[['', 'Todos'], ['locacao', 'Locação'], ['venda', 'Venda']].map(([value, label]) => <button key={value} className={tipo === value ? 'is-active' : ''} onClick={() => setTipo(value)} aria-pressed={tipo === value}>{label}</button>)}</div></div>
-      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<><label className="collection-select"><SlidersHorizontal size={16} /><select aria-label="Filtrar por status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>{(status || tipo) && <button className="btn btn-ghost btn-sm" onClick={() => { setStatus(''); setTipo(''); }}>Limpar filtros</button>}{error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}</>} />
+      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<><label className="collection-select"><SlidersHorizontal size={16} /><select aria-label="Filtrar por status" value={status} onChange={e => updateStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>{(status || tipo) && <button className="btn btn-ghost btn-sm" onClick={() => { updateStatus(''); setTipo(''); }}>Limpar filtros</button>}{error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}</>} />
     </section>
   </div>;
 }

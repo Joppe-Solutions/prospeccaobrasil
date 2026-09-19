@@ -3,7 +3,7 @@ import { useParams, Link, useLocation } from 'react-router-dom';
 import { api, fmtMoney, fmtNum, STATUS, getToken } from '../lib/api';
 
 const DOC_TIPOS = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rig', 'RIG / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Conv. condomínio'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
-const ETAPAS = ['apresentado', 'visita', 'proposta', 'negociacao', 'fechado', 'perdido'];
+const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
 
 export default function ImovelDetalhe() {
   const location = useLocation();
@@ -16,13 +16,19 @@ export default function ImovelDetalhe() {
   const [docUrl, setDocUrl] = useState('');
   const [toast, setToast] = useState('');
   const [gerando, setGerando] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const fileRef = useRef();
   const docFileRef = useRef();
 
-  const load = () => api(`/imoveis/${id}`).then(setI);
-  useEffect(() => { load(); api('/empresas').then(setEmpresas); }, [id]);
+  const load = () => api(`/imoveis/${id}`).then(setI).catch((e) => { setI(null); setLoadError(e.message); });
+  useEffect(() => {
+    setLoadError('');
+    load();
+    api('/empresas').then(setEmpresas).catch(() => setEmpresas([]));
+  }, [id]);
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
 
+  if (loadError) return <div className="empty">Erro ao carregar: {loadError}</div>;
   if (!i) return <div className="empty">Carregando…</div>;
   const custo = [i.aluguel, i.condominio, i.iptu].map(Number).filter(Boolean).reduce((a, b) => a + b, 0);
   const foto = i.fotos.find(f => f.principal) || i.fotos[0];
@@ -182,9 +188,15 @@ export default function ImovelDetalhe() {
           <button className="btn btn-primary btn-sm" onClick={addOportunidade}>Registrar apresentação</button>
         </div>
         {i.oportunidades.length > 0 && (
-          <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Etapa</th><th>Data</th></tr></thead>
+          <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Apresentação</th><th>Data</th></tr></thead>
             <tbody>{i.oportunidades.map(o => (
-              <tr key={o.id}><td>{o.empresa.nome}</td><td><span className={`badge ${o.etapa}`}>{o.etapa}</span></td><td>{new Date(o.criadoEm).toLocaleDateString('pt-BR')}</td></tr>
+              <tr key={o.id}>
+                <td>{o.empresa.nome}</td>
+                <td>{[o.empresa.contatoNome, o.empresa.telefone || o.empresa.email].filter(Boolean).join(' · ') || '—'}</td>
+                <td><span className={`badge ${o.etapa}`}>{ETAPAS[o.etapa] || o.etapa}</span></td>
+                <td><a href={`/apresentacao/${i.id}`} target="_blank" rel="noreferrer">Abrir</a></td>
+                <td>{new Date(o.criadoEm).toLocaleDateString('pt-BR')}</td>
+              </tr>
             ))}</tbody></table>
         )}
       </div>

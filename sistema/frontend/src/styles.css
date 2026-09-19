@@ -56,7 +56,8 @@ tr:hover td { background: #faf8f2; }
 .badge.disponivel { background: #dff0e2; color: #1c6b3a; }
 .badge.negociacao { background: #fdf0d5; color: #8a6116; }
 .badge.locado, .badge.vendido { background: #dbe7f3; color: #2a4d7a; }
-.badge.inativo { background: #eee; color: #777; }
+.badge.ativo { background: #dff0e2; color: #1c6b3a; }
+.badge.inativo { background: #fdf0d5; color: #8a6116; }
 .badge.apresentado { background: #e8e4f7; color: #51408f; }
 .badge.visita { background: #fdf0d5; color: #8a6116; }
 .badge.proposta { background: #dff0e2; color: #1c6b3a; }

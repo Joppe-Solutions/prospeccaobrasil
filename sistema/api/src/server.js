@@ -3,6 +3,7 @@ const path = require('path');
 const express = require('express');
 const cors = require('cors');
 const compression = require('compression');
+const multer = require('multer');
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
@@ -51,6 +52,9 @@ app.use('/api', (req, res) => res.status(404).json({ error: 'Rota não encontrad
 // eslint-disable-next-line no-unused-vars
 app.use((err, req, res, next) => {
   console.error(err);
+  if (err instanceof multer.MulterError || (err && /não permitido|File too large|Unexpected field/i.test(err.message || ''))) {
+    return res.status(400).json({ error: err.message || 'Upload inválido' });
+  }
   res.status(500).json({ error: 'Erro interno' });
 });
 
