@@ -13,33 +13,23 @@ concurrency:
 jobs:
   build-landing:
     name: Build landing
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, prospeccao-prod]
     defaults:
       run:
         working-directory: landing
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: landing/package-lock.json
-      - run: npm ci
-      - run: npm run build
+      - name: Instalar e buildar
+        run: |
+          npm ci
+          npm run build
 
   build-sistema:
     name: Build sistema (API + admin)
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64, prospeccao-prod]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-          cache: npm
-          cache-dependency-path: |
-            sistema/api/package-lock.json
-            sistema/frontend/package-lock.json
-      - name: Instalar e gerar Prisma
+      - name: Prisma generate
         working-directory: sistema/api
         run: |
           npm ci
