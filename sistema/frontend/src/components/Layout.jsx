@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  ArrowUpRight, Buildings, CaretRight, ChartPieSlice, Handshake, IdentificationCard,
+  Buildings, CaretRight, Currency, Handshake, IdentificationCard,
   List, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
@@ -13,6 +13,7 @@ const NAV = [
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
       { to: '/imoveis', label: 'Imóveis', icon: Buildings },
+      { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar },
     ],
   },
   {
@@ -52,7 +53,7 @@ export default function Layout() {
 
   const item = ({ to, label, icon: Icon }) => (
     <NavLink key={to} to={to} end={to === '/'}>
-      <Icon size={20} weight="duotone" /><span>{label}</span><CaretRight className="nav-chevron" size={13} />
+      <Icon size={18} weight="duotone" /><span>{label}</span>
     </NavLink>
   );
 
@@ -64,30 +65,29 @@ export default function Layout() {
         <button className="icon-button mobile-close" aria-label="Fechar navegação" onClick={() => setOpen(false)}><X size={20} /></button>
       </div>
       <div className="workspace-label">
-        <span className="workspace-symbol"><Buildings size={18} /></span>
+        <span className="workspace-symbol"><Buildings size={16} /></span>
         <div><strong>Espaço de trabalho</strong><span>Gestão & expansão</span></div>
         <span className="workspace-dot" />
       </div>
-      <nav aria-label="Navegação principal">
-        {NAV.map(group => (
-          <div key={group.caption} className="nav-group">
-            <span className="nav-caption">{group.caption}</span>
-            {group.items.map(navItem => item(navItem))}
-          </div>
-        ))}
-        <span className="nav-caption nav-caption-account">CONTA</span>
-        {item({ to: '/perfil', label: 'Perfil', icon: UserCircle })}
-        {u?.role === 'admin' && item({ to: '/usuarios', label: 'Usuários', icon: UsersThree })}
-      </nav>
-      <a className="sidebar-site" href="https://prospeccaobrasil.com.br" target="_blank" rel="noreferrer">
-        <span className="sidebar-site-icon"><ChartPieSlice size={23} weight="duotone" /></span>
-        <strong>Conexões que expandem<br />possibilidades.</strong>
-        <span>Conheça nosso site <ArrowUpRight size={15} /></span>
-      </a>
-      <div className="sidebar-user">
-        <Avatar name={u?.nome} />
-        <Link to="/perfil"><strong>{u?.nome || 'Minha conta'}</strong><span>{u?.role === 'admin' ? 'Administrador' : 'Equipe comercial'}</span></Link>
-        <button className="icon-button" onClick={logout} aria-label="Sair da conta" title="Sair da conta"><SignOut size={20} /></button>
+      <div className="sidebar-scroll">
+        <nav aria-label="Navegação principal">
+          {NAV.map(group => (
+            <div key={group.caption} className="nav-group">
+              <span className="nav-caption">{group.caption}</span>
+              {group.items.map(navItem => item(navItem))}
+            </div>
+          ))}
+          <span className="nav-caption nav-caption-account">CONTA</span>
+          {item({ to: '/perfil', label: 'Perfil', icon: UserCircle })}
+          {u?.role === 'admin' && item({ to: '/usuarios', label: 'Usuários', icon: UsersThree })}
+        </nav>
+      </div>
+      <div className="sidebar-footer">
+        <div className="sidebar-user">
+          <Avatar name={u?.nome} size={34} />
+          <Link to="/perfil"><strong>{u?.nome || 'Minha conta'}</strong><span>{u?.role === 'admin' ? 'Administrador' : 'Equipe comercial'}</span></Link>
+          <button className="icon-button" onClick={logout} aria-label="Sair da conta" title="Sair da conta"><SignOut size={18} /></button>
+        </div>
       </div>
     </aside>
     <div className="workspace-main">

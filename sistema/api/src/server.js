@@ -44,6 +44,7 @@ app.use('/api/proprietarios', require('./routes/proprietarios')(prisma));
 app.use('/api/parceiros', require('./routes/parceiros')(prisma));
 app.use('/api/imoveis', require('./routes/imoveis')(prisma));
 app.use('/api/oportunidades', require('./routes/oportunidades')(prisma));
+app.use('/api/financeiro', require('./routes/financeiro')(prisma));
 app.use('/api/dashboard', require('./routes/dashboard')(prisma));
 app.use('/api/usuarios', require('./routes/usuarios')(prisma));
 app.use('/api/public', require('./routes/public')(prisma));

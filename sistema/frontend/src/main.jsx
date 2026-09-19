@@ -24,6 +24,7 @@ import Proprietarios from './pages/Proprietarios';
 import Parceiros from './pages/Parceiros';
 import Leads from './pages/Leads';
 import Oportunidades from './pages/Oportunidades';
+import Financeiro from './pages/Financeiro';
 import Perfil from './pages/Perfil';
 import Usuarios from './pages/Usuarios';
 
@@ -48,6 +49,7 @@ function App() {
         <Route path="parceiros" element={<Parceiros />} />
         <Route path="leads" element={<Leads />} />
         <Route path="oportunidades" element={<Oportunidades />} />
+        <Route path="financeiro" element={<Financeiro />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="usuarios" element={<Usuarios />} />
       </Route>
