@@ -1,0 +1,142 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Usuario {
+  id        Int      @id @default(autoincrement())
+  nome      String
+  email     String   @unique
+  senhaHash String   @map("senha_hash")
+  role      String   @default("admin")
+  ativo     Boolean  @default(true)
+  criadoEm  DateTime @default(now()) @map("criado_em")
+
+  @@map("usuarios")
+}
+
+model Empresa {
+  id             Int       @id @default(autoincrement())
+  nome           String
+  segmento       String?
+  cnpj           String?
+  site           String?
+  telefone       String?
+  email          String?
+  contatoNome    String?   @map("contato_nome")
+  contatoCargo   String?   @map("contato_cargo")
+  cidade         String?
+  uf             String?
+  perfilLoja     String?   @map("perfil_loja")
+  areaMinima     Decimal?  @map("area_minima")
+  areaMaxima     Decimal?  @map("area_maxima")
+  regioesInteresse String? @map("regioes_interesse")
+  observacoes    String?
+  status         String    @default("ativo")
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
+  oportunidades  Oportunidade[]
+
+  @@map("empresas")
+}
+
+model Imovel {
+  id              Int      @id @default(autoincrement())
+  codigo          String   @unique
+  titulo          String?
+  tipo            String   @default("locacao") // locacao | venda
+  status          String   @default("disponivel") // disponivel | negociacao | locado | vendido | inativo
+  endereco        String
+  numero          String?
+  complemento     String?
+  bairro          String?
+  cidade          String
+  uf              String   @default("RJ")
+  cep             String?
+  latitude        Float?
+  longitude       Float?
+  areaTotal       Decimal? @map("area_total")
+  areaUtil        Decimal? @map("area_util")
+  pisoAreaVenda   Decimal? @map("piso_area_venda")
+  jirau           Decimal?
+  mezanino        Decimal?
+  peDireito       Decimal? @map("pe_direito")
+  frenteImovel    Decimal? @map("frente_imovel")
+  cdu             Decimal?
+  aluguel         Decimal?
+  condominio      Decimal?
+  iptu            Decimal?
+  precoVenda      Decimal? @map("preco_venda")
+  periodoContrato String?  @map("periodo_contrato")
+  proprietario    String?
+  telProprietario String?  @map("tel_proprietario")
+  googleMapsUrl   String?  @map("google_maps_url")
+  googleDriveUrl  String?  @map("google_drive_url")
+  descricao       String?
+  observacoes     String?
+  criadoEm        DateTime @default(now()) @map("criado_em")
+  atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+  fotos           ImovelFoto[]
+  documentos      ImovelDocumento[]
+  analises        AnaliseMercado[]
+  oportunidades   Oportunidade[]
+
+  @@map("imoveis")
+}
+
+model ImovelFoto {
+  id        Int      @id @default(autoincrement())
+  imovelId  Int      @map("imovel_id")
+  arquivo   String
+  legenda   String?
+  ordem     Int      @default(0)
+  principal Boolean  @default(false)
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  imovel    Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@map("imovel_fotos")
+}
+
+model ImovelDocumento {
+  id        Int      @id @default(autoincrement())
+  imovelId  Int      @map("imovel_id")
+  tipo      String // planta | inteligencia | pre_analise | rig | avcb | convencao | iptu_doc | outro
+  nome      String
+  url       String?
+  arquivo   String?
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  imovel    Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@map("imovel_documentos")
+}
+
+model AnaliseMercado {
+  id           Int      @id @default(autoincrement())
+  imovelId     Int      @map("imovel_id")
+  score        Int?
+  resumo       String?
+  conteudoJson String?  @map("conteudo_json")
+  modelo       String   @default("motor-interno")
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  imovel       Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@map("analises_mercado")
+}
+
+model Oportunidade {
+  id         Int      @id @default(autoincrement())
+  imovelId   Int      @map("imovel_id")
+  empresaId  Int      @map("empresa_id")
+  etapa      String   @default("apresentado") // apresentado | visita | proposta | negociacao | fechado | perdido
+  observacao String?
+  criadoEm   DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  imovel     Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+
+  @@map("oportunidades")
+}

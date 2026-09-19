@@ -1,0 +1,193 @@
+import { useEffect, useRef, useState } from 'react';
+import { useParams, Link, useLocation } from 'react-router-dom';
+import { api, fmtMoney, fmtNum, STATUS, getToken } from '../lib/api';
+
+const DOC_TIPOS = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rig', 'RIG / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Conv. condomínio'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
+const ETAPAS = ['apresentado', 'visita', 'proposta', 'negociacao', 'fechado', 'perdido'];
+
+export default function ImovelDetalhe() {
+  const location = useLocation();
+  const { id } = useParams();
+  const [i, setI] = useState(null);
+  const [empresas, setEmpresas] = useState([]);
+  const [empSel, setEmpSel] = useState('');
+  const [docTipo, setDocTipo] = useState('planta');
+  const [docNome, setDocNome] = useState('');
+  const [docUrl, setDocUrl] = useState('');
+  const [toast, setToast] = useState('');
+  const [gerando, setGerando] = useState(false);
+  const fileRef = useRef();
+  const docFileRef = useRef();
+
+  const load = () => api(`/imoveis/${id}`).then(setI);
+  useEffect(() => { load(); api('/empresas').then(setEmpresas); }, [id]);
+  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
+
+  if (!i) return <div className="empty">Carregando…</div>;
+  const custo = [i.aluguel, i.condominio, i.iptu].map(Number).filter(Boolean).reduce((a, b) => a + b, 0);
+  const foto = i.fotos.find(f => f.principal) || i.fotos[0];
+  const analise = i.analises[0];
+  const ai = analise?.conteudoJson ? JSON.parse(analise.conteudoJson) : null;
+
+  async function uploadFotos(e) {
+    const fd = new FormData();
+    [...e.target.files].forEach(f => fd.append('fotos', f));
+    await fetch(`/api/imoveis/${id}/fotos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
+    load(); flash('Fotos enviadas');
+  }
+  async function addDoc(e) {
+    e.preventDefault();
+    const fd = new FormData();
+    fd.append('tipo', docTipo); fd.append('nome', docNome); fd.append('url', docUrl);
+    if (docFileRef.current.files[0]) fd.append('arquivo', docFileRef.current.files[0]);
+    await fetch(`/api/imoveis/${id}/documentos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
+    setDocNome(''); setDocUrl(''); docFileRef.current.value = '';
+    load(); flash('Documento adicionado');
+  }
+  async function gerarIA() {
+    setGerando(true);
+    await api(`/imoveis/${id}/analise`, { method: 'POST' });
+    await load(); setGerando(false); flash('Análise gerada');
+  }
+  async function addOportunidade() {
+    if (!empSel) return;
+    await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel }) });
+    setEmpSel(''); load(); flash('Imóvel apresentado à empresa');
+  }
+
+  return (
+    <>
+      {toast && <div className="toast">{toast}</div>}
+      <div className="page-head">
+        <h1>{i.codigo} — {i.endereco}{i.numero ? `, ${i.numero}` : ''}</h1>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <a className="btn btn-gold" href={`/apresentacao/${i.id}`} target="_blank">Apresentação (PDF)</a>
+          <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(`${location.origin}/apresentacao/${i.id}`); flash('Link público copiado'); }}>Copiar link</button>
+          <Link className="btn btn-ghost" to={`/imoveis/${i.id}/editar`} state={{ backgroundLocation: location }}>Editar</Link>
+        </div>
+      </div>
+
+      <div className="panel"><div className="detail-head">
+        {foto ? <img className="detail-photo" src={`/uploads/${foto.arquivo}`} /> : <div className="detail-photo" />}
+        <div className="detail-info">
+          <h1>{i.titulo || `${i.endereco}${i.numero ? `, ${i.numero}` : ''}`}</h1>
+          <div className="sub">{[i.bairro, i.cidade].filter(Boolean).join(' – ')} – {i.uf}{i.cep ? ` · CEP ${i.cep}` : ''}</div>
+          <div className="chips">
+            <span className={`badge ${i.status}`}>{STATUS[i.status]}</span>
+            <span className="badge disponivel">{i.tipo === 'venda' ? 'VENDA' : 'LOCAÇÃO'}</span>
+            {i.periodoContrato && <span className="badge negociacao">{i.periodoContrato}</span>}
+          </div>
+          <p style={{ marginTop: 14, fontSize: 14 }}>
+            Área total <b>{fmtNum(i.areaTotal, 'm²')}</b> · Custo total <b>{fmtMoney(custo)}</b>{i.tipo === 'venda' && <> · Venda <b>{fmtMoney(i.precoVenda)}</b></>}
+          </p>
+          {i.descricao && <p className="muted" style={{ marginTop: 10 }}>{i.descricao}</p>}
+        </div>
+      </div></div>
+
+      <div className="panel">
+        <h2>Dimensões e termos</h2>
+        <div className="form-grid">
+          {[['Piso (venda)', fmtNum(i.pisoAreaVenda, 'm²')], ['Jirau', fmtNum(i.jirau, 'm²')], ['Mezanino', fmtNum(i.mezanino, 'm²')], ['Pé direito', fmtNum(i.peDireito, 'mts')],
+            ['Frente', fmtNum(i.frenteImovel, 'mts')], ['Aluguel', fmtMoney(i.aluguel)], ['Condomínio', fmtMoney(i.condominio)], ['IPTU', fmtMoney(i.iptu)], ['CDU', fmtMoney(i.cdu)]]
+            .map(([l, v]) => <div key={l} className="field"><label>{l}</label><div style={{ fontWeight: 700 }}>{v}</div></div>)}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h2 style={{ margin: 0 }}>Fotos</h2>
+          <button className="btn btn-ghost btn-sm" onClick={() => fileRef.current.click()}>+ Enviar fotos</button>
+          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={uploadFotos} />
+        </div>
+        <div className="fotos-grid">
+          {i.fotos.map(f => (
+            <div className="f" key={f.id}>
+              <img src={`/uploads/${f.arquivo}`} />
+              {f.principal && <span className="principal-tag">PRINCIPAL</span>}
+              <div className="acts">
+                <button onClick={() => api(`/imoveis/${id}/fotos/${f.id}/principal`, { method: 'POST' }).then(load)}>★</button>
+                <button onClick={() => api(`/imoveis/${id}/fotos/${f.id}`, { method: 'DELETE' }).then(load)}>✕</button>
+              </div>
+            </div>
+          ))}
+        </div>
+        {!i.fotos.length && <div className="empty">Sem fotos. Envie a fachada e internas.</div>}
+      </div>
+
+      <div className="panel">
+        <h2>Documentos</h2>
+        <form onSubmit={addDoc} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <select value={docTipo} onChange={e => setDocTipo(e.target.value)}>{DOC_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
+          <input placeholder="Nome (opcional)" value={docNome} onChange={e => setDocNome(e.target.value)} />
+          <input placeholder="URL (opcional)" value={docUrl} onChange={e => setDocUrl(e.target.value)} />
+          <input ref={docFileRef} type="file" />
+          <button className="btn btn-ghost btn-sm">Adicionar</button>
+        </form>
+        <table><tbody>
+          {i.documentos.map(d => (
+            <tr key={d.id}>
+              <td><b>{DOC_TIPOS.find(t => t[0] === d.tipo)?.[1] || d.tipo}</b></td>
+              <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}`} target="_blank">{d.nome}</a> : d.nome}</td>
+              <td style={{ width: 60 }}><button className="btn btn-danger btn-sm" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
+            </tr>
+          ))}
+        </tbody></table>
+      </div>
+
+      <div className="panel ai-box">
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+          <h2>Inteligência de mercado</h2>
+          <button className="btn btn-gold btn-sm" onClick={gerarIA} disabled={gerando}>{gerando ? 'Gerando…' : analise ? 'Regenerar análise' : 'Gerar análise'}</button>
+        </div>
+        {analise ? (
+          <div style={{ display: 'flex', gap: 22, marginTop: 16 }}>
+            <div className="score-ring" style={{ background: `conic-gradient(#e8b84b ${analise.score}%, rgba(255,255,255,.15) 0)` }}>
+              <span style={{ background: '#12312d', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{analise.score}</span>
+            </div>
+            <div style={{ flex: 1 }}>
+              <p>{analise.resumo}</p>
+              <h4 style={{ marginTop: 12, color: '#8fd8b8' }}>Pontos fortes</h4>
+              <ul>{ai.pontosFortes.map((p, x) => <li key={x}>{p}</li>)}</ul>
+              <h4 style={{ color: '#f2c96d' }}>Atenção</h4>
+              <ul>{ai.pontosAtencao.map((p, x) => <li key={x}>{p}</li>)}</ul>
+              <h4 style={{ color: '#8fd8b8' }}>Segmentos recomendados</h4>
+              <div>{ai.segmentosRecomendados.map((s, x) => <span className="tag" key={x}>{s}</span>)}</div>
+              <p style={{ marginTop: 12, fontSize: 13, opacity: .85 }}>{ai.recomendacao} · <i>modelo: {analise.modelo}</i></p>
+            </div>
+          </div>
+        ) : <p className="muted" style={{ marginTop: 10, color: '#9fbfb1' }}>Gere a análise automática deste ponto — score, pontos fortes e segmentos recomendados.</p>}
+      </div>
+
+      <div className="panel">
+        <h2>Apresentar para empresa</h2>
+        <div style={{ display: 'flex', gap: 10 }}>
+        {(() => {
+          const area = Number(i.areaTotal) || 0;
+          const regiao = `${i.bairro || ''} ${i.cidade || ''}`.toLowerCase();
+          const score = (e) => {
+            let s = 0;
+            if (e.areaMinima && area < e.areaMinima) return -1;
+            if (e.areaMaxima && area > e.areaMaxima) return -1;
+            if (e.areaMinima || e.areaMaxima) s += 2;
+            if (e.regioesInteresse && regiao.split(' ').some(w => w.length > 3 && e.regioesInteresse.toLowerCase().includes(w))) s += 2;
+            return s;
+          };
+          const ordenadas = [...empresas].sort((a, b) => score(b) - score(a));
+          return (
+          <select value={empSel} onChange={e => setEmpSel(e.target.value)} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--line)' }}>
+            <option value="">Selecionar empresa…</option>
+            {ordenadas.map(e => <option key={e.id} value={e.id}>{score(e) > 0 ? '★ ' : score(e) < 0 ? '⚠ ' : ''}{e.nome} — {e.segmento || 'sem segmento'}{e.areaMinima || e.areaMaxima ? ` (${e.areaMinima || 0}–${e.areaMaxima || '∞'} m²)` : ''}</option>)}
+          </select>);
+        })()}
+          <button className="btn btn-primary btn-sm" onClick={addOportunidade}>Registrar apresentação</button>
+        </div>
+        {i.oportunidades.length > 0 && (
+          <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Etapa</th><th>Data</th></tr></thead>
+            <tbody>{i.oportunidades.map(o => (
+              <tr key={o.id}><td>{o.empresa.nome}</td><td><span className={`badge ${o.etapa}`}>{o.etapa}</span></td><td>{new Date(o.criadoEm).toLocaleDateString('pt-BR')}</td></tr>
+            ))}</tbody></table>
+        )}
+      </div>
+    </>
+  );
+}

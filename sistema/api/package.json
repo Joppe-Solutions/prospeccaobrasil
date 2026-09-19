@@ -1,0 +1,32 @@
+{
+  "name": "prospeccao-sistema-api",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API do sistema interno Prospecção Brasil",
+  "main": "src/server.js",
+  "scripts": {
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "prisma:generate": "prisma generate",
+    "migrate": "prisma migrate deploy",
+    "seed": "node prisma/seed.js"
+  },
+  "dependencies": {
+    "@prisma/client": "6.19.3",
+    "bcryptjs": "2.4.3",
+    "compression": "1.7.5",
+    "cors": "2.8.5",
+    "dotenv": "16.4.5",
+    "express": "4.19.2",
+    "jsonwebtoken": "9.0.2",
+    "multer": "1.4.5-lts.2",
+    "qrcode": "1.5.4"
+  },
+  "devDependencies": {
+    "nodemon": "3.1.4",
+    "prisma": "6.19.3"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.js"
+  }
+}

@@ -1,0 +1,27 @@
+.DS_Store
+*.log
+.env
+.env.*
+!.env.example
+
+# Node
+node_modules/
+dist/
+playwright-report/
+test-results/
+
+# Sistema
+sistema/api/public/
+sistema/api/uploads/*
+!sistema/api/uploads/.gitkeep
+sistema/**/*.db
+sistema/**/*.db-journal
+sistema/**/*.db-*
+
+# Local tooling
+.cursor/
+canvases/
+*.pem
+*.key
+SSHPASS
+.sshpass

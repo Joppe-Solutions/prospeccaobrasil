@@ -1,0 +1,24 @@
+{
+  "name": "prospeccao-brasil-landing",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "vite build",
+    "preview": "vite preview --host 127.0.0.1",
+    "test:e2e": "playwright test"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "@fontsource/inter": "5.2.5",
+    "@fontsource/montserrat": "5.2.5",
+    "@fontsource/cormorant-garamond": "5.2.5"
+  },
+  "devDependencies": {
+    "vite": "5.4.21",
+    "@vitejs/plugin-react": "4.3.4",
+    "@playwright/test": "1.58.2"
+  }
+}

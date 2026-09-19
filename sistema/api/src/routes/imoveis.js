@@ -1,0 +1,131 @@
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
+const auth = require('../middleware/auth');
+const { gerarAnalise } = require('../services/inteligencia');
+
+module.exports = (prisma) => {
+  const r = express.Router();
+  const uploadDir = path.join(__dirname, '..', '..', 'uploads');
+  const upload = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (req, file, cb) => cb(null, `${Date.now()}-${Math.random().toString(36).slice(2, 8)}${path.extname(file.originalname).toLowerCase()}`),
+    }),
+    limits: { fileSize: 15 * 1024 * 1024 },
+  });
+
+  const num = (v) => (v === '' || v === undefined || v === null ? null : Number(v));
+  const sanitize = (b) => {
+    const d = { ...b };
+    ['areaTotal','areaUtil','pisoAreaVenda','jirau','mezanino','peDireito','frenteImovel','cdu','aluguel','condominio','iptu','precoVenda','latitude','longitude']
+      .forEach(k => { if (k in d) d[k] = num(d[k]); });
+    return d;
+  };
+
+  r.use(auth);
+
+  r.get('/', async (req, res) => {
+    const { q, status, tipo, cidade } = req.query;
+    const where = {};
+    if (status) where.status = status;
+    if (tipo) where.tipo = tipo;
+    if (cidade) where.cidade = { contains: cidade };
+    if (q) where.OR = [
+      { codigo: { contains: q } }, { endereco: { contains: q } },
+      { bairro: { contains: q } }, { titulo: { contains: q } }, { cidade: { contains: q } },
+    ];
+    res.json(await prisma.imovel.findMany({
+      where, orderBy: { criadoEm: 'desc' },
+      include: { fotos: { where: { principal: true }, take: 1 }, _count: { select: { fotos: true, documentos: true } } },
+    }));
+  });
+
+  r.get('/:id', async (req, res) => {
+    const i = await prisma.imovel.findUnique({
+      where: { id: +req.params.id },
+      include: {
+        fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] },
+        documentos: { orderBy: { criadoEm: 'desc' } },
+        analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
+        oportunidades: { include: { empresa: true }, orderBy: { criadoEm: 'desc' } },
+      },
+    });
+    if (!i) return res.status(404).json({ error: 'Não encontrado' });
+    res.json(i);
+  });
+
+  r.post('/', async (req, res) => {
+    const d = sanitize(req.body);
+    if (!d.codigo) {
+      const n = await prisma.imovel.count();
+      d.codigo = `PB-${String(n + 1).padStart(3, '0')}`;
+    }
+    res.json(await prisma.imovel.create({ data: d }));
+  });
+
+  r.put('/:id', async (req, res) => {
+    res.json(await prisma.imovel.update({ where: { id: +req.params.id }, data: sanitize(req.body) }));
+  });
+
+  r.delete('/:id', async (req, res) => {
+    await prisma.imovel.delete({ where: { id: +req.params.id } });
+    res.json({ ok: true });
+  });
+
+  // Fotos
+  r.post('/:id/fotos', upload.array('fotos', 10), async (req, res) => {
+    const id = +req.params.id;
+    const count = await prisma.imovelFoto.count({ where: { imovelId: id } });
+    const criadas = await Promise.all((req.files || []).map((f, idx) =>
+      prisma.imovelFoto.create({
+        data: { imovelId: id, arquivo: f.filename, ordem: count + idx, principal: count === 0 && idx === 0, legenda: req.body.legenda || null },
+      })));
+    res.json(criadas);
+  });
+
+  r.delete('/:id/fotos/:fotoId', async (req, res) => {
+    const f = await prisma.imovelFoto.findUnique({ where: { id: +req.params.fotoId } });
+    if (f) {
+      try { fs.unlinkSync(path.join(uploadDir, f.arquivo)); } catch {}
+      await prisma.imovelFoto.delete({ where: { id: f.id } });
+    }
+    res.json({ ok: true });
+  });
+
+  r.post('/:id/fotos/:fotoId/principal', async (req, res) => {
+    const imovelId = +req.params.id;
+    await prisma.imovelFoto.updateMany({ where: { imovelId }, data: { principal: false } });
+    res.json(await prisma.imovelFoto.update({ where: { id: +req.params.fotoId }, data: { principal: true } }));
+  });
+
+  // Documentos (links ou arquivos)
+  r.post('/:id/documentos', upload.single('arquivo'), async (req, res) => {
+    const { tipo, nome, url } = req.body;
+    res.json(await prisma.imovelDocumento.create({
+      data: { imovelId: +req.params.id, tipo: tipo || 'outro', nome: nome || req.file?.originalname || url || 'Documento', url: url || null, arquivo: req.file?.filename || null },
+    }));
+  });
+
+  r.delete('/:id/documentos/:docId', async (req, res) => {
+    const d = await prisma.imovelDocumento.findUnique({ where: { id: +req.params.docId } });
+    if (d) {
+      if (d.arquivo) { try { fs.unlinkSync(path.join(uploadDir, d.arquivo)); } catch {} }
+      await prisma.imovelDocumento.delete({ where: { id: d.id } });
+    }
+    res.json({ ok: true });
+  });
+
+  // Inteligência de mercado
+  r.post('/:id/analise', async (req, res) => {
+    const i = await prisma.imovel.findUnique({ where: { id: +req.params.id } });
+    if (!i) return res.status(404).json({ error: 'Não encontrado' });
+    const a = await gerarAnalise(i);
+    res.json(await prisma.analiseMercado.create({
+      data: { imovelId: i.id, score: a.score, resumo: a.resumo, conteudoJson: JSON.stringify(a.conteudo), modelo: a.modelo },
+    }));
+  });
+
+  return r;
+};

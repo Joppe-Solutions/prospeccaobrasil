@@ -1,0 +1,77 @@
+name: Deploy produção
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy VPS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            landing/package-lock.json
+            sistema/api/package-lock.json
+            sistema/frontend/package-lock.json
+
+      - name: Instalar sshpass
+        run: sudo apt-get update && sudo apt-get install -y sshpass
+
+      - name: Build landing
+        working-directory: landing
+        run: npm ci && npm run build
+
+      - name: Build sistema (admin + API public)
+        run: |
+          cd sistema/frontend && npm ci && npm run build
+          cd ../api && npm ci && npx prisma generate
+          rm -rf public && cp -R ../frontend/dist public
+
+      - name: Deploy landing
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          RSYNC_SSH="sshpass -e ssh -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password -o PubkeyAuthentication=no"
+          rsync -az --delete \
+            -e "$RSYNC_SSH" \
+            landing/dist/ \
+            "${SSH_USER}@${SSH_HOST}:/var/www/prospeccaobrasil-landing/"
+
+      - name: Deploy sistema
+        env:
+          SSHPASS: ${{ secrets.SSH_PASSWORD }}
+          SSH_HOST: ${{ secrets.SSH_HOST }}
+          SSH_USER: ${{ secrets.SSH_USER }}
+        run: |
+          set -euo pipefail
+          RSYNC_SSH="sshpass -e ssh -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password -o PubkeyAuthentication=no"
+          rsync -az \
+            --exclude node_modules \
+            --exclude .env \
+            --exclude 'prisma/*.db*' \
+            --exclude 'uploads/*' \
+            -e "$RSYNC_SSH" \
+            sistema/api/ \
+            "${SSH_USER}@${SSH_HOST}:/opt/prospeccao-sistema/"
+          sshpass -e ssh -o StrictHostKeyChecking=accept-new -o PreferredAuthentications=password -o PubkeyAuthentication=no \
+            "${SSH_USER}@${SSH_HOST}" \
+            "cd /opt/prospeccao-sistema && npm install --omit=dev && npx prisma generate && npx prisma migrate deploy && systemctl restart prospeccao-sistema && sleep 2 && curl -sf http://127.0.0.1:8090/api/healthz"
+
+      - name: Smoke checks
+        run: |
+          curl -sfI https://prospeccaobrasil.com.br/ | head -5
+          curl -sf https://sistema.prospeccaobrasil.com.br/api/healthz

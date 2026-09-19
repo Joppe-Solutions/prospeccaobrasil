@@ -1,0 +1,22 @@
+// Segment names and positioning recovered from the original institutional site.
+export const segments = [
+  { name: 'Fast Food', icon: 'ph-hamburger', text: 'Redes de alimentação rápida e QSR, com foco em fluxo de pessoas e acessibilidade.', criteria: ['Fluxo de pessoas', 'Acessibilidade', 'Operação da loja'] },
+  { name: 'Supermercados e Atacarejos', icon: 'ph-shopping-cart', text: 'Grandes superfícies varejistas de alimentação, com requisitos de estacionamento e logística.', criteria: ['Área de loja', 'Estacionamento', 'Logística'] },
+  { name: 'Farmácias', icon: 'ph-pill', text: 'Redes de farmácias e drogarias, com foco em densidade demográfica e competição local.', criteria: ['Densidade demográfica', 'Concorrência local', 'Visibilidade'] },
+  { name: 'Eletroeletrônicos e Móveis', icon: 'ph-television', text: 'Redes de eletrônicos, móveis e eletrodomésticos, com requisitos de área e visibilidade.', criteria: ['Área disponível', 'Visibilidade', 'Acesso'] },
+  { name: 'Petshops', icon: 'ph-paw-print', text: 'Lojas e serviços veterinários conectados ao perfil de consumo e à rotina de cada bairro.', criteria: ['Perfil do entorno', 'Conveniência', 'Acesso'] },
+  { name: 'Utilidades e Varejo Geral', icon: 'ph-storefront', text: 'Redes de utilidades, variedades e varejo geral, com mix diversificado de produtos.', criteria: ['Fluxo comercial', 'Mix de produtos', 'Público local'] },
+  { name: 'Bijuterias e Semijoias', icon: 'ph-diamond', text: 'Lojas de bijuterias, semijoias e acessórios, com foco em vitrine, fluxo e perfil de consumo.', criteria: ['Vitrine e visibilidade', 'Perfil de consumo', 'Fluxo de pessoas'] },
+  { name: 'Concessionárias', icon: 'ph-car-profile', text: 'Lojas e showrooms de veículos, com requisitos de área, frente ampla e acesso viário.', criteria: ['Área e frente do imóvel', 'Acesso viário', 'Tráfego de veículos'] },
+  { name: 'Empórios e Produtos Naturais', icon: 'ph-grains', text: 'Redes varejistas especializadas em produtos naturais, grãos, temperos, cereais, frutas secas, suplementos e alimentos a granel, com grande variedade e atendimento próximo.', criteria: ['Público saudável do entorno', 'Conveniência', 'Mix a granel'] },
+  { name: 'Serviços Financeiros', icon: 'ph-bank', text: 'Bancos, financeiras e correspondentes, com foco em segurança e fluxo de clientes.', criteria: ['Segurança', 'Fluxo de clientes', 'Acessibilidade'] },
+  { name: 'Cafeterias', icon: 'ph-coffee', text: 'Redes de cafeterias e coffee shops, com foco em localização e perfil do público.', criteria: ['Hábitos de consumo', 'Polos geradores', 'Localização'] },
+  { name: 'Moda e Acessórios', icon: 'ph-t-shirt', text: 'Redes de vestuário, calçados e acessórios, com estudos de perfil de consumidor por região.', criteria: ['Perfil do consumidor', 'Mix do entorno', 'Fluxo de pessoas'] },
+  { name: 'Beleza e Cosméticos', icon: 'ph-sparkle', text: 'Franquias de cosméticos, perfumarias e serviços de beleza em shoppings e ruas de alto fluxo.', criteria: ['Público da marca', 'Fluxo comercial', 'Vizinhança'] },
+  { name: 'Óticas', icon: 'ph-eyeglasses', text: 'Redes de óticas e óculos de sol em centros comerciais e pontos de conveniência.', criteria: ['Centros comerciais', 'Conveniência', 'Visibilidade'] },
+  { name: 'Materiais de Construção', icon: 'ph-wall', text: 'Lojas de material de construção e acabamento, com análise de acesso para carga e profissionais.', criteria: ['Carga e descarga', 'Acesso viário', 'Área disponível'] },
+  { name: 'Automotivo e Pneus', icon: 'ph-car', text: 'Centros automotivos, lojas de pneus e acessórios com foco em estacionamento e tráfego.', criteria: ['Tráfego de veículos', 'Estacionamento', 'Operação'] },
+  { name: 'Livrarias e Papelaria', icon: 'ph-book', text: 'Papelarias, livrarias e produtos de escritório em regiões com alta densidade escolar.', criteria: ['Polos educacionais', 'Público local', 'Conveniência'] },
+  { name: 'Academias e Fitness', icon: 'ph-barbell', text: 'Redes de academias e boxes de treinamento, considerando acessibilidade e concentração do público-alvo.', criteria: ['Público-alvo', 'Acessibilidade', 'Estrutura do imóvel'] },
+  { name: 'Conveniência', icon: 'ph-gas-pump', text: 'Minimercados e lojas de conveniência em postos, condomínios e regiões residenciais.', criteria: ['Rotina do entorno', 'Acesso', 'Proximidade'] },
+];

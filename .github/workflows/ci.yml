@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-landing:
+    name: Build landing
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: landing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: landing/package-lock.json
+      - run: npm ci
+      - run: npm run build
+
+  build-sistema:
+    name: Build sistema (API + admin)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: |
+            sistema/api/package-lock.json
+            sistema/frontend/package-lock.json
+      - name: Instalar e gerar Prisma
+        working-directory: sistema/api
+        run: |
+          npm ci
+          npx prisma generate
+      - name: Build admin
+        working-directory: sistema/frontend
+        run: |
+          npm ci
+          npm run build
+      - name: Embutir SPA em api/public
+        run: |
+          rm -rf sistema/api/public
+          cp -R sistema/frontend/dist sistema/api/public
