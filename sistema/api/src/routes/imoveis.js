@@ -15,18 +15,19 @@ const ALLOWED_MIME = new Set([
 const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.pdf']);
 
 const IMOVEL_FIELDS = [
-  'codigo', 'titulo', 'tipo', 'status', 'endereco', 'numero', 'complemento',
+  'codigo', 'titulo', 'tipo', 'categoria', 'status', 'endereco', 'numero', 'complemento',
   'bairro', 'cidade', 'uf', 'cep', 'latitude', 'longitude',
   'areaTotal', 'areaUtil', 'pisoAreaVenda', 'jirau', 'mezanino', 'peDireito',
   'frenteImovel', 'cdu', 'aluguel', 'condominio', 'iptu', 'precoVenda',
-  'periodoContrato', 'proprietario', 'telProprietario', 'googleMapsUrl',
-  'googleDriveUrl', 'descricao', 'observacoes',
+  'periodoContrato', 'proprietario', 'telProprietario', 'proprietarioId', 'parceiroId',
+  'googleMapsUrl', 'googleDriveUrl', 'descricao', 'observacoes',
 ];
 const NUM_FIELDS = new Set([
   'areaTotal', 'areaUtil', 'pisoAreaVenda', 'jirau', 'mezanino', 'peDireito',
   'frenteImovel', 'cdu', 'aluguel', 'condominio', 'iptu', 'precoVenda',
   'latitude', 'longitude',
 ]);
+const ID_FIELDS = new Set(['proprietarioId', 'parceiroId']);
 
 module.exports = (prisma) => {
   const r = express.Router();
@@ -52,7 +53,8 @@ module.exports = (prisma) => {
     const d = {};
     for (const k of IMOVEL_FIELDS) {
       if (Object.prototype.hasOwnProperty.call(body, k)) {
-        d[k] = NUM_FIELDS.has(k) ? num(body[k]) : body[k];
+        if (NUM_FIELDS.has(k) || ID_FIELDS.has(k)) d[k] = num(body[k]);
+        else d[k] = body[k];
       }
     }
     return d;
@@ -61,10 +63,11 @@ module.exports = (prisma) => {
   r.use(auth);
 
   r.get('/', asyncHandler(async (req, res) => {
-    const { q, status, tipo, cidade } = req.query;
+    const { q, status, tipo, cidade, categoria } = req.query;
     const where = {};
     if (status) where.status = status;
     if (tipo) where.tipo = tipo;
+    if (categoria) where.categoria = categoria;
     if (cidade) where.cidade = { contains: cidade };
     if (q) where.OR = [
       { codigo: { contains: q } }, { endereco: { contains: q } },
@@ -72,7 +75,12 @@ module.exports = (prisma) => {
     ];
     res.json(await prisma.imovel.findMany({
       where, orderBy: { criadoEm: 'desc' },
-      include: { fotos: { where: { principal: true }, take: 1 }, _count: { select: { fotos: true, documentos: true } } },
+      include: {
+        fotos: { where: { principal: true }, take: 1 },
+        proprietarioRel: { select: { id: true, nome: true } },
+        parceiro: { select: { id: true, nome: true } },
+        _count: { select: { fotos: true, documentos: true } },
+      },
     }));
   }));
 
@@ -84,6 +92,9 @@ module.exports = (prisma) => {
         documentos: { orderBy: { criadoEm: 'desc' } },
         analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
         oportunidades: { include: { empresa: true }, orderBy: { criadoEm: 'desc' } },
+        despesas: { orderBy: { criadoEm: 'desc' } },
+        proprietarioRel: true,
+        parceiro: true,
       },
     });
     if (!i) return res.status(404).json({ error: 'Não encontrado' });
@@ -153,6 +164,39 @@ module.exports = (prisma) => {
       if (d.arquivo) { try { fs.unlinkSync(path.join(uploadDir, d.arquivo)); } catch {} }
       await prisma.imovelDocumento.delete({ where: { id: d.id } });
     }
+    res.json({ ok: true });
+  }));
+
+  // Despesas
+  r.get('/:id/despesas', asyncHandler(async (req, res) => {
+    res.json(await prisma.imovelDespesa.findMany({
+      where: { imovelId: +req.params.id },
+      orderBy: { criadoEm: 'desc' },
+    }));
+  }));
+
+  r.post('/:id/despesas', asyncHandler(async (req, res) => {
+    const imovelId = +req.params.id;
+    const imovel = await prisma.imovel.findUnique({ where: { id: imovelId } });
+    if (!imovel) return res.status(404).json({ error: 'Imóvel não encontrado' });
+    const { descricao, valor, data } = req.body || {};
+    if (!descricao) return res.status(400).json({ error: 'Descrição obrigatória' });
+    const v = num(valor);
+    if (v == null || Number.isNaN(v)) return res.status(400).json({ error: 'Valor obrigatório' });
+    res.json(await prisma.imovelDespesa.create({
+      data: {
+        imovelId,
+        descricao,
+        valor: v,
+        data: data ? new Date(data) : null,
+      },
+    }));
+  }));
+
+  r.delete('/:id/despesas/:despesaId', asyncHandler(async (req, res) => {
+    const imovelId = +req.params.id;
+    const d = await prisma.imovelDespesa.findFirst({ where: { id: +req.params.despesaId, imovelId } });
+    if (d) await prisma.imovelDespesa.delete({ where: { id: d.id } });
     res.json({ ok: true });
   }));
 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Handshake, PencilSimple, Plus, Presentation, Trash, WarningCircle } from '@phosphor-icons/react';
+import { ArrowRight, CheckCircle, Handshake, MapPin, PencilSimple, Plus, Presentation, Trash, WarningCircle } from '@phosphor-icons/react';
 import { api } from '../lib/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -16,6 +16,7 @@ export default function Oportunidades() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [stage, setStage] = useState('');
+  const [bairro, setBairro] = useState('');
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY);
   const [options, setOptions] = useState({ imoveis: [], empresas: [] });
@@ -57,16 +58,21 @@ export default function Oportunidades() {
     try { await api(`/oportunidades/${deleting.id}`, { method: 'DELETE' }); setDeleting(null); setNotice('Oportunidade excluída.'); await load(); }
     catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
-  const filtered = useMemo(() => list.filter(o => !stage || o.etapa === stage), [list, stage]);
+
+  const bairros = useMemo(() => [...new Set(list.map(o => o.imovel?.bairro).filter(Boolean))].sort(), [list]);
+  const filtered = useMemo(() => list.filter(o =>
+    (!stage || o.etapa === stage) && (!bairro || o.imovel?.bairro === bairro)
+  ), [list, stage, bairro]);
+
   const columns = [
     { id: 'imovel', header: 'Imóvel', accessorFn: o => `${o.imovel?.codigo || ''} ${o.imovel?.endereco || ''} ${o.imovel?.bairro || ''}`, cell: ({ row }) => <Link className="collection-cell-stack collection-title-link" to={`/imoveis/${row.original.imovelId}`}><span className="collection-code">{row.original.imovel?.codigo}</span><strong>{row.original.imovel?.endereco || 'Imóvel indisponível'}</strong><small>{row.original.imovel?.bairro}</small></Link> },
-    { id: 'empresa', header: 'Empresa', accessorFn: o => `${o.empresa?.nome || ''} ${o.empresa?.segmento || ''} ${o.empresa?.contatoNome || ''}`, cell: ({ row }) => {
+    { id: 'empresa', header: 'Empresa / Contato', accessorFn: o => `${o.empresa?.nome || ''} ${o.empresa?.segmento || ''} ${o.empresa?.contatoNome || ''}`, cell: ({ row }) => {
       const e = row.original.empresa;
       const contato = [e?.contatoNome, e?.telefone || e?.email].filter(Boolean).join(' · ');
-      return <span className="collection-cell-stack"><strong>{e?.nome || 'Empresa indisponível'}</strong><small>{e?.segmento || 'Sem segmento'}</small>{contato ? <small>{contato}</small> : null}</span>;
+      return <span className="collection-cell-stack"><strong>{e?.nome || 'Empresa indisponível'}</strong><small>{e?.segmento || 'Sem segmento'}</small>{contato ? <small>{contato}</small> : <small className="muted">Sem contato</small>}</span>;
     } },
     { accessorKey: 'etapa', header: 'Etapa', cell: ({ row, getValue }) => <select className={`collection-stage-select stage-${getValue()}`} value={getValue()} disabled={moving === row.original.id} aria-label={`Etapa de ${row.original.imovel?.codigo} para ${row.original.empresa?.nome}`} onChange={e => move(row.original, e.target.value)}>{Object.entries(ETAPAS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> },
-    { id: 'apresentacao', header: 'Apresentação', enableSorting: false, cell: ({ row }) => <a className="collection-title-link" href={`/apresentacao/${row.original.imovelId}`} target="_blank" rel="noreferrer" aria-label={`Abrir apresentação de ${row.original.imovel?.codigo}`}><Presentation size={18} /> Abrir</a> },
+    { id: 'apresentacao', header: 'Link', enableSorting: false, cell: ({ row }) => <a className="collection-title-link" href={`/apresentacao/${row.original.imovelId}`} target="_blank" rel="noreferrer" aria-label={`Abrir apresentação de ${row.original.imovel?.codigo}`}><Presentation size={18} /> Abrir</a> },
     { accessorKey: 'observacao', header: 'Observações', cell: ({ getValue }) => <span className="collection-regions" title={getValue() || ''}>{getValue() || '—'}</span> },
     { accessorKey: 'atualizadoEm', header: 'Última atualização', cell: ({ getValue }) => new Date(getValue()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <div className="collection-row-actions"><button className="icon-button" aria-label={`Editar oportunidade de ${row.original.empresa?.nome}`} onClick={() => openEdit(row.original)}><PencilSimple size={18} /></button><button className="icon-button collection-delete" aria-label={`Excluir oportunidade de ${row.original.empresa?.nome}`} onClick={() => { setFormError(''); setDeleting(row.original); }}><Trash size={18} /></button></div> },
@@ -76,7 +82,11 @@ export default function Oportunidades() {
     {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
     <div className="opportunity-pipeline">{Object.entries(ETAPAS).map(([value, label], idx) => <button key={value} className={`pipeline-step stage-${value} ${stage === value ? 'is-selected' : ''}`} onClick={() => setStage(s => s === value ? '' : value)} aria-pressed={stage === value}><span className="pipeline-step-label"><i />{label}</span><strong>{loading || error ? '—' : list.filter(o => o.etapa === value).length}</strong>{idx < 5 && <ArrowRight className="pipeline-arrow" size={16} />}</button>)}</div>
     <section className="panel collection-panel"><div className="collection-section-head"><div><h2>{stage ? `Oportunidades · ${ETAPAS[stage]}` : 'Todas as oportunidades'}</h2><p>Atualize as etapas e mantenha a negociação em movimento.</p></div><span className="collection-section-symbol"><Handshake size={22} /></span></div>
-      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, empresa ou observação..." exportName="oportunidades.csv" emptyTitle="O próximo negócio começa aqui" emptyDescription="Crie uma oportunidade conectando um imóvel a uma empresa." toolbar={<>{stage && <button className="btn btn-ghost btn-sm" onClick={() => setStage('')}>Ver todas as etapas</button>}{error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}</>} />
+      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, empresa ou observação..." exportName="oportunidades.csv" emptyTitle="O próximo negócio começa aqui" emptyDescription="Crie uma oportunidade conectando um imóvel a uma empresa." toolbar={<>
+        <label className="collection-select"><MapPin size={16} /><select aria-label="Filtrar por bairro" value={bairro} onChange={e => setBairro(e.target.value)}><option value="">Todos os bairros</option>{bairros.map(b => <option key={b} value={b}>{b}</option>)}</select></label>
+        {(stage || bairro) && <button className="btn btn-ghost btn-sm" onClick={() => { setStage(''); setBairro(''); }}>Limpar filtros</button>}
+        {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
+      </>} />
     </section>
     {modal && <Modal title={modal.type === 'create' ? 'Nova oportunidade' : 'Editar oportunidade'} description="Conecte a demanda de uma empresa ao imóvel ideal." onClose={() => !busy && setModal(null)} footer={<><button className="btn btn-ghost" disabled={busy} onClick={() => setModal(null)}>Cancelar</button><button className="btn btn-primary" type="submit" form="opportunity-form" disabled={busy || optionsLoading || (modal.type === 'create' && (!options.imoveis.length || !options.empresas.length))}>{busy ? 'Salvando...' : modal.type === 'create' ? 'Criar oportunidade' : 'Salvar alterações'}<ArrowRight size={17} /></button></>}>
       <form id="opportunity-form" className="collection-modal-form" onSubmit={save}>

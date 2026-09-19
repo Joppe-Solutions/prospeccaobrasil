@@ -39,6 +39,9 @@ app.use('/api/auth/login', (req, res, next) => {
 
 app.use('/api/auth', require('./routes/auth')(prisma));
 app.use('/api/empresas', require('./routes/empresas')(prisma));
+app.use('/api/leads', require('./routes/leads')(prisma));
+app.use('/api/proprietarios', require('./routes/proprietarios')(prisma));
+app.use('/api/parceiros', require('./routes/parceiros')(prisma));
 app.use('/api/imoveis', require('./routes/imoveis')(prisma));
 app.use('/api/oportunidades', require('./routes/oportunidades')(prisma));
 app.use('/api/dashboard', require('./routes/dashboard')(prisma));

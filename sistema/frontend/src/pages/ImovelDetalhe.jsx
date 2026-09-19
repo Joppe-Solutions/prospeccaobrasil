@@ -4,6 +4,7 @@ import { api, fmtMoney, fmtNum, STATUS, getToken } from '../lib/api';
 
 const DOC_TIPOS = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rig', 'RIG / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Conv. condomínio'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
+const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
 export default function ImovelDetalhe() {
   const location = useLocation();
@@ -14,6 +15,7 @@ export default function ImovelDetalhe() {
   const [docTipo, setDocTipo] = useState('planta');
   const [docNome, setDocNome] = useState('');
   const [docUrl, setDocUrl] = useState('');
+  const [despesaForm, setDespesaForm] = useState({ descricao: '', valor: '', data: '' });
   const [toast, setToast] = useState('');
   const [gerando, setGerando] = useState(false);
   const [loadError, setLoadError] = useState('');
@@ -60,6 +62,17 @@ export default function ImovelDetalhe() {
     await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel }) });
     setEmpSel(''); load(); flash('Imóvel apresentado à empresa');
   }
+  async function addDespesa(e) {
+    e.preventDefault();
+    if (!despesaForm.descricao || !despesaForm.valor) return;
+    await api(`/imoveis/${id}/despesas`, { method: 'POST', body: JSON.stringify(despesaForm) });
+    setDespesaForm({ descricao: '', valor: '', data: '' });
+    load(); flash('Despesa adicionada');
+  }
+  async function removeDespesa(despesaId) {
+    await api(`/imoveis/${id}/despesas/${despesaId}`, { method: 'DELETE' });
+    load(); flash('Despesa removida');
+  }
 
   return (
     <>
@@ -81,6 +94,7 @@ export default function ImovelDetalhe() {
           <div className="chips">
             <span className={`badge ${i.status}`}>{STATUS[i.status]}</span>
             <span className="badge disponivel">{i.tipo === 'venda' ? 'VENDA' : 'LOCAÇÃO'}</span>
+            {i.categoria && <span className="badge apresentado">{CATEGORIAS[i.categoria] || i.categoria}</span>}
             {i.periodoContrato && <span className="badge negociacao">{i.periodoContrato}</span>}
           </div>
           <p style={{ marginTop: 14, fontSize: 14 }}>
@@ -97,6 +111,49 @@ export default function ImovelDetalhe() {
             ['Frente', fmtNum(i.frenteImovel, 'mts')], ['Aluguel', fmtMoney(i.aluguel)], ['Condomínio', fmtMoney(i.condominio)], ['IPTU', fmtMoney(i.iptu)], ['CDU', fmtMoney(i.cdu)]]
             .map(([l, v]) => <div key={l} className="field"><label>{l}</label><div style={{ fontWeight: 700 }}>{v}</div></div>)}
         </div>
+      </div>
+
+      <div className="panel">
+        <h2>Vínculos</h2>
+        <div className="form-grid">
+          <div className="field">
+            <label>Proprietário</label>
+            <div style={{ fontWeight: 700 }}>
+              {i.proprietarioRel?.nome || i.proprietario || '—'}
+              {i.proprietarioRel?.telefone || i.telProprietario ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.proprietarioRel?.telefone || i.telProprietario}</div> : null}
+            </div>
+          </div>
+          <div className="field">
+            <label>Parceiro</label>
+            <div style={{ fontWeight: 700 }}>
+              {i.parceiro?.nome || '—'}
+              {i.parceiro?.telefone ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.parceiro.telefone}</div> : null}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <h2>Despesas do imóvel</h2>
+        <form onSubmit={addDespesa} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
+          <input placeholder="Descrição" required value={despesaForm.descricao} onChange={e => setDespesaForm({ ...despesaForm, descricao: e.target.value })} style={{ flex: 2, minWidth: 160 }} />
+          <input placeholder="Valor (R$)" type="number" step="any" required value={despesaForm.valor} onChange={e => setDespesaForm({ ...despesaForm, valor: e.target.value })} style={{ width: 140 }} />
+          <input type="date" value={despesaForm.data} onChange={e => setDespesaForm({ ...despesaForm, data: e.target.value })} />
+          <button className="btn btn-ghost btn-sm" type="submit">Adicionar</button>
+        </form>
+        {(i.despesas || []).length > 0 ? (
+          <table><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th style={{ width: 80 }} /></tr></thead>
+            <tbody>{i.despesas.map(d => (
+              <tr key={d.id}>
+                <td>{d.descricao}</td>
+                <td>{fmtMoney(d.valor)}</td>
+                <td>{d.data ? new Date(d.data).toLocaleDateString('pt-BR') : '—'}</td>
+                <td><button className="btn btn-danger btn-sm" onClick={() => removeDespesa(d.id)}>Excluir</button></td>
+              </tr>
+            ))}</tbody>
+            <tfoot><tr><td><b>Total</b></td><td colSpan={3}><b>{fmtMoney(i.despesas.reduce((s, d) => s + Number(d.valor || 0), 0))}</b></td></tr></tfoot>
+          </table>
+        ) : <div className="empty">Nenhuma despesa registrada.</div>}
       </div>
 
       <div className="panel">

@@ -6,6 +6,8 @@ import DataTable from '../components/DataTable';
 import { PageHeader, StatusBadge } from '../components/UI';
 import './collections.css';
 
+const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
+
 export default function Imoveis() {
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -15,6 +17,7 @@ export default function Imoveis() {
   const [error, setError] = useState('');
   const [status, setStatus] = useState(statusParam && STATUS[statusParam] ? statusParam : '');
   const [tipo, setTipo] = useState('');
+  const [categoria, setCategoria] = useState('');
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try { setList(await api('/imoveis')); } catch (e) { setError(e.message); } finally { setLoading(false); }
@@ -30,7 +33,9 @@ export default function Imoveis() {
     if (value) next.set('status', value); else next.delete('status');
     setSearchParams(next, { replace: true });
   };
-  const filtered = useMemo(() => list.filter(i => (!status || i.status === status) && (!tipo || i.tipo === tipo)), [list, status, tipo]);
+  const filtered = useMemo(() => list.filter(i =>
+    (!status || i.status === status) && (!tipo || i.tipo === tipo) && (!categoria || i.categoria === categoria)
+  ), [list, status, tipo, categoria]);
   const columns = useMemo(() => [
     { id: 'imovel', header: 'Imóvel', accessorFn: i => `${i.codigo} ${i.titulo || ''} ${i.endereco} ${i.numero || ''} ${i.bairro || ''}`, cell: ({ row }) => {
       const i = row.original;
@@ -39,6 +44,7 @@ export default function Imoveis() {
         <span className="collection-cell-stack"><span className="collection-code">{i.codigo}</span><strong>{i.endereco}{i.numero ? `, ${i.numero}` : ''}</strong><small>{i.bairro || 'Bairro não informado'}</small></span>
       </Link>;
     } },
+    { accessorKey: 'categoria', header: 'Categoria', cell: ({ getValue }) => getValue() ? <span className="collection-tag">{CATEGORIAS[getValue()] || getValue()}</span> : <span className="muted">—</span> },
     { id: 'localizacao', header: 'Localização', accessorFn: i => `${i.cidade}/${i.uf}`, cell: ({ row }) => <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf}</small></span> },
     { accessorKey: 'areaTotal', header: 'Área total', cell: ({ getValue }) => <span className="collection-nowrap">{fmtNum(getValue(), 'm²')}</span> },
     { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : 'Custo mensal total'}</small></span> },
@@ -55,8 +61,20 @@ export default function Imoveis() {
       <div><span className="collection-stat-icon is-gold"><Handshake size={21} /></span><span><small>Em negociação</small><strong>{count(list.filter(i => i.status === 'negociacao').length)}</strong></span></div>
     </div>
     <section className="panel collection-panel">
-      <div className="collection-section-head"><div><h2>Seu portfólio</h2><p>Consulte, organize e encontre o imóvel certo.</p></div><div className="collection-tabs" aria-label="Tipo de negócio">{[['', 'Todos'], ['locacao', 'Locação'], ['venda', 'Venda']].map(([value, label]) => <button key={value} className={tipo === value ? 'is-active' : ''} onClick={() => setTipo(value)} aria-pressed={tipo === value}>{label}</button>)}</div></div>
-      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<><label className="collection-select"><SlidersHorizontal size={16} /><select aria-label="Filtrar por status" value={status} onChange={e => updateStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>{(status || tipo) && <button className="btn btn-ghost btn-sm" onClick={() => { updateStatus(''); setTipo(''); }}>Limpar filtros</button>}{error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}</>} />
+      <div className="collection-section-head">
+        <div><h2>Seu portfólio</h2><p>Consulte, organize e encontre o imóvel certo.</p></div>
+        <div className="collection-tabs" aria-label="Categoria do imóvel">
+          {[['', 'Todas'], ...Object.entries(CATEGORIAS)].map(([value, label]) => (
+            <button key={value || 'all'} className={categoria === value ? 'is-active' : ''} onClick={() => setCategoria(value)} aria-pressed={categoria === value}>{label}</button>
+          ))}
+        </div>
+      </div>
+      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<>
+        <div className="collection-tabs" aria-label="Tipo de negócio">{[['', 'Todos'], ['locacao', 'Locação'], ['venda', 'Venda']].map(([value, label]) => <button key={value || 't-all'} className={tipo === value ? 'is-active' : ''} onClick={() => setTipo(value)} aria-pressed={tipo === value}>{label}</button>)}</div>
+        <label className="collection-select"><SlidersHorizontal size={16} /><select aria-label="Filtrar por status" value={status} onChange={e => updateStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+        {(status || tipo || categoria) && <button className="btn btn-ghost btn-sm" onClick={() => { updateStatus(''); setTipo(''); setCategoria(''); }}>Limpar filtros</button>}
+        {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
+      </>} />
     </section>
   </div>;
 }

@@ -44,11 +44,62 @@ model Empresa {
   @@map("empresas")
 }
 
+model Lead {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  telefone     String?
+  email        String?
+  origem       String   @default("site") // site | anuncio | indicacao | outro
+  interesse    String?
+  status       String   @default("novo") // novo | em_contato | qualificado | convertido | perdido
+  observacoes  String?
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@map("leads")
+}
+
+model Proprietario {
+  id           Int      @id @default(autoincrement())
+  tipoPessoa   String   @default("pf") @map("tipo_pessoa") // pf | pj
+  nome         String
+  documento    String?
+  telefone     String?
+  email        String?
+  cidade       String?
+  uf           String?
+  observacoes  String?
+  status       String   @default("ativo") // ativo | inativo
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  imoveis      Imovel[]
+
+  @@map("proprietarios")
+}
+
+model Parceiro {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  tipo         String?  // corretor | imobiliaria | indicador | outro
+  telefone     String?
+  email        String?
+  cidade       String?
+  uf           String?
+  observacoes  String?
+  status       String   @default("ativo") // ativo | inativo
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  imoveis      Imovel[]
+
+  @@map("parceiros")
+}
+
 model Imovel {
   id              Int      @id @default(autoincrement())
   codigo          String   @unique
   titulo          String?
   tipo            String   @default("locacao") // locacao | venda
+  categoria       String?  @default("loja") // loja | predio | terreno | outro
   status          String   @default("disponivel") // disponivel | negociacao | locado | vendido | inativo
   endereco        String
   numero          String?
@@ -74,18 +125,38 @@ model Imovel {
   periodoContrato String?  @map("periodo_contrato")
   proprietario    String?
   telProprietario String?  @map("tel_proprietario")
+  proprietarioId  Int?     @map("proprietario_id")
+  parceiroId      Int?     @map("parceiro_id")
   googleMapsUrl   String?  @map("google_maps_url")
   googleDriveUrl  String?  @map("google_drive_url")
   descricao       String?
   observacoes     String?
   criadoEm        DateTime @default(now()) @map("criado_em")
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
+  proprietarioRel Proprietario? @relation(fields: [proprietarioId], references: [id], onDelete: SetNull)
+  parceiro        Parceiro?     @relation(fields: [parceiroId], references: [id], onDelete: SetNull)
   fotos           ImovelFoto[]
   documentos      ImovelDocumento[]
   analises        AnaliseMercado[]
   oportunidades   Oportunidade[]
+  despesas        ImovelDespesa[]
 
+  @@index([proprietarioId])
+  @@index([parceiroId])
   @@map("imoveis")
+}
+
+model ImovelDespesa {
+  id        Int       @id @default(autoincrement())
+  imovelId  Int       @map("imovel_id")
+  descricao String
+  valor     Decimal
+  data      DateTime?
+  criadoEm  DateTime  @default(now()) @map("criado_em")
+  imovel    Imovel    @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@index([imovelId])
+  @@map("imovel_despesas")
 }
 
 model ImovelFoto {

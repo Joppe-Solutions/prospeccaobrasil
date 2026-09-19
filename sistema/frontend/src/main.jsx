@@ -20,6 +20,9 @@ import ImovelWizard from './pages/ImovelWizard';
 import ImovelDetalhe from './pages/ImovelDetalhe';
 import Empresas from './pages/Empresas';
 import EmpresaWizard from './pages/EmpresaWizard';
+import Proprietarios from './pages/Proprietarios';
+import Parceiros from './pages/Parceiros';
+import Leads from './pages/Leads';
 import Oportunidades from './pages/Oportunidades';
 import Perfil from './pages/Perfil';
 import Usuarios from './pages/Usuarios';
@@ -41,6 +44,9 @@ function App() {
         <Route path="empresas" element={<Empresas />} />
         <Route path="empresas/nova" element={<EmpresaWizard />} />
         <Route path="empresas/:id/editar" element={<EmpresaWizard />} />
+        <Route path="proprietarios" element={<Proprietarios />} />
+        <Route path="parceiros" element={<Parceiros />} />
+        <Route path="leads" element={<Leads />} />
         <Route path="oportunidades" element={<Oportunidades />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="usuarios" element={<Usuarios />} />
