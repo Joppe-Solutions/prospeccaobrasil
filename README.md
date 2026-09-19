@@ -34,10 +34,11 @@ export SSHPASS='…'   # senha root da VPS (não versionar)
 
 ## CI/CD (GitHub Actions)
 
-Secrets necessários no repositório:
+- **`develop`** → workflow `CI` (build landing + sistema)
+- **`main`** → `CI` + `Deploy produção` (runner self-hosted na VPS)
 
-- `SSH_HOST` — IP da VPS
-- `SSH_USER` — usuário SSH (ex.: `root`)
-- `SSH_PASSWORD` — senha SSH
+Runner: `prospeccao-vps` em `/opt/actions-runner` (label `prospeccao-prod`).
 
-Workflows em `.github/workflows/`.
+> **Nota:** a org está no plano GitHub Free. Actions em repositório **privado** falha com `startup_failure`. O repo está **público** para a esteira funcionar; com plano Team pode voltar a privado.
+
+Secrets (úteis se voltar deploy via SSH): `SSH_HOST`, `SSH_USER`, `SSH_PASSWORD`.
