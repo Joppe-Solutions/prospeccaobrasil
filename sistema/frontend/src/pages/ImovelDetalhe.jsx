@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { api, fmtMoney, fmtNum, STATUS, getToken } from '../lib/api';
+import { api, fmtMoney, fmtNum, STATUS, getToken, getUser } from '../lib/api';
 
 const DOC_TIPOS = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rig', 'RIG / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Conv. condomínio'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
@@ -32,6 +32,7 @@ export default function ImovelDetalhe() {
 
   if (loadError) return <div className="empty">Erro ao carregar: {loadError}</div>;
   if (!i) return <div className="empty">Carregando…</div>;
+  const isAdmin = getUser()?.role === 'admin';
   const custo = [i.aluguel, i.condominio, i.iptu].map(Number).filter(Boolean).reduce((a, b) => a + b, 0);
   const foto = i.fotos.find(f => f.principal) || i.fotos[0];
   const analise = i.analises[0];
@@ -86,11 +87,13 @@ export default function ImovelDetalhe() {
       load(); flash('Despesa adicionada');
     } catch (e) { flash(e.message || 'Falha ao adicionar despesa'); }
   }
-  async function removeDespesa(despesaId) {
+  async function estornarDespesa(despesaId) {
+    const motivo = window.prompt('Motivo do estorno (opcional):');
+    if (motivo === null) return;
     try {
-      await api(`/imoveis/${id}/despesas/${despesaId}`, { method: 'DELETE' });
-      load(); flash('Despesa removida');
-    } catch (e) { flash(e.message || 'Falha ao remover despesa'); }
+      await api(`/imoveis/${id}/despesas/${despesaId}/estornar`, { method: 'POST', body: JSON.stringify({ motivo }) });
+      load(); flash('Despesa estornada');
+    } catch (e) { flash(e.message || 'Falha ao estornar despesa'); }
   }
   async function copiarLink() {
     try {
@@ -158,7 +161,7 @@ export default function ImovelDetalhe() {
         </div>
       </div>
 
-      <div className="panel">
+      {isAdmin && <div className="panel">
         <h2>Despesas do imóvel</h2>
         <form onSubmit={addDespesa} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
           <input placeholder="Descrição" required value={despesaForm.descricao} onChange={e => setDespesaForm({ ...despesaForm, descricao: e.target.value })} style={{ flex: 2, minWidth: 160 }} />
@@ -169,17 +172,17 @@ export default function ImovelDetalhe() {
         {(i.despesas || []).length > 0 ? (
           <table><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th style={{ width: 80 }} /></tr></thead>
             <tbody>{i.despesas.map(d => (
-              <tr key={d.id}>
-                <td>{d.descricao}</td>
+              <tr key={d.id} style={d.estornada ? { opacity: 0.5, textDecoration: 'line-through' } : undefined}>
+                <td>{d.descricao}{d.estornada && <span className="badge perdido" style={{ marginLeft: 8 }}>Estornada</span>}</td>
                 <td>{fmtMoney(d.valor)}</td>
-                <td>{d.data ? new Date(d.data).toLocaleDateString('pt-BR') : '—'}</td>
-                <td><button className="btn btn-danger btn-sm" onClick={() => removeDespesa(d.id)}>Excluir</button></td>
+                <td>{d.data ? String(d.data).slice(0, 10).split('-').reverse().join('/') : '—'}</td>
+                <td>{!d.estornada && <button className="btn btn-danger btn-sm" onClick={() => estornarDespesa(d.id)}>Estornar</button>}</td>
               </tr>
             ))}</tbody>
-            <tfoot><tr><td><b>Total</b></td><td colSpan={3}><b>{fmtMoney(i.despesas.reduce((s, d) => s + Number(d.valor || 0), 0))}</b></td></tr></tfoot>
+            <tfoot><tr><td><b>Total</b></td><td colSpan={3}><b>{fmtMoney(i.despesas.filter(d => !d.estornada).reduce((s, d) => s + Number(d.valor || 0), 0))}</b></td></tr></tfoot>
           </table>
         ) : <div className="empty">Nenhuma despesa registrada.</div>}
-      </div>
+      </div>}
 
       <div className="panel">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
@@ -215,7 +218,7 @@ export default function ImovelDetalhe() {
           {i.documentos.map(d => (
             <tr key={d.id}>
               <td><b>{DOC_TIPOS.find(t => t[0] === d.tipo)?.[1] || d.tipo}</b></td>
-              <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}`} target="_blank">{d.nome}</a> : d.nome}</td>
+              <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}?token=${encodeURIComponent(getToken() || '')}`} target="_blank">{d.nome}</a> : d.nome}</td>
               <td style={{ width: 60 }}><button className="btn btn-danger btn-sm" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
             </tr>
           ))}
@@ -233,6 +236,7 @@ export default function ImovelDetalhe() {
               <span style={{ background: '#12312d', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{analise.score}</span>
             </div>
             <div style={{ flex: 1 }}>
+              {ai.aviso && <p className="muted" style={{ fontSize: 12, fontStyle: 'italic' }}>{ai.aviso}</p>}
               <p>{analise.resumo}</p>
               <h4 style={{ marginTop: 12, color: '#8fd8b8' }}>Pontos fortes</h4>
               <ul>{ai.pontosFortes.map((p, x) => <li key={x}>{p}</li>)}</ul>

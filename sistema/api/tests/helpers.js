@@ -9,6 +9,8 @@ const DB = path.join(os.tmpdir(), `pb-api-test-${process.pid}.db`);
 process.env.DATABASE_URL = `file:${DB}`;
 process.env.JWT_SECRET = 'test-secret';
 process.env.NODE_ENV = 'test';
+process.env.LEAD_RATE_LIMIT = '1000';
+process.env.LOGIN_RATE_LIMIT = '1000';
 
 execSync('npx prisma migrate deploy', {
   cwd: path.join(__dirname, '..'),
@@ -63,4 +65,4 @@ async function login(email = 'admin@teste.dev', senha = 'prospeccao123') {
   return res;
 }
 
-module.exports = { app, prisma, start, stop, req, login };
+module.exports = { app, prisma, start, stop, req, login, getBase: () => base };

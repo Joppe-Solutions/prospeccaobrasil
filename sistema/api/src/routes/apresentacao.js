@@ -42,7 +42,9 @@ module.exports = (prisma) => {
     const custo = custoTotal(i);
     const mapsUrl = i.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end1 + ', ' + i.cidade)}`;
     const qrData = await QRCode.toDataURL(mapsUrl, { margin: 0, width: 300, color: { dark: '#0d2f2a', light: '#ffffff' } });
-    const tipoLabel = i.tipo === 'venda' ? 'ATIVO COMERCIAL DISPONÍVEL PARA VENDA' : 'ATIVO COMERCIAL DISPONÍVEL PARA LOCAÇÃO';
+    const STATUS_TITULO = { disponivel: 'DISPONÍVEL', negociacao: 'EM NEGOCIAÇÃO', locado: 'LOCADO', vendido: 'VENDIDO' };
+    const disp = STATUS_TITULO[i.status] || 'DISPONÍVEL';
+    const tipoLabel = `ATIVO COMERCIAL ${disp} — ${i.tipo === 'venda' ? 'VENDA' : 'LOCAÇÃO'}`;
     const docsPublicos = i.documentos.filter((d) => DOC_PUBLICOS.has(d.tipo));
     const docs = docsPublicos.length ? docsPublicos : ['planta','inteligencia','rig','avcb','convencao','iptu_doc'].map(t => ({ tipo: t, nome: DOC_LABELS[t].replace(/\n/g,' ') }));
 
@@ -162,7 +164,7 @@ module.exports = (prisma) => {
 </style></head><body>
 <button class="print-btn" onclick="window.print()">Salvar / Imprimir PDF</button>
 <div class="sheet">
-  <div class="head-title">ATIVO COMERCIAL DISPONÍVEL PARA ${i.tipo === 'venda' ? 'VENDA' : 'LOCAÇÃO'}</div>
+  <div class="head-title">${esc(tipoLabel)}</div>
 
   <div class="hero">
     <div class="brand-col">

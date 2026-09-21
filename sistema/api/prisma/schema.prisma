@@ -40,23 +40,49 @@ model Empresa {
   criadoEm       DateTime  @default(now()) @map("criado_em")
   atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
   oportunidades  Oportunidade[]
+  leads          Lead[]
 
   @@map("empresas")
 }
 
 model Lead {
-  id           Int      @id @default(autoincrement())
-  nome         String
-  telefone     String?
-  email        String?
-  origem       String   @default("site") // site | anuncio | indicacao | outro
-  interesse    String?
-  status       String   @default("novo") // novo | em_contato | qualificado | convertido | perdido
-  observacoes  String?
-  criadoEm     DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  id             Int           @id @default(autoincrement())
+  nome           String
+  telefone       String?
+  email          String?
+  origem         String        @default("site") // site | anuncio | indicacao | outro
+  interesse      String?
+  status         String        @default("novo") // novo | em_contato | qualificado | convertido | perdido
+  observacoes    String?
+  empresaId      Int?          @map("empresa_id")
+  oportunidadeId Int?          @map("oportunidade_id")
+  criadoEm       DateTime      @default(now()) @map("criado_em")
+  atualizadoEm   DateTime      @updatedAt @map("atualizado_em")
+  empresa        Empresa?      @relation(fields: [empresaId], references: [id])
+  oportunidade   Oportunidade? @relation(fields: [oportunidadeId], references: [id])
+  interacoes     LeadInteracao[]
 
+  @@index([empresaId])
   @@map("leads")
+}
+
+model LeadInteracao {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      @map("lead_id")
+  mensagem  String?
+  interesse String?
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+
+  @@index([leadId])
+  @@map("lead_interacoes")
+}
+
+model Sequencia {
+  nome  String @id
+  valor Int    @default(0)
+
+  @@map("sequencias")
 }
 
 model Proprietario {
@@ -147,13 +173,17 @@ model Imovel {
 }
 
 model ImovelDespesa {
-  id        Int       @id @default(autoincrement())
-  imovelId  Int       @map("imovel_id")
-  descricao String
-  valor     Decimal
-  data      DateTime?
-  criadoEm  DateTime  @default(now()) @map("criado_em")
-  imovel    Imovel    @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+  id            Int       @id @default(autoincrement())
+  imovelId      Int       @map("imovel_id")
+  descricao     String
+  valor         Decimal
+  data          DateTime?
+  estornada     Boolean   @default(false)
+  estornadoEm   DateTime? @map("estornado_em")
+  estornoMotivo String?   @map("estorno_motivo")
+  criadoEm      DateTime  @default(now()) @map("criado_em")
+  criadoPorId   Int?      @map("criado_por_id")
+  imovel        Imovel    @relation(fields: [imovelId], references: [id], onDelete: Cascade)
 
   @@index([imovelId])
   @@map("imovel_despesas")
@@ -208,6 +238,7 @@ model Oportunidade {
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
   imovel     Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
   empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
+  leads      Lead[]
 
   @@map("oportunidades")
 }

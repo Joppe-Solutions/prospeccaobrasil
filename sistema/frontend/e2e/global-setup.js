@@ -30,6 +30,7 @@ export default async function globalSetup() {
   await prisma.proprietario.create({ data: { nome: 'Proprietário E2E' } });
   await prisma.parceiro.create({ data: { nome: 'Parceiro E2E' } });
   await prisma.lead.create({ data: { nome: 'Lead E2E' } });
+  await prisma.lead.create({ data: { nome: 'Lead E2E Conv', telefone: '21955550000', email: 'conv@e2e.dev', interesse: 'Loja E2E' } });
   await prisma.imovel.create({
     data: { titulo: 'Imóvel E2E', codigo: 'PB-E2E', endereco: 'Rua E2E, 1', cidade: 'Rio de Janeiro', uf: 'RJ' },
   });

@@ -10,17 +10,21 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
-# PRs de forks NÃO rodam no runner de produção — apenas pushes e PRs do próprio repo.
+# CI roda em runner hospedado (ubuntu-latest) — isolado do host de produção.
+# O runner self-hosted (prospeccao-prod) é reservado ao deploy.yml (fluxo protegido em main).
 jobs:
   build-landing:
     name: Build landing
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, linux, x64, prospeccao-prod]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: landing
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Instalar e buildar
         run: |
           npm ci
@@ -29,9 +33,12 @@ jobs:
   build-sistema:
     name: Build sistema (API + admin)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, linux, x64, prospeccao-prod]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Prisma generate
         working-directory: sistema/api
         run: |
@@ -53,12 +60,15 @@ jobs:
   test-api:
     name: Testes da API
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, linux, x64, prospeccao-prod]
+    runs-on: ubuntu-latest
     defaults:
       run:
         working-directory: sistema/api
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Instalar e gerar Prisma
         run: |
           npm ci
@@ -69,9 +79,12 @@ jobs:
   test-e2e:
     name: E2E (Playwright)
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: [self-hosted, linux, x64, prospeccao-prod]
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
       - name: Build admin e embutir em api/public
         run: |
           cd sistema/frontend && npm ci && npm run build

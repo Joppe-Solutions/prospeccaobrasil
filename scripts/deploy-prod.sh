@@ -66,6 +66,8 @@ deploy_sistema() {
     "${USER}@${HOST}:/opt/prospeccao-sistema/"
 
   echo "==> Instalar deps, migrar e reiniciar"
+  # Snapshot do banco antes de qualquer migration (rollback = parar serviço, restaurar cp, restart)
+  remote "mkdir -p /opt/prospeccao-sistema/backups && cp /opt/prospeccao-sistema/prisma/prospeccao.db /opt/prospeccao-sistema/backups/prospeccao-$(date +%Y%m%d%H%M%S).db && ls -t /opt/prospeccao-sistema/backups/*.db | tail -n +16 | xargs -r rm --"
   remote "cd /opt/prospeccao-sistema && npm install --omit=dev && npx prisma generate && npx prisma migrate deploy && systemctl restart prospeccao-sistema && sleep 2 && curl -sf http://127.0.0.1:8090/api/healthz"
   echo "Sistema OK — https://sistema.prospeccaobrasil.com.br"
 }

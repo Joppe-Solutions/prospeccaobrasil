@@ -50,6 +50,10 @@ jobs:
             --exclude 'uploads/*' \
             sistema/api/ /opt/prospeccao-sistema/
           cd /opt/prospeccao-sistema
+          # Snapshot do banco antes da migration — rollback: parar serviço, restaurar cp, restart
+          sudo mkdir -p backups
+          sudo cp prisma/prospeccao.db backups/prospeccao-$(date +%Y%m%d%H%M%S).db
+          sudo bash -c 'ls -t backups/*.db | tail -n +16 | xargs -r rm --'
           sudo npm install --omit=dev
           sudo npx prisma generate
           sudo npx prisma migrate deploy

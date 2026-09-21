@@ -26,3 +26,22 @@
 - Campos em pt-BR camelCase no Prisma, `@map` snake_case no banco
 - Rotas Express montadas como fábrica `(prisma) => Router`
 - Acesso teste: admin@prospeccaobrasil.com.br / prospeccao123 (trocar em prod)
+
+## Segurança de uploads e deploy
+
+- `/uploads/:arquivo` passa por entrega controlada (não é `express.static`): fotos e
+  documentos de tipo público (`planta`, `inteligencia`, `rig`, `avcb`, `convencao`,
+  `iptu_doc`) são abertos; demais tipos exigem JWT válido de usuário ativo
+  (`Authorization: Bearer` ou `?token=`). Privados usam `Cache-Control: no-store`.
+- Códigos `PB-###` vêm da tabela `sequencias` (incremento atômico); código manual
+  `PB-N` acima da sequência a reposiciona.
+- Despesas são lançamentos auditáveis: não se exclui, usa-se `POST .../estornar`
+  (admin). Valor ≤ 2 casas decimais e data civil `AAAA-MM-DD` estrita.
+- Deploy (`deploy.yml` e `scripts/deploy-prod.sh`) faz snapshot de
+  `prisma/prospeccao.db` em `/opt/prospeccao-sistema/backups/` antes de
+  `prisma migrate deploy` (retenção 15). Rollback: `systemctl stop
+  prospeccao-sistema`, restaurar o `.db` desejado com `cp`, `systemctl start`.
+- CI roda em runner hospedado (ubuntu-latest); o runner self-hosted
+  `prospeccao-prod` é reservado ao deploy.
+- Landing chama a API via `VITE_API_URL` (fallback: `localhost:8090` em dev,
+  `sistema.prospeccaobrasil.com.br` em prod).

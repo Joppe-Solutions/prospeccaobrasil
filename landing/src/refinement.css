@@ -422,3 +422,9 @@ footer { display: block; padding: 70px max(7vw, calc((100vw - 1180px)/2)) 30px; 
   .about-photo { max-width: 400px; margin: 0 auto; }
   .about-values { grid-template-columns: 1fr; }
 }
+
+.contact-form-status { grid-column: 1 / -1; font-size: 13px; line-height: 1.7; }
+.contact-form-status.ok p { color: #5a8a6e; }
+.contact-form-status.erro p { color: #a05a4e; }
+.contact-form-status.erro a { color: #8b713e; }
+.contact-form-status .button { margin-top: 10px; }

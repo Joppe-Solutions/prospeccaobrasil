@@ -21,7 +21,39 @@ app.use((req, res, next) => {
 });
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
-app.use('/uploads', express.static(path.join(__dirname, '..', 'uploads'), { maxAge: '7d', immutable: true }));
+// Entrega controlada de uploads: fotos e documentos de tipos públicos são abertos;
+// documentos internos exigem autenticação (header Authorization ou ?token=).
+const { DOC_PUBLICOS } = require('./lib/publicDocs');
+const jwt = require('jsonwebtoken');
+app.get('/uploads/:arquivo', async (req, res) => {
+  const arquivo = path.basename(String(req.params.arquivo || ''));
+  if (!arquivo || arquivo !== req.params.arquivo) return res.status(400).end();
+  const filePath = path.join(__dirname, '..', 'uploads', arquivo);
+  if (!require('fs').existsSync(filePath)) return res.status(404).json({ error: 'Não encontrado' });
+  try {
+    const doc = await prisma.imovelDocumento.findFirst({ where: { arquivo } });
+    if (doc && !DOC_PUBLICOS.has(doc.tipo)) {
+      // Documento privado: exige sessão válida
+      const bearer = (req.headers.authorization || '').replace(/^Bearer /, '');
+      const tok = bearer || String(req.query.token || '');
+      try {
+        const payload = jwt.verify(tok, process.env.JWT_SECRET);
+        const usuario = await prisma.usuario.findUnique({ where: { id: payload.id }, select: { ativo: true } });
+        if (!usuario?.ativo) return res.status(401).json({ error: 'Documento restrito' });
+      } catch {
+        return res.status(401).json({ error: 'Documento restrito' });
+      }
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.sendFile(filePath);
+    }
+    if (!doc) {
+      const foto = await prisma.imovelFoto.findFirst({ where: { arquivo } });
+      if (!foto) return res.status(404).json({ error: 'Não encontrado' });
+    }
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.sendFile(filePath);
+  } catch (e) { res.status(500).json({ error: 'Erro interno' }); }
+});
 app.use(express.static(path.join(__dirname, '..', 'public'), { maxAge: '1d' }));
 
 // Rate limit simples no login (10 tentativas / 5 min por IP)
@@ -66,6 +98,10 @@ app.use((err, req, res, next) => {
   console.error(err);
   if (err instanceof multer.MulterError || (err && /não permitido|File too large|Unexpected field/i.test(err.message || ''))) {
     return res.status(400).json({ error: err.message || 'Upload inválido' });
+  }
+  const status = Number(err?.status || err?.statusCode);
+  if (status >= 400 && status < 500) {
+    return res.status(status).json({ error: err.message || 'Erro na requisição' });
   }
   res.status(500).json({ error: 'Erro interno' });
 });

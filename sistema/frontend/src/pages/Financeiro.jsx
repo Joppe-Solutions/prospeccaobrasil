@@ -46,7 +46,8 @@ export default function Financeiro() {
       accessorFn: d => d.data || d.criadoEm,
       cell: ({ getValue }) => {
         const v = getValue();
-        return v ? new Date(v).toLocaleDateString('pt-BR') : '—';
+        // Data civil: exibe a data gravada sem conversão de fuso (cobra legados a meia-noite UTC)
+        return v ? String(v).slice(0, 10).split('-').reverse().join('/') : '—';
       },
     },
   ], []);

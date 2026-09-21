@@ -17,10 +17,11 @@ module.exports = (prisma) => {
         imovel: { select: { id: true, codigo: true, endereco: true, numero: true, bairro: true, cidade: true } },
       },
     });
-    // Soma em centavos inteiros para precisão monetária
-    const totalCents = despesas.reduce((s, d) => s + toCents(d.valor), 0);
+    // Soma em centavos inteiros para precisão monetária; estornadas não entram nos totais
+    const ativas = despesas.filter((d) => !d.estornada);
+    const totalCents = ativas.reduce((s, d) => s + toCents(d.valor), 0);
     const porImovelMap = new Map();
-    for (const d of despesas) {
+    for (const d of ativas) {
       const key = d.imovelId;
       const cur = porImovelMap.get(key) || { imovel: d.imovel, totalCents: 0, qtd: 0 };
       cur.totalCents += toCents(d.valor);
@@ -29,7 +30,7 @@ module.exports = (prisma) => {
     }
     res.json({
       total: totalCents / 100,
-      qtd: despesas.length,
+      qtd: ativas.length,
       porImovel: [...porImovelMap.values()]
         .map((p) => ({ imovel: p.imovel, total: p.totalCents / 100, qtd: p.qtd }))
         .sort((a, b) => b.total - a.total),

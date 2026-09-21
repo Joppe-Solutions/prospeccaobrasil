@@ -3,6 +3,7 @@ const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
 const auth = require('../middleware/auth');
+const { requireRole } = auth;
 const asyncHandler = require('../middleware/async');
 const { gerarAnalise } = require('../services/inteligencia');
 
@@ -92,7 +93,8 @@ module.exports = (prisma) => {
         documentos: { orderBy: { criadoEm: 'desc' } },
         analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
         oportunidades: { include: { empresa: true }, orderBy: { criadoEm: 'desc' } },
-        despesas: { orderBy: { criadoEm: 'desc' } },
+        // despesas são financeiras: só admin recebe no payload
+        ...(req.user.role === 'admin' ? { despesas: { orderBy: { criadoEm: 'desc' } } } : {}),
         proprietarioRel: true,
         parceiro: true,
       },
@@ -101,25 +103,60 @@ module.exports = (prisma) => {
     res.json(i);
   }));
 
+  let seqInit;
+  const proximoCodigo = async () => {
+    // Inicializa a sequência no maior sufixo numérico existente (uma vez por processo)
+    if (!seqInit) seqInit = (async () => {
+      const codigos = await prisma.imovel.findMany({ select: { codigo: true } });
+      const max = codigos.reduce((m, c) => {
+        const mm = /^PB-(\d+)$/.exec(c.codigo || '');
+        return mm ? Math.max(m, +mm[1]) : m;
+      }, 0);
+      await prisma.sequencia.upsert({
+        where: { nome: 'imovel' },
+        create: { nome: 'imovel', valor: max },
+        update: {},
+      });
+    })();
+    await seqInit;
+    // Incremento atômico no banco — imune a concorrência, exclusões e 999→1000
+    const atual = await prisma.sequencia.update({
+      where: { nome: 'imovel' },
+      data: { valor: { increment: 1 } },
+    });
+    return `PB-${String(atual.valor).padStart(3, '0')}`;
+  };
+
   r.post('/', asyncHandler(async (req, res) => {
     const d = pickImovel(req.body);
     if (!d.endereco || !d.cidade) return res.status(400).json({ error: 'Endereço e cidade são obrigatórios' });
-    // Código sequencial baseado no maior sufixo existente, com retry em colisão (P2002)
-    for (let tentativa = 0; tentativa < 5; tentativa++) {
-      if (!d.codigo || tentativa > 0) {
-        const ultimo = await prisma.imovel.findFirst({
-          where: { codigo: { startsWith: 'PB-' } },
-          orderBy: { codigo: 'desc' },
-          select: { codigo: true },
-        });
-        const seq = (parseInt((ultimo?.codigo || '').replace('PB-', ''), 10) || 0) + 1;
-        d.codigo = `PB-${String(seq).padStart(3, '0')}`;
+
+    if (d.codigo) {
+      // Código explícito: duplicado é conflito, nunca substituído silenciosamente
+      try {
+        const criado = await prisma.imovel.create({ data: d });
+        // Código manual acima da sequência a reposiciona (PB-999 manual → próximo é PB-1000+)
+        const mm = /^PB-(\d+)$/.exec(d.codigo);
+        if (mm) {
+          await prisma.sequencia.updateMany({
+            where: { nome: 'imovel', valor: { lt: +mm[1] } },
+            data: { valor: +mm[1] },
+          });
+        }
+        return res.json(criado);
+      } catch (e) {
+        if (e.code === 'P2002') return res.status(409).json({ error: `Código ${d.codigo} já existe` });
+        throw e;
       }
+    }
+
+    for (let tentativa = 0; tentativa < 5; tentativa++) {
+      d.codigo = await proximoCodigo();
       try {
         return res.json(await prisma.imovel.create({ data: d }));
       } catch (e) {
-        if (e.code === 'P2002' && tentativa < 4) { d.codigo = null; continue; }
-        if (e.code === 'P2002') return res.status(409).json({ error: 'Código de imóvel já existe. Tente novamente.' });
+        if (e.code === 'P2002' && tentativa < 4) continue; // código manual à frente da sequência
+        if (e.code === 'P2002') return res.status(409).json({ error: 'Conflito ao gerar código. Tente novamente.' });
         throw e;
       }
     }
@@ -144,10 +181,11 @@ module.exports = (prisma) => {
       where: { id },
       include: { fotos: { select: { arquivo: true } }, documentos: { select: { arquivo: true } } },
     });
+    await prisma.imovel.delete({ where: { id } });
+    // Arquivos removidos só depois de confirmada a exclusão no banco
     for (const f of [...(arquivos?.fotos || []), ...(arquivos?.documentos || [])]) {
       if (f.arquivo) { try { fs.unlinkSync(path.join(uploadDir, f.arquivo)); } catch {} }
     }
-    await prisma.imovel.delete({ where: { id } });
     res.json({ ok: true });
   }));
 
@@ -166,8 +204,8 @@ module.exports = (prisma) => {
     const imovelId = +req.params.id;
     const f = await prisma.imovelFoto.findFirst({ where: { id: +req.params.fotoId, imovelId } });
     if (f) {
-      try { fs.unlinkSync(path.join(uploadDir, f.arquivo)); } catch {}
       await prisma.imovelFoto.delete({ where: { id: f.id } });
+      try { fs.unlinkSync(path.join(uploadDir, f.arquivo)); } catch {}
       // Se a foto excluída era a principal, promove a próxima
       if (f.principal) {
         const proxima = await prisma.imovelFoto.findFirst({ where: { imovelId }, orderBy: { ordem: 'asc' } });
@@ -198,21 +236,21 @@ module.exports = (prisma) => {
     const imovelId = +req.params.id;
     const d = await prisma.imovelDocumento.findFirst({ where: { id: +req.params.docId, imovelId } });
     if (d) {
-      if (d.arquivo) { try { fs.unlinkSync(path.join(uploadDir, d.arquivo)); } catch {} }
       await prisma.imovelDocumento.delete({ where: { id: d.id } });
+      if (d.arquivo) { try { fs.unlinkSync(path.join(uploadDir, d.arquivo)); } catch {} }
     }
     res.json({ ok: true });
   }));
 
-  // Despesas
-  r.get('/:id/despesas', asyncHandler(async (req, res) => {
+  // Despesas — financeiro: restrito a admin em todas as operações
+  r.get('/:id/despesas', requireRole('admin'), asyncHandler(async (req, res) => {
     res.json(await prisma.imovelDespesa.findMany({
       where: { imovelId: +req.params.id },
       orderBy: { criadoEm: 'desc' },
     }));
   }));
 
-  r.post('/:id/despesas', asyncHandler(async (req, res) => {
+  r.post('/:id/despesas', requireRole('admin'), asyncHandler(async (req, res) => {
     const imovelId = +req.params.id;
     const imovel = await prisma.imovel.findUnique({ where: { id: imovelId } });
     if (!imovel) return res.status(404).json({ error: 'Imóvel não encontrado' });
@@ -220,24 +258,50 @@ module.exports = (prisma) => {
     if (!descricao || !String(descricao).trim()) return res.status(400).json({ error: 'Descrição obrigatória' });
     const v = num(valor);
     if (v == null || Number.isNaN(v) || !Number.isFinite(v)) return res.status(400).json({ error: 'Valor obrigatório' });
-    if (v <= 0) return res.status(400).json({ error: 'Valor deve ser maior que zero. Para estornos, exclua o lançamento.' });
-    // Data civil: armazena meio-dia UTC para não deslocar o dia no fuso de exibição (America/Sao_Paulo)
-    const dataCivil = data ? (() => { const m = String(data).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)) : new Date(data); })() : null;
+    if (v <= 0) return res.status(400).json({ error: 'Valor deve ser maior que zero. Para correções, use estorno.' });
+    // Moeda: no máximo 2 casas decimais (centavos)
+    if (Math.abs(v * 100 - Math.round(v * 100)) > 1e-9) return res.status(400).json({ error: 'Valor deve ter no máximo 2 casas decimais' });
+    // Data civil estrita: formato YYYY-MM-DD e dia/mês/ano reais
+    let dataCivil = null;
+    if (data) {
+      const m = String(data).match(/^(\d{4})-(\d{2})-(\d{2})$/);
+      if (!m) return res.status(400).json({ error: 'Data deve estar no formato AAAA-MM-DD' });
+      const [y, mo, dd] = [+m[1], +m[2], +m[3]];
+      const dt = new Date(Date.UTC(y, mo - 1, dd, 12));
+      if (dt.getUTCFullYear() !== y || dt.getUTCMonth() !== mo - 1 || dt.getUTCDate() !== dd) {
+        return res.status(400).json({ error: 'Data inválida' });
+      }
+      dataCivil = dt;
+    }
     res.json(await prisma.imovelDespesa.create({
       data: {
         imovelId,
         descricao: String(descricao).trim(),
         valor: v,
         data: dataCivil,
+        criadoPorId: req.user.id,
       },
     }));
   }));
 
-  r.delete('/:id/despesas/:despesaId', asyncHandler(async (req, res) => {
+  // Estorno preserva histórico: marca o lançamento, não apaga
+  r.post('/:id/despesas/:despesaId/estornar', requireRole('admin'), asyncHandler(async (req, res) => {
     const imovelId = +req.params.id;
+    const { motivo } = req.body || {};
     const d = await prisma.imovelDespesa.findFirst({ where: { id: +req.params.despesaId, imovelId } });
-    if (d) await prisma.imovelDespesa.delete({ where: { id: d.id } });
-    res.json({ ok: true });
+    if (!d) return res.status(404).json({ error: 'Despesa não encontrada' });
+    if (d.estornada) return res.status(409).json({ error: 'Despesa já estornada' });
+    res.json(await prisma.imovelDespesa.update({
+      where: { id: d.id },
+      data: { estornada: true, estornadoEm: new Date(), estornoMotivo: String(motivo || '').trim() || null },
+    }));
+  }));
+
+  // Despesa não é apagada — o histórico financeiro é preservado via estorno
+  r.delete('/:id/despesas/:despesaId', requireRole('admin'), asyncHandler(async (req, res) => {
+    const d = await prisma.imovelDespesa.findFirst({ where: { id: +req.params.despesaId, imovelId: +req.params.id } });
+    if (!d) return res.status(404).json({ error: 'Despesa não encontrada' });
+    return res.status(409).json({ error: 'Lançamentos financeiros não são excluídos. Use o estorno para reverter.' });
   }));
 
   // Inteligência de mercado

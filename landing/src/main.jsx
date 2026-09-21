@@ -120,27 +120,20 @@ function Footer({ minimal }) {
   </footer>;
 }
 
+// URL da API do CRM por ambiente: VITE_API_URL > dev local > produção.
+const API_URL = (import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:8090' : 'https://sistema.prospeccaobrasil.com.br')).replace(/\/$/, '');
+
 function ContactPage() {
-  const handleSubmit = (event) => {
+  const [envio, setEnvio] = useState({ estado: 'idle', erro: '', waUrl: '' });
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    if (envio.estado === 'enviando') return;
     const data = new FormData(event.target);
     const nome = data.get('name') || '';
     const email = data.get('email') || '';
     const telefone = data.get('phone') || '';
     const mensagem = data.get('message') || '';
-    // Registra o lead no CRM antes de abrir o WhatsApp (falha não bloqueia o contato)
-    try {
-      fetch('https://sistema.prospeccaobrasil.com.br/api/public/leads', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          nome, telefone, email,
-          interesse: data.get('company') ? `Empresa: ${data.get('company')}` : null,
-          mensagem,
-          origem: 'site',
-        }),
-      }).catch(() => {});
-    } catch { /* captação é best-effort */ }
     const lines = [
       `Olá! Meu nome é ${nome}.`,
       data.get('company') && `Empresa: ${data.get('company')}.`,
@@ -149,7 +142,35 @@ function ContactPage() {
       '',
       mensagem,
     ].filter(Boolean).join('\n');
-    window.open(`https://wa.me/5521998423232?text=${encodeURIComponent(lines)}`, '_blank');
+    const waUrl = `https://wa.me/5521998423232?text=${encodeURIComponent(lines)}`;
+
+    setEnvio({ estado: 'enviando', erro: '', waUrl });
+    try {
+      const res = await fetch(`${API_URL}/api/public/leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome, telefone, email,
+          interesse: data.get('company') ? `Empresa: ${data.get('company')}` : null,
+          mensagem,
+          origem: 'site',
+        }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        throw new Error(j.error || (res.status === 429 ? 'Muitos envios. Aguarde alguns minutos.' : 'Não foi possível registrar seu contato.'));
+      }
+      // Persistido no CRM — o WhatsApp fica como passo seguinte explícito (evita bloqueio de popup)
+      setEnvio({ estado: 'ok', erro: '', waUrl });
+    } catch (e) {
+      setEnvio({
+        estado: 'erro',
+        erro: e.message === 'Failed to fetch'
+          ? 'Sem conexão com o sistema. Seu contato não foi registrado — tente novamente ou fale direto pelo WhatsApp.'
+          : e.message,
+        waUrl,
+      });
+    }
   };
 
   return <main>
@@ -179,7 +200,19 @@ function ContactPage() {
           <div className="field"><label htmlFor="cf-phone">Telefone / WhatsApp</label><input id="cf-phone" name="phone" type="tel" autoComplete="tel" placeholder="(21) 99999-9999" /></div>
           <div className="field field-full"><label htmlFor="cf-email">E-mail</label><input id="cf-email" name="email" type="email" autoComplete="email" placeholder="voce@empresa.com.br" required /></div>
           <div className="field field-full"><label htmlFor="cf-message">Como podemos ajudar?</label><textarea id="cf-message" name="message" placeholder="Conte sobre sua operação, regiões de interesse e metas de expansão." required /></div>
-          <button className="button" type="submit">Enviar pelo WhatsApp <i className="ph ph-whatsapp-logo" /></button>
+          {envio.estado === 'ok' ? (
+            <div className="contact-form-status ok" role="status">
+              <p><strong>Recebemos seu contato!</strong> Nossa equipe retorna em breve.</p>
+              <a className="button" href={envio.waUrl} target="_blank" rel="noreferrer">Continuar pelo WhatsApp <i className="ph ph-whatsapp-logo" /></a>
+            </div>
+          ) : (
+            <>
+              {envio.estado === 'erro' && <div className="contact-form-status erro" role="alert"><p>{envio.erro}</p><a href={envio.waUrl} target="_blank" rel="noreferrer">Ou fale direto pelo WhatsApp</a></div>}
+              <button className="button" type="submit" disabled={envio.estado === 'enviando'}>
+                {envio.estado === 'enviando' ? 'Enviando…' : 'Enviar'} <i className="ph ph-whatsapp-logo" />
+              </button>
+            </>
+          )}
           <small className="contact-form-note">Prefere e-mail? Escreva para <a href={`mailto:${contact.email}`}>{contact.email}</a></small>
         </form>
       </div>

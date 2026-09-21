@@ -44,7 +44,10 @@ module.exports = (prisma) => {
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {
-    const lead = await prisma.lead.findUnique({ where: { id: +req.params.id } });
+    const lead = await prisma.lead.findUnique({
+      where: { id: +req.params.id },
+      include: { interacoes: { orderBy: { criadoEm: 'desc' } } },
+    });
     if (!lead) return res.status(404).json({ error: 'Não encontrado' });
     res.json(lead);
   }));
@@ -66,32 +69,60 @@ module.exports = (prisma) => {
     if (erro) return res.status(400).json({ error: erro });
     const lead = await prisma.lead.findUnique({ where: { id: +req.params.id } });
     if (!lead) return res.status(404).json({ error: 'Não encontrado' });
+    // "convertido" só via POST /:id/converter — status sozinho não é prova de conversão
+    if (d.status === 'convertido' && !lead.empresaId) {
+      return res.status(400).json({ error: 'Use a ação "Converter" para vincular empresa/oportunidade' });
+    }
+    // Remover o vínculo exige conversão nova, não apenas mudança de status
+    delete d.empresaId; delete d.oportunidadeId;
     res.json(await prisma.lead.update({ where: { id: lead.id }, data: d }));
   }));
 
-  // Conversão: lead → empresa (+ oportunidade opcional), transacional e idempotente
+  // Conversão: lead → empresa (+ oportunidade opcional), transacional e idempotente.
+  // O vínculo persiste em lead.empresaId/oportunidadeId — reconversão retorna o existente.
   r.post('/:id/converter', asyncHandler(async (req, res) => {
-    const lead = await prisma.lead.findUnique({ where: { id: +req.params.id } });
-    if (!lead) return res.status(404).json({ error: 'Não encontrado' });
-    if (lead.status === 'convertido') {
-      return res.status(409).json({ error: 'Lead já convertido' });
-    }
     const { empresaId, empresaNome, imovelId, observacao } = req.body || {};
-    if (!empresaId && !empresaNome && !lead.nome) {
-      return res.status(400).json({ error: 'Informe a empresa (existente ou nome para criar)' });
+    if (empresaId !== undefined && !Number.isInteger(+empresaId)) {
+      return res.status(400).json({ error: 'empresaId inválido' });
+    }
+    if (imovelId !== undefined && imovelId !== null && !Number.isInteger(+imovelId)) {
+      return res.status(400).json({ error: 'imovelId inválido' });
     }
     const resultado = await prisma.$transaction(async (tx) => {
-      const empresa = empresaId
-        ? await tx.empresa.findUnique({ where: { id: +empresaId } })
-        : await tx.empresa.create({ data: { nome: empresaNome || lead.nome } });
-      if (!empresa) throw Object.assign(new Error('Empresa não encontrada'), { status: 404 });
-      let oportunidade = null;
-      if (imovelId) {
-        oportunidade = await tx.oportunidade.create({
-          data: { imovelId: +imovelId, empresaId: empresa.id, observacao },
+      const lead = await tx.lead.findUnique({ where: { id: +req.params.id }, include: { empresa: true, oportunidade: true } });
+      if (!lead) throw Object.assign(new Error('Lead não encontrado'), { status: 404 });
+      // Idempotência: já convertido retorna o vínculo existente, sem duplicar
+      if (lead.empresaId) {
+        return { lead, empresa: lead.empresa, oportunidade: lead.oportunidade, jaConvertido: true };
+      }
+      let empresa;
+      if (empresaId) {
+        empresa = await tx.empresa.findUnique({ where: { id: +empresaId } });
+        if (!empresa) throw Object.assign(new Error('Empresa não encontrada'), { status: 404 });
+      } else {
+        const nomeEmpresa = String(empresaNome || lead.nome).trim();
+        if (!nomeEmpresa) throw Object.assign(new Error('Informe a empresa (existente ou nome para criar)'), { status: 400 });
+        empresa = await tx.empresa.create({
+          data: {
+            nome: nomeEmpresa,
+            telefone: lead.telefone || null,
+            email: lead.email || null,
+            contatoNome: lead.nome,
+          },
         });
       }
-      const atualizado = await tx.lead.update({ where: { id: lead.id }, data: { status: 'convertido' } });
+      let oportunidade = null;
+      if (imovelId) {
+        const imovel = await tx.imovel.findUnique({ where: { id: +imovelId } });
+        if (!imovel) throw Object.assign(new Error('Imóvel não encontrado'), { status: 404 });
+        oportunidade = await tx.oportunidade.create({
+          data: { imovelId: imovel.id, empresaId: empresa.id, observacao },
+        });
+      }
+      const atualizado = await tx.lead.update({
+        where: { id: lead.id },
+        data: { status: 'convertido', empresaId: empresa.id, oportunidadeId: oportunidade?.id || null },
+      });
       return { lead: atualizado, empresa, oportunidade };
     });
     res.json(resultado);
