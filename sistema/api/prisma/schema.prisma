@@ -18,6 +18,7 @@ model Usuario {
 
   leadsResponsavel Lead[]        @relation("LeadResponsavel")
   atividades       LeadAtividade[]
+  lancamentos      Lancamento[]
 
   @@map("usuarios")
 }
@@ -43,6 +44,7 @@ model Empresa {
   criadoEm       DateTime  @default(now()) @map("criado_em")
   atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
   oportunidades  Oportunidade[]
+  lancamentos    Lancamento[]
   leads          Lead[]
 
   @@map("empresas")
@@ -188,6 +190,7 @@ model Imovel {
   analises        AnaliseMercado[]
   oportunidades   Oportunidade[]
   despesas        ImovelDespesa[]
+  lancamentos     Lancamento[]
 
   @@index([proprietarioId])
   @@index([parceiroId])
@@ -250,6 +253,37 @@ model AnaliseMercado {
   @@map("analises_mercado")
 }
 
+model Lancamento {
+  id             Int       @id @default(autoincrement())
+  tipo           String    // receita | despesa
+  categoria      String    // aluguel | comissao | repasse | condominio | iptu | taxa | outro
+  descricao      String
+  valor          Decimal
+  competencia    DateTime? // mês de referência (data civil)
+  vencimento     DateTime? // data civil de vencimento
+  status         String    @default("previsto") // previsto | pago | estornado
+  pagoEm         DateTime? @map("pago_em")
+  valorPago      Decimal?  @map("valor_pago")
+  formaPagamento String?   @map("forma_pagamento")
+  estornadoEm    DateTime? @map("estornado_em")
+  estornoMotivo  String?   @map("estorno_motivo")
+  imovelId       Int?      @map("imovel_id")
+  empresaId      Int?      @map("empresa_id")
+  oportunidadeId Int?      @map("oportunidade_id")
+  criadoPorId    Int?      @map("criado_por_id")
+  criadoEm       DateTime  @default(now()) @map("criado_em")
+  imovel         Imovel?       @relation(fields: [imovelId], references: [id])
+  empresa        Empresa?      @relation(fields: [empresaId], references: [id])
+  oportunidade   Oportunidade? @relation(fields: [oportunidadeId], references: [id])
+  criadoPor      Usuario?      @relation(fields: [criadoPorId], references: [id])
+
+  @@index([tipo, status])
+  @@index([vencimento])
+  @@index([imovelId])
+  @@index([empresaId])
+  @@map("lancamentos")
+}
+
 model Oportunidade {
   id         Int      @id @default(autoincrement())
   imovelId   Int      @map("imovel_id")
@@ -261,6 +295,7 @@ model Oportunidade {
   imovel     Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
   empresa    Empresa  @relation(fields: [empresaId], references: [id], onDelete: Cascade)
   leads      Lead[]
+  lancamentos Lancamento[]
 
   @@map("oportunidades")
 }

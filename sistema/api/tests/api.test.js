@@ -450,3 +450,57 @@ test('CRM operacional: responsável, próxima ação e atividades', async () => 
   assert.ok(tipos.includes('status'), 'mudança de status vira atividade');
   assert.equal(det.body.responsavel.id, me.body.id);
 });
+
+test('financeiro: lançamentos com baixa, estorno e resumo', async () => {
+  const im = await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Fin', cidade: 'RJ' } });
+  const em = await req('POST', '/api/empresas', { token, body: { nome: 'Emp Fin' } });
+
+  // Receita de comissão + despesa de repasse
+  const rec = await req('POST', '/api/financeiro/lancamentos', {
+    token,
+    body: { tipo: 'receita', categoria: 'comissao', descricao: 'Comissão locação', valor: 2500, vencimento: '2026-10-10', imovelId: im.body.id, empresaId: em.body.id },
+  });
+  assert.equal(rec.status, 201, JSON.stringify(rec.body));
+  assert.equal(rec.body.status, 'previsto');
+
+  // Validações
+  assert.equal((await req('POST', '/api/financeiro/lancamentos', { token, body: { tipo: 'x', categoria: 'aluguel', descricao: 'a', valor: 1 } })).status, 400);
+  assert.equal((await req('POST', '/api/financeiro/lancamentos', { token, body: { tipo: 'receita', categoria: 'aluguel', descricao: 'a', valor: 1.005 } })).status, 400);
+  assert.equal((await req('POST', '/api/financeiro/lancamentos', { token, body: { tipo: 'receita', categoria: 'aluguel', descricao: 'a', valor: 10, vencimento: '2026-02-30' } })).status, 400);
+  assert.equal((await req('POST', '/api/financeiro/lancamentos', { token, body: { tipo: 'receita', categoria: 'aluguel', descricao: 'a', valor: 10, imovelId: 99999 } })).status, 400);
+
+  // Baixa com valor diferente
+  const bx = await req('POST', `/api/financeiro/lancamentos/${rec.body.id}/baixar`, {
+    token, body: { pagoEm: '2026-10-09', valorPago: 2400, formaPagamento: 'pix' },
+  });
+  assert.equal(bx.status, 200);
+  assert.equal(bx.body.status, 'pago');
+  assert.equal(Number(bx.body.valorPago), 2400);
+  // Baixa dupla → 409; estorno de pago preserva histórico
+  assert.equal((await req('POST', `/api/financeiro/lancamentos/${rec.body.id}/baixar`, { token, body: {} })).status, 409);
+
+  const desp = await req('POST', '/api/financeiro/lancamentos', {
+    token, body: { tipo: 'despesa', categoria: 'repasse', descricao: 'Repasse proprietário', valor: 2000, vencimento: '2020-01-01', imovelId: im.body.id },
+  });
+  const resumo = await req('GET', '/api/financeiro/resumo', { token });
+  assert.equal(resumo.body.receitaRealizada, 2400);
+  assert.equal(resumo.body.despesaPrevista, 2000);
+  assert.equal(resumo.body.resultadoRealizado, 2400); // receita paga 2400 − despesa paga 0
+  assert.equal(resumo.body.resultadoPrevisto, -2000); // receita prevista 0 − despesa prevista 2000
+  assert.ok(resumo.body.vencidos.qtd >= 1, 'repasse vencido conta como em aberto');
+
+  // Estorno preserva lançamento e sai dos totais
+  await req('POST', `/api/financeiro/lancamentos/${desp.body.id}/estornar`, { token, body: { motivo: 'Erro' } });
+  const resumo2 = await req('GET', '/api/financeiro/resumo', { token });
+  assert.equal(resumo2.body.despesaPrevista, 0);
+
+  // Paginação server-side
+  const pag = await req('GET', '/api/financeiro/lancamentos?pagina=1&porPagina=1', { token });
+  assert.equal(pag.body.items.length, 1);
+  assert.equal(pag.body.total, 2);
+  assert.equal(pag.body.paginas, 2);
+
+  // Comercial continua fora
+  const t = await login('b02@teste.dev', 'senha12345');
+  assert.equal((await req('GET', '/api/financeiro/lancamentos', { token: t.body.token })).status, 403);
+});

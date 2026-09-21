@@ -1,6 +1,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
+const paginate = require('../lib/paginate');
 
 const LEAD_FIELDS = [
   'nome', 'telefone', 'email', 'origem', 'interesse', 'status', 'observacoes',
@@ -66,11 +67,11 @@ module.exports = (prisma) => {
       { nome: { contains: q } }, { telefone: { contains: q } },
       { email: { contains: q } }, { interesse: { contains: q } },
     ];
-    res.json(await prisma.lead.findMany({
+    await paginate(req, res, prisma.lead, {
       where,
       include: { responsavel: { select: { id: true, nome: true } } },
       orderBy: { criadoEm: 'desc' },
-    }));
+    });
   }));
 
   // Opções de responsável para qualquer usuário autenticado (só id/nome)

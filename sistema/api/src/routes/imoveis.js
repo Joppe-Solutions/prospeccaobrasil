@@ -5,6 +5,7 @@ const multer = require('multer');
 const auth = require('../middleware/auth');
 const { requireRole } = auth;
 const asyncHandler = require('../middleware/async');
+const paginate = require('../lib/paginate');
 const { gerarAnalise } = require('../services/inteligencia');
 
 const ALLOWED_MIME = new Set([
@@ -74,7 +75,7 @@ module.exports = (prisma) => {
       { codigo: { contains: q } }, { endereco: { contains: q } },
       { bairro: { contains: q } }, { titulo: { contains: q } }, { cidade: { contains: q } },
     ];
-    res.json(await prisma.imovel.findMany({
+    await paginate(req, res, prisma.imovel, {
       where, orderBy: { criadoEm: 'desc' },
       include: {
         fotos: { where: { principal: true }, take: 1 },
@@ -82,7 +83,7 @@ module.exports = (prisma) => {
         parceiro: { select: { id: true, nome: true } },
         _count: { select: { fotos: true, documentos: true } },
       },
-    }));
+    });
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {

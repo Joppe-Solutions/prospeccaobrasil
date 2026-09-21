@@ -1,6 +1,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
+const paginate = require('../lib/paginate');
 
 const EMPRESA_FIELDS = [
   'nome', 'segmento', 'cnpj', 'site', 'telefone', 'email',
@@ -32,7 +33,7 @@ module.exports = (prisma) => {
       { nome: { contains: q } }, { segmento: { contains: q } },
       { contatoNome: { contains: q } }, { cidade: { contains: q } },
     ];
-    res.json(await prisma.empresa.findMany({ where, orderBy: { nome: 'asc' } }));
+    await paginate(req, res, prisma.empresa, { where, orderBy: { nome: 'asc' } });
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {

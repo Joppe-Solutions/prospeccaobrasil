@@ -1,16 +1,17 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
+const paginate = require('../lib/paginate');
 
 module.exports = (prisma) => {
   const r = express.Router();
   r.use(auth);
 
   r.get('/', asyncHandler(async (req, res) => {
-    res.json(await prisma.oportunidade.findMany({
+    await paginate(req, res, prisma.oportunidade, {
       orderBy: { atualizadoEm: 'desc' },
       include: { imovel: true, empresa: true },
-    }));
+    });
   }));
 
   r.post('/', asyncHandler(async (req, res) => {

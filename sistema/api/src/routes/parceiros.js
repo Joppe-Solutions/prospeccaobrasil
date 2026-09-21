@@ -1,6 +1,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
+const paginate = require('../lib/paginate');
 
 const PARCEIRO_FIELDS = [
   'nome', 'tipo', 'telefone', 'email', 'cidade', 'uf', 'observacoes', 'status',
@@ -27,11 +28,11 @@ module.exports = (prisma) => {
       { nome: { contains: q } }, { telefone: { contains: q } },
       { email: { contains: q } }, { cidade: { contains: q } },
     ];
-    res.json(await prisma.parceiro.findMany({
+    await paginate(req, res, prisma.parceiro, {
       where,
       orderBy: { nome: 'asc' },
       include: { _count: { select: { imoveis: true } } },
-    }));
+    });
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {

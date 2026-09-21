@@ -1,6 +1,7 @@
 const express = require('express');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
+const paginate = require('../lib/paginate');
 
 const PROPRIETARIO_FIELDS = [
   'tipoPessoa', 'nome', 'documento', 'telefone', 'email',
@@ -28,11 +29,11 @@ module.exports = (prisma) => {
       { nome: { contains: q } }, { documento: { contains: q } },
       { telefone: { contains: q } }, { email: { contains: q } }, { cidade: { contains: q } },
     ];
-    res.json(await prisma.proprietario.findMany({
+    await paginate(req, res, prisma.proprietario, {
       where,
       orderBy: { nome: 'asc' },
       include: { _count: { select: { imoveis: true } } },
-    }));
+    });
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {
