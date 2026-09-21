@@ -2,9 +2,13 @@ const express = require('express');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
 
+const { requireRole } = auth;
+
+const toCents = (v) => Math.round(Number(v || 0) * 100);
+
 module.exports = (prisma) => {
   const r = express.Router();
-  r.use(auth);
+  r.use(auth, requireRole('admin'));
 
   r.get('/', asyncHandler(async (req, res) => {
     const despesas = await prisma.imovelDespesa.findMany({
@@ -13,19 +17,22 @@ module.exports = (prisma) => {
         imovel: { select: { id: true, codigo: true, endereco: true, numero: true, bairro: true, cidade: true } },
       },
     });
-    const total = despesas.reduce((s, d) => s + Number(d.valor || 0), 0);
+    // Soma em centavos inteiros para precisão monetária
+    const totalCents = despesas.reduce((s, d) => s + toCents(d.valor), 0);
     const porImovelMap = new Map();
     for (const d of despesas) {
       const key = d.imovelId;
-      const cur = porImovelMap.get(key) || { imovel: d.imovel, total: 0, qtd: 0 };
-      cur.total += Number(d.valor || 0);
+      const cur = porImovelMap.get(key) || { imovel: d.imovel, totalCents: 0, qtd: 0 };
+      cur.totalCents += toCents(d.valor);
       cur.qtd += 1;
       porImovelMap.set(key, cur);
     }
     res.json({
-      total,
+      total: totalCents / 100,
       qtd: despesas.length,
-      porImovel: [...porImovelMap.values()].sort((a, b) => b.total - a.total),
+      porImovel: [...porImovelMap.values()]
+        .map((p) => ({ imovel: p.imovel, total: p.totalCents / 100, qtd: p.qtd }))
+        .sort((a, b) => b.total - a.total),
       despesas,
     });
   }));

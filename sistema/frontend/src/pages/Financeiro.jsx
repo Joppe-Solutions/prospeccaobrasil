@@ -35,7 +35,8 @@ export default function Financeiro() {
     },
     { accessorKey: 'descricao', header: 'Despesa', cell: ({ getValue }) => <strong>{getValue()}</strong> },
     {
-      accessorKey: 'valor',
+      id: 'valor',
+      accessorFn: (d) => Number(d.valor) || 0,
       header: 'Valor',
       cell: ({ getValue }) => <span className="collection-money">{fmtMoney(getValue())}</span>,
     },

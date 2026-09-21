@@ -10,9 +10,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# PRs de forks NÃO rodam no runner de produção — apenas pushes e PRs do próprio repo.
 jobs:
   build-landing:
     name: Build landing
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux, x64, prospeccao-prod]
     defaults:
       run:
@@ -26,6 +28,7 @@ jobs:
 
   build-sistema:
     name: Build sistema (API + admin)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux, x64, prospeccao-prod]
     steps:
       - uses: actions/checkout@v4
@@ -49,6 +52,7 @@ jobs:
 
   test-api:
     name: Testes da API
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux, x64, prospeccao-prod]
     defaults:
       run:
@@ -64,6 +68,7 @@ jobs:
 
   test-e2e:
     name: E2E (Playwright)
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
     runs-on: [self-hosted, linux, x64, prospeccao-prod]
     steps:
       - uses: actions/checkout@v4

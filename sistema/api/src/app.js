@@ -11,6 +11,7 @@ const app = express();
 
 // Segurança e performance
 app.disable('x-powered-by');
+app.set('trust proxy', 1); // atrás do Nginx — req.ip usa X-Forwarded-For do proxy
 app.use(compression());
 app.use((req, res, next) => {
   res.setHeader('X-Content-Type-Options', 'nosniff');
@@ -50,7 +51,14 @@ app.use('/api/usuarios', require('./routes/usuarios')(prisma));
 app.use('/api/public', require('./routes/public')(prisma));
 app.use('/apresentacao', require('./routes/apresentacao')(prisma));
 
-app.get('/api/healthz', (req, res) => res.json({ ok: true }));
+app.get('/api/healthz', async (req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ ok: true });
+  } catch {
+    res.status(503).json({ ok: false, error: 'Banco indisponível' });
+  }
+});
 app.use('/api', (req, res) => res.status(404).json({ error: 'Rota não encontrada' }));
 
 // eslint-disable-next-line no-unused-vars

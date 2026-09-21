@@ -13,7 +13,7 @@ const NAV = [
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
       { to: '/imoveis', label: 'Imóveis', icon: Buildings },
-      { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar },
+      { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar, admin: true },
     ],
   },
   {
@@ -74,7 +74,7 @@ export default function Layout() {
           {NAV.map(group => (
             <div key={group.caption} className="nav-group">
               <span className="nav-caption">{group.caption}</span>
-              {group.items.map(navItem => item(navItem))}
+              {group.items.filter((navItem) => !navItem.admin || u?.role === 'admin').map(navItem => item(navItem))}
             </div>
           ))}
           <span className="nav-caption nav-caption-account">CONTA</span>

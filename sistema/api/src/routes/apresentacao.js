@@ -2,6 +2,7 @@ const express = require('express');
 const QRCode = require('qrcode');
 const { custoTotal } = require('../services/inteligencia');
 const asyncHandler = require('../middleware/async');
+const { DOC_PUBLICOS } = require('../lib/publicDocs');
 
 const money = (v) => v == null ? 'R$ 0,00' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 const num = (v, u = 'm²') => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 }) + ' ' + u;
@@ -32,7 +33,7 @@ module.exports = (prisma) => {
       where: { id: +req.params.id },
       include: { fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, documentos: true },
     });
-    if (!i) return res.status(404).send('Imóvel não encontrado');
+    if (!i || i.status === 'inativo') return res.status(404).send('Imóvel não encontrado');
 
     const foto = i.fotos[0];
     const end1 = [i.endereco, i.numero].filter(Boolean).join(', ') + (i.complemento ? ` – ${i.complemento}` : '');
@@ -40,9 +41,10 @@ module.exports = (prisma) => {
     const cidadeUf = `${(i.bairro || '').toUpperCase()} – ${i.uf}${i.cep ? ` (CEP: ${i.cep})` : ''}`;
     const custo = custoTotal(i);
     const mapsUrl = i.googleMapsUrl || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(end1 + ', ' + i.cidade)}`;
-    const qrData = await QRCode.toDataURL(i.googleDriveUrl || mapsUrl, { margin: 0, width: 300, color: { dark: '#0d2f2a', light: '#ffffff' } });
+    const qrData = await QRCode.toDataURL(mapsUrl, { margin: 0, width: 300, color: { dark: '#0d2f2a', light: '#ffffff' } });
     const tipoLabel = i.tipo === 'venda' ? 'ATIVO COMERCIAL DISPONÍVEL PARA VENDA' : 'ATIVO COMERCIAL DISPONÍVEL PARA LOCAÇÃO';
-    const docs = i.documentos.length ? i.documentos : ['planta','inteligencia','rig','avcb','convencao','iptu_doc','doc_locatario'].map(t => ({ tipo: t, nome: DOC_LABELS[t].replace(/\n/g,' ') }));
+    const docsPublicos = i.documentos.filter((d) => DOC_PUBLICOS.has(d.tipo));
+    const docs = docsPublicos.length ? docsPublicos : ['planta','inteligencia','rig','avcb','convencao','iptu_doc'].map(t => ({ tipo: t, nome: DOC_LABELS[t].replace(/\n/g,' ') }));
 
     const termos = [
       { ic: 'M4 17 L12 7 L20 17 M4 21 H20', label: 'CDU', sub: 'CESSÃO DE DIREITO DE USO\nCAPEX', v: money(i.cdu) },
@@ -172,7 +174,7 @@ module.exports = (prisma) => {
     <div class="photo-col">
       <div class="photo-addr">${esc(end1.toUpperCase())}<small>${esc(cidadeUf)}</small></div>
       <div class="photo"></div>
-      ${i.googleDriveUrl ? `<div class="gphotos"><a href="${esc(i.googleDriveUrl)}" target="_blank"><svg width="14" height="14" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="none" stroke="#0e8c7f" stroke-width="1.6"/><path d="M8 15 L12 7 L16 15 Z" fill="#0e8c7f"/></svg>Google Fotos</a></div>` : ''}
+
     </div>
   </div>
 
@@ -235,7 +237,7 @@ module.exports = (prisma) => {
         <div class="dl">${esc(DOC_LABELS[d.tipo] || d.nome.toUpperCase())}</div>
       </a>`).join('')}
     </div>
-    <div class="qrbox"><img src="${qrData}" alt="QR"><div class="cap">${i.googleDriveUrl ? 'GALERIA DE FOTOS' : 'LOCALIZAÇÃO'}</div></div>
+    <div class="qrbox"><img src="${qrData}" alt="QR"><div class="cap">LOCALIZAÇÃO</div></div>
   </div>
 
   <hr class="rule">

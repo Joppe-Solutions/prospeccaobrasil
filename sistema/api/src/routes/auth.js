@@ -23,6 +23,7 @@ module.exports = (prisma) => {
 
   r.post('/trocar-senha', auth, asyncHandler(async (req, res) => {
     const { atual, nova } = req.body || {};
+    if (!nova || String(nova).length < 8) return res.status(400).json({ error: 'Nova senha precisa de 8+ caracteres' });
     const u = await prisma.usuario.findUnique({ where: { id: req.user.id } });
     if (!(await bcrypt.compare(String(atual || ''), u.senhaHash))) return res.status(400).json({ error: 'Senha atual incorreta' });
     await prisma.usuario.update({ where: { id: u.id }, data: { senhaHash: await bcrypt.hash(String(nova), 10) } });

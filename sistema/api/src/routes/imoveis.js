@@ -104,11 +104,25 @@ module.exports = (prisma) => {
   r.post('/', asyncHandler(async (req, res) => {
     const d = pickImovel(req.body);
     if (!d.endereco || !d.cidade) return res.status(400).json({ error: 'Endereço e cidade são obrigatórios' });
-    if (!d.codigo) {
-      const n = await prisma.imovel.count();
-      d.codigo = `PB-${String(n + 1).padStart(3, '0')}`;
+    // Código sequencial baseado no maior sufixo existente, com retry em colisão (P2002)
+    for (let tentativa = 0; tentativa < 5; tentativa++) {
+      if (!d.codigo || tentativa > 0) {
+        const ultimo = await prisma.imovel.findFirst({
+          where: { codigo: { startsWith: 'PB-' } },
+          orderBy: { codigo: 'desc' },
+          select: { codigo: true },
+        });
+        const seq = (parseInt((ultimo?.codigo || '').replace('PB-', ''), 10) || 0) + 1;
+        d.codigo = `PB-${String(seq).padStart(3, '0')}`;
+      }
+      try {
+        return res.json(await prisma.imovel.create({ data: d }));
+      } catch (e) {
+        if (e.code === 'P2002' && tentativa < 4) { d.codigo = null; continue; }
+        if (e.code === 'P2002') return res.status(409).json({ error: 'Código de imóvel já existe. Tente novamente.' });
+        throw e;
+      }
     }
-    res.json(await prisma.imovel.create({ data: d }));
   }));
 
   r.put('/:id', asyncHandler(async (req, res) => {
@@ -116,7 +130,24 @@ module.exports = (prisma) => {
   }));
 
   r.delete('/:id', asyncHandler(async (req, res) => {
-    await prisma.imovel.delete({ where: { id: +req.params.id } });
+    const id = +req.params.id;
+    const [despesas, oportunidades] = await Promise.all([
+      prisma.imovelDespesa.count({ where: { imovelId: id } }),
+      prisma.oportunidade.count({ where: { imovelId: id } }),
+    ]);
+    if (despesas > 0 || oportunidades > 0) {
+      return res.status(409).json({
+        error: 'Imóvel possui despesas ou oportunidades vinculadas. Use o status "inativo" para arquivar sem perder o histórico.',
+      });
+    }
+    const arquivos = await prisma.imovel.findUnique({
+      where: { id },
+      include: { fotos: { select: { arquivo: true } }, documentos: { select: { arquivo: true } } },
+    });
+    for (const f of [...(arquivos?.fotos || []), ...(arquivos?.documentos || [])]) {
+      if (f.arquivo) { try { fs.unlinkSync(path.join(uploadDir, f.arquivo)); } catch {} }
+    }
+    await prisma.imovel.delete({ where: { id } });
     res.json({ ok: true });
   }));
 
@@ -137,6 +168,11 @@ module.exports = (prisma) => {
     if (f) {
       try { fs.unlinkSync(path.join(uploadDir, f.arquivo)); } catch {}
       await prisma.imovelFoto.delete({ where: { id: f.id } });
+      // Se a foto excluída era a principal, promove a próxima
+      if (f.principal) {
+        const proxima = await prisma.imovelFoto.findFirst({ where: { imovelId }, orderBy: { ordem: 'asc' } });
+        if (proxima) await prisma.imovelFoto.update({ where: { id: proxima.id }, data: { principal: true } });
+      }
     }
     res.json({ ok: true });
   }));
@@ -181,15 +217,18 @@ module.exports = (prisma) => {
     const imovel = await prisma.imovel.findUnique({ where: { id: imovelId } });
     if (!imovel) return res.status(404).json({ error: 'Imóvel não encontrado' });
     const { descricao, valor, data } = req.body || {};
-    if (!descricao) return res.status(400).json({ error: 'Descrição obrigatória' });
+    if (!descricao || !String(descricao).trim()) return res.status(400).json({ error: 'Descrição obrigatória' });
     const v = num(valor);
-    if (v == null || Number.isNaN(v)) return res.status(400).json({ error: 'Valor obrigatório' });
+    if (v == null || Number.isNaN(v) || !Number.isFinite(v)) return res.status(400).json({ error: 'Valor obrigatório' });
+    if (v <= 0) return res.status(400).json({ error: 'Valor deve ser maior que zero. Para estornos, exclua o lançamento.' });
+    // Data civil: armazena meio-dia UTC para não deslocar o dia no fuso de exibição (America/Sao_Paulo)
+    const dataCivil = data ? (() => { const m = String(data).match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(Date.UTC(+m[1], +m[2] - 1, +m[3], 12)) : new Date(data); })() : null;
     res.json(await prisma.imovelDespesa.create({
       data: {
         imovelId,
-        descricao,
+        descricao: String(descricao).trim(),
         valor: v,
-        data: data ? new Date(data) : null,
+        data: dataCivil,
       },
     }));
   }));

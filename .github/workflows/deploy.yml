@@ -17,6 +17,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      - name: Gate de qualidade (lint + testes API + e2e)
+        run: |
+          cd sistema/api && npm ci && npx prisma generate && npm test
+          cd ../frontend && npm ci && npm run lint && npm run build
+          cd ../api && rm -rf public && cp -R ../frontend/dist public
+          cd ../frontend && npx playwright install --with-deps chromium && npm run test:e2e
+        env:
+          CI: 'true'
+
       - name: Build landing
         working-directory: landing
         run: npm ci && npm run build

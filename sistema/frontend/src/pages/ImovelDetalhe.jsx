@@ -38,40 +38,65 @@ export default function ImovelDetalhe() {
   const ai = analise?.conteudoJson ? JSON.parse(analise.conteudoJson) : null;
 
   async function uploadFotos(e) {
+    const files = [...e.target.files];
+    e.target.value = '';
+    if (!files.length) return;
     const fd = new FormData();
-    [...e.target.files].forEach(f => fd.append('fotos', f));
-    await fetch(`/api/imoveis/${id}/fotos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
-    load(); flash('Fotos enviadas');
+    files.forEach(f => fd.append('fotos', f));
+    try {
+      const res = await fetch(`/api/imoveis/${id}/fotos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return flash(json.error || 'Falha ao enviar fotos');
+      load(); flash('Fotos enviadas');
+    } catch { flash('Falha ao enviar fotos'); }
   }
   async function addDoc(e) {
     e.preventDefault();
     const fd = new FormData();
     fd.append('tipo', docTipo); fd.append('nome', docNome); fd.append('url', docUrl);
     if (docFileRef.current.files[0]) fd.append('arquivo', docFileRef.current.files[0]);
-    await fetch(`/api/imoveis/${id}/documentos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
-    setDocNome(''); setDocUrl(''); docFileRef.current.value = '';
-    load(); flash('Documento adicionado');
+    try {
+      const res = await fetch(`/api/imoveis/${id}/documentos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) return flash(json.error || 'Falha ao adicionar documento');
+      setDocNome(''); setDocUrl(''); docFileRef.current.value = '';
+      load(); flash('Documento adicionado');
+    } catch { flash('Falha ao adicionar documento'); }
   }
   async function gerarIA() {
     setGerando(true);
-    await api(`/imoveis/${id}/analise`, { method: 'POST' });
-    await load(); setGerando(false); flash('Análise gerada');
+    try {
+      await api(`/imoveis/${id}/analise`, { method: 'POST' });
+      await load(); flash('Análise gerada');
+    } catch (e) { flash(e.message || 'Falha ao gerar análise'); } finally { setGerando(false); }
   }
   async function addOportunidade() {
     if (!empSel) return;
-    await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel }) });
-    setEmpSel(''); load(); flash('Imóvel apresentado à empresa');
+    try {
+      await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel }) });
+      setEmpSel(''); load(); flash('Imóvel apresentado à empresa');
+    } catch (e) { flash(e.message || 'Falha ao registrar apresentação'); }
   }
   async function addDespesa(e) {
     e.preventDefault();
     if (!despesaForm.descricao || !despesaForm.valor) return;
-    await api(`/imoveis/${id}/despesas`, { method: 'POST', body: JSON.stringify(despesaForm) });
-    setDespesaForm({ descricao: '', valor: '', data: '' });
-    load(); flash('Despesa adicionada');
+    try {
+      await api(`/imoveis/${id}/despesas`, { method: 'POST', body: JSON.stringify(despesaForm) });
+      setDespesaForm({ descricao: '', valor: '', data: '' });
+      load(); flash('Despesa adicionada');
+    } catch (e) { flash(e.message || 'Falha ao adicionar despesa'); }
   }
   async function removeDespesa(despesaId) {
-    await api(`/imoveis/${id}/despesas/${despesaId}`, { method: 'DELETE' });
-    load(); flash('Despesa removida');
+    try {
+      await api(`/imoveis/${id}/despesas/${despesaId}`, { method: 'DELETE' });
+      load(); flash('Despesa removida');
+    } catch (e) { flash(e.message || 'Falha ao remover despesa'); }
+  }
+  async function copiarLink() {
+    try {
+      await navigator.clipboard.writeText(`${window.location.origin}/apresentacao/${i.id}`);
+      flash('Link público copiado');
+    } catch { flash('Não foi possível copiar o link'); }
   }
 
   return (
@@ -81,7 +106,7 @@ export default function ImovelDetalhe() {
         <h1>{i.codigo} — {i.endereco}{i.numero ? `, ${i.numero}` : ''}</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <a className="btn btn-gold" href={`/apresentacao/${i.id}`} target="_blank">Apresentação (PDF)</a>
-          <button className="btn btn-ghost" onClick={() => { navigator.clipboard.writeText(`${location.origin}/apresentacao/${i.id}`); flash('Link público copiado'); }}>Copiar link</button>
+          <button className="btn btn-ghost" onClick={copiarLink}>Copiar link</button>
           <Link className="btn btn-ghost" to={`/imoveis/${i.id}/editar`} state={{ backgroundLocation: location }}>Editar</Link>
         </div>
       </div>

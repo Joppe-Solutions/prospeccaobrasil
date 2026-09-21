@@ -71,7 +71,7 @@ export default function Leads() {
   ), [list, status, origem]);
 
   const columns = [
-    { accessorKey: 'nome', header: 'Lead', cell: ({ row }) => (
+    { id: 'nome', accessorFn: l => `${l.nome || ''} ${l.interesse || ''}`, header: 'Lead', cell: ({ row }) => (
       <div className="collection-identity">
         <Avatar name={row.original.nome} />
         <span className="collection-cell-stack">

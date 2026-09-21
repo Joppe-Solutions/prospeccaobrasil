@@ -31,7 +31,10 @@ module.exports = (prisma) => {
     const { nome, role, ativo, senha } = req.body || {};
     const data = { nome, role, ativo };
     Object.keys(data).forEach(k => data[k] === undefined && delete data[k]);
-    if (senha) data.senhaHash = await bcrypt.hash(String(senha), 10);
+    if (senha !== undefined) {
+      if (String(senha).length < 8) return res.status(400).json({ error: 'Senha precisa de 8+ caracteres' });
+      data.senhaHash = await bcrypt.hash(String(senha), 10);
+    }
     res.json(await prisma.usuario.update({ where: { id: +req.params.id }, data, select: { id: true, nome: true, email: true, role: true, ativo: true } }));
   }));
 

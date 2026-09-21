@@ -55,7 +55,12 @@ module.exports = (prisma) => {
   }));
 
   r.delete('/:id', asyncHandler(async (req, res) => {
-    await prisma.empresa.delete({ where: { id: +req.params.id } });
+    const id = +req.params.id;
+    const vinculos = await prisma.oportunidade.count({ where: { empresaId: id } });
+    if (vinculos > 0) {
+      return res.status(409).json({ error: 'Empresa possui oportunidades vinculadas. Exclua ou transfira as oportunidades antes.' });
+    }
+    await prisma.empresa.delete({ where: { id } });
     res.json({ ok: true });
   }));
 

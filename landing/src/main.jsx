@@ -124,13 +124,30 @@ function ContactPage() {
   const handleSubmit = (event) => {
     event.preventDefault();
     const data = new FormData(event.target);
+    const nome = data.get('name') || '';
+    const email = data.get('email') || '';
+    const telefone = data.get('phone') || '';
+    const mensagem = data.get('message') || '';
+    // Registra o lead no CRM antes de abrir o WhatsApp (falha não bloqueia o contato)
+    try {
+      fetch('https://sistema.prospeccaobrasil.com.br/api/public/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          nome, telefone, email,
+          interesse: data.get('company') ? `Empresa: ${data.get('company')}` : null,
+          mensagem,
+          origem: 'site',
+        }),
+      }).catch(() => {});
+    } catch { /* captação é best-effort */ }
     const lines = [
-      `Olá! Meu nome é ${data.get('name')}.`,
+      `Olá! Meu nome é ${nome}.`,
       data.get('company') && `Empresa: ${data.get('company')}.`,
-      `E-mail: ${data.get('email')}`,
-      data.get('phone') && `Telefone: ${data.get('phone')}`,
+      `E-mail: ${email}`,
+      telefone && `Telefone: ${telefone}`,
       '',
-      data.get('message'),
+      mensagem,
     ].filter(Boolean).join('\n');
     window.open(`https://wa.me/5521998423232?text=${encodeURIComponent(lines)}`, '_blank');
   };
