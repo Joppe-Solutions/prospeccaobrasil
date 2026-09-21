@@ -45,3 +45,14 @@
   `prospeccao-prod` é reservado ao deploy.
 - Landing chama a API via `VITE_API_URL` (fallback: `localhost:8090` em dev,
   `sistema.prospeccaobrasil.com.br` em prod).
+
+## Dependências externas pendentes
+
+- Conta GitHub com billing bloqueado impede runners `ubuntu-latest` no CI
+  (jobs falham em segundos, sem executar). Até regularizar, o gate de testes
+  roda no job `deploy` (self-hosted) antes de publicar — a esteira segue
+  protegida, mas CI em PRs depende de destravar o billing.
+- Backup diário na VPS: cron 04:17 UTC roda `/opt/prospeccao-sistema/backup.sh`
+  (checkpoint WAL + cópia do banco + tarball de uploads, retenção 30 dias,
+  log em /var/log/pb-backup.log). SSH por chave ed25519 configurada
+  (~/.ssh/id_ed25519 no Mac); senha segue aceita como fallback.
