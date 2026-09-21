@@ -18,7 +18,7 @@ module.exports = (prisma) => {
     }
     const id = Number(req.params.id);
     if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send('Análise não encontrada');
-    const analise = await prisma.analiseMercado.findUnique({ where: { id }, include: { imovel: true } });
+    const analise = await prisma.analiseMercado.findUnique({ where: { id }, include: { imovel: { include: { fotos: { orderBy: { id: 'asc' }, take: 1 } } } } });
     if (!analise) return res.status(404).send('Análise não encontrada');
     const demo = await demografia(analise.imovel);
     res.setHeader('Cache-Control', 'private, no-store');
