@@ -584,3 +584,22 @@ test('documentos e inteligencia: listagem e política por papel', async () => {
   assert.equal(intel.status, 200);
   assert.ok(Array.isArray(intel.body));
 });
+
+test('documento de inteligência: A4 paisagem, auth e seções', async () => {
+  const { body: { token } } = await login();
+  const im = await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Geo', numero: '10', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ' } });
+  const analise = await req('POST', `/api/imoveis/${im.body.id}/analise`, { token });
+  assert.equal(analise.status, 200);
+
+  assert.equal((await req('GET', `/inteligencia/${analise.body.id}`)).status, 401);
+  assert.equal((await req('GET', `/inteligencia/99999?token=${token}`)).status, 404);
+
+  const doc = await req('GET', `/inteligencia/${analise.body.id}?token=${token}`);
+  assert.equal(doc.status, 200);
+  assert.match(doc.body, /A4 landscape/);
+  assert.match(doc.body, /CONTAGEM DEMOGRÁFICA/);
+  assert.match(doc.body, /Evolução populacional/);
+  assert.match(doc.body, /classificação social/i);
+  assert.match(doc.body, /sob levantamento/i);
+  assert.match(doc.body, /Rua Geo/);
+});

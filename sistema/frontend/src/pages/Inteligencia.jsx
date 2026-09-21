@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowUpRight, Brain, Buildings, FileText } from '@phosphor-icons/react';
+import { Brain, Buildings, FileText } from '@phosphor-icons/react';
 import { api, getToken } from '../lib/api';
 import DataTable from '../components/DataTable';
 import { PageHeader } from '../components/UI';

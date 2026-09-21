@@ -1,6 +1,7 @@
 const express = require('express');
 const jwt = require('jsonwebtoken');
 const { renderInteligencia } = require('../templates/inteligencia');
+const { demografia } = require('../services/demografia');
 
 // Documento interno: exige sessão ativa (Bearer ou ?token=), como os uploads privados.
 module.exports = (prisma) => {
@@ -19,8 +20,9 @@ module.exports = (prisma) => {
     if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send('Análise não encontrada');
     const analise = await prisma.analiseMercado.findUnique({ where: { id }, include: { imovel: true } });
     if (!analise) return res.status(404).send('Análise não encontrada');
+    const demo = await demografia(analise.imovel);
     res.setHeader('Cache-Control', 'private, no-store');
-    res.type('html').send(renderInteligencia(analise.imovel, analise));
+    res.type('html').send(renderInteligencia(analise.imovel, analise, demo));
   });
   return r;
 };
