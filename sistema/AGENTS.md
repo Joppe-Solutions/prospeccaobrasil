@@ -8,6 +8,7 @@
 - Dev API: `cd api && npm run dev` (porta 8090)
 - Dev front: `cd frontend && npm run dev` (porta 5271, proxy p/ 8090)
 - Build: `cd frontend && npm run build` → copiar `dist/*` para `api/public/`
+- Lint: `cd frontend && npm run lint` (rodar antes de build/deploy — pega imports quebrados que o Vite não detecta)
 - DB: `npx prisma migrate dev` | seed: `npx prisma db seed`
 - Deploy: na raiz do monorepo `SSHPASS='...' ./scripts/deploy-prod.sh` (VPS `/opt/prospeccao-sistema`, systemd `prospeccao-sistema`)
 

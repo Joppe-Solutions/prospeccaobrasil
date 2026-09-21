@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
 import { ArrowDown, ArrowUp, ArrowsDownUp, CaretLeft, CaretRight, Columns, DownloadSimple, MagnifyingGlass, X } from '@phosphor-icons/react';
 import { EmptyState, LoadingState } from './UI';
