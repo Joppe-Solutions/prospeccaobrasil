@@ -8,7 +8,8 @@ import { PageHeader } from '../components/UI';
 import './collections.css';
 
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
-const EMPTY = { imovelId: '', empresaId: '', etapa: 'apresentado', observacao: '' };
+const MODALIDADES = { expansao_redes: 'Expansão de redes', locacao_direta: 'Locação direta', passagem_ponto: 'Passagem de ponto comercial' };
+const EMPTY = { imovelId: '', empresaId: '', etapa: 'apresentado', modalidade: '', observacao: '' };
 
 export default function Oportunidades() {
   const [list, setList] = useState([]);
@@ -38,7 +39,7 @@ export default function Oportunidades() {
     finally { setOptionsLoading(false); }
   }
   function openEdit(o) {
-    setForm({ imovelId: o.imovelId, empresaId: o.empresaId, etapa: o.etapa, observacao: o.observacao || '' });
+    setForm({ imovelId: o.imovelId, empresaId: o.empresaId, etapa: o.etapa, modalidade: o.modalidade || '', observacao: o.observacao || '' });
     setFormError(''); setModal({ type: 'edit', oportunidade: o });
   }
   async function save(e) {
@@ -78,7 +79,7 @@ export default function Oportunidades() {
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <div className="collection-row-actions"><button className="icon-button" aria-label={`Editar oportunidade de ${row.original.empresa?.nome}`} onClick={() => openEdit(row.original)}><PencilSimple size={18} /></button><button className="icon-button collection-delete" aria-label={`Excluir oportunidade de ${row.original.empresa?.nome}`} onClick={() => { setFormError(''); setDeleting(row.original); }}><Trash size={18} /></button></div> },
   ];
   return <div className="collection-page">
-    <PageHeader eyebrow="INTELIGÊNCIA COMERCIAL" title="Oportunidades" description="Transforme conexões em negócios. Acompanhe cada próximo passo." actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Nova oportunidade</button>} />
+    <PageHeader eyebrow="OPERAÇÕES E ACESSOS" title="Relacionamentos comerciais" description="Expansão de redes, locação direta e passagem de ponto — do início à conclusão." actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo relacionamento</button>} />
     {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
     <div className="opportunity-pipeline">{Object.entries(ETAPAS).map(([value, label], idx) => <button key={value} className={`pipeline-step stage-${value} ${stage === value ? 'is-selected' : ''}`} onClick={() => setStage(s => s === value ? '' : value)} aria-pressed={stage === value}><span className="pipeline-step-label"><i />{label}</span><strong>{loading || error ? '—' : list.filter(o => o.etapa === value).length}</strong>{idx < 5 && <ArrowRight className="pipeline-arrow" size={16} />}</button>)}</div>
     <section className="panel collection-panel"><div className="collection-section-head"><div><h2>{stage ? `Oportunidades · ${ETAPAS[stage]}` : 'Todas as oportunidades'}</h2><p>Atualize as etapas e mantenha a negociação em movimento.</p></div><span className="collection-section-symbol"><Handshake size={22} /></span></div>
@@ -92,6 +93,7 @@ export default function Oportunidades() {
       <form id="opportunity-form" className="collection-modal-form" onSubmit={save}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
         {modal.type === 'create' ? <><div className="field"><label htmlFor="op-imovel">Imóvel <span className="required">*</span></label><select id="op-imovel" required disabled={optionsLoading} value={form.imovelId} onChange={e => setForm({ ...form, imovelId: e.target.value })}><option value="">{optionsLoading ? 'Carregando imóveis...' : 'Selecione o imóvel'}</option>{options.imoveis.map(i => <option key={i.id} value={i.id}>{i.codigo} · {i.endereco}{i.numero ? `, ${i.numero}` : ''}</option>)}</select></div><div className="field"><label htmlFor="op-empresa">Empresa <span className="required">*</span></label><select id="op-empresa" required disabled={optionsLoading} value={form.empresaId} onChange={e => setForm({ ...form, empresaId: e.target.value })}><option value="">{optionsLoading ? 'Carregando empresas...' : 'Selecione a empresa'}</option>{options.empresas.map(e => <option key={e.id} value={e.id}>{e.nome}</option>)}</select></div>{!optionsLoading && (!options.imoveis.length || !options.empresas.length) && <div className="collection-form-note"><WarningCircle size={19} /><span>Cadastre ao menos um imóvel e uma empresa para criar uma oportunidade.</span></div>}</> : <div className="collection-form-summary"><Handshake size={24} /><span><strong>{modal.oportunidade.empresa?.nome}</strong><small>{modal.oportunidade.imovel?.codigo} · {modal.oportunidade.imovel?.endereco}</small></span></div>}
+        <div className="field"><label htmlFor="op-modalidade">Modalidade</label><select id="op-modalidade" value={form.modalidade} onChange={e => setForm({ ...form, modalidade: e.target.value })}><option value="">Não definida</option>{Object.entries(MODALIDADES).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
         <div className="field"><label htmlFor="op-etapa">Etapa da negociação</label><select id="op-etapa" value={form.etapa} onChange={e => setForm({ ...form, etapa: e.target.value })}>{Object.entries(ETAPAS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></div>
         <div className="field"><label htmlFor="op-obs">Observações <span className="collection-optional">Opcional</span></label><textarea id="op-obs" rows={4} placeholder="Registre o contexto e os próximos passos da negociação..." value={form.observacao} onChange={e => setForm({ ...form, observacao: e.target.value })} /></div>
       </form>

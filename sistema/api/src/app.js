@@ -31,6 +31,21 @@ app.get('/uploads/:arquivo', async (req, res) => {
   const filePath = path.join(__dirname, '..', 'uploads', arquivo);
   if (!require('fs').existsSync(filePath)) return res.status(404).json({ error: 'Não encontrado' });
   try {
+    const comprovante = await prisma.lancamento.findFirst({ where: { comprovante: arquivo }, select: { id: true } });
+    if (comprovante) {
+      // Comprovante financeiro: exige sessão de administrador
+      const bearer = (req.headers.authorization || '').replace(/^Bearer /, '');
+      const tok = bearer || String(req.query.token || '');
+      try {
+        const payload = jwt.verify(tok, process.env.JWT_SECRET);
+        const usuario = await prisma.usuario.findUnique({ where: { id: payload.id }, select: { ativo: true, role: true } });
+        if (!usuario?.ativo || usuario.role !== 'admin') return res.status(401).json({ error: 'Documento restrito' });
+      } catch {
+        return res.status(401).json({ error: 'Documento restrito' });
+      }
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.sendFile(filePath);
+    }
     const doc = await prisma.imovelDocumento.findFirst({ where: { arquivo } });
     if (doc && !DOC_PUBLICOS.has(doc.tipo)) {
       // Documento privado: exige sessão válida
@@ -78,6 +93,8 @@ app.use('/api/parceiros', require('./routes/parceiros')(prisma));
 app.use('/api/imoveis', require('./routes/imoveis')(prisma));
 app.use('/api/oportunidades', require('./routes/oportunidades')(prisma));
 app.use('/api/financeiro', require('./routes/financeiro')(prisma));
+app.use('/api/documentos', require('./routes/documentos')(prisma));
+app.use('/api/inteligencia', require('./routes/inteligencia')(prisma));
 app.use('/api/dashboard', require('./routes/dashboard')(prisma));
 app.use('/api/usuarios', require('./routes/usuarios')(prisma));
 app.use('/api/public', require('./routes/public')(prisma));

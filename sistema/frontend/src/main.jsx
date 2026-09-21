@@ -25,6 +25,9 @@ import Parceiros from './pages/Parceiros';
 import Leads from './pages/Leads';
 import Oportunidades from './pages/Oportunidades';
 import Financeiro from './pages/Financeiro';
+import Documentos from './pages/Documentos';
+import Inteligencia from './pages/Inteligencia';
+import Configuracoes from './pages/Configuracoes';
 import Perfil from './pages/Perfil';
 import Usuarios from './pages/Usuarios';
 
@@ -50,6 +53,9 @@ function App() {
         <Route path="leads" element={<Leads />} />
         <Route path="oportunidades" element={<Oportunidades />} />
         <Route path="financeiro" element={<Financeiro />} />
+        <Route path="documentos" element={<Documentos />} />
+        <Route path="inteligencia" element={<Inteligencia />} />
+        <Route path="configuracoes" element={<Configuracoes />} />
         <Route path="perfil" element={<Perfil />} />
         <Route path="usuarios" element={<Usuarios />} />
       </Route>

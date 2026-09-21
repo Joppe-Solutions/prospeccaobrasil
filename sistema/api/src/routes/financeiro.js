@@ -1,4 +1,7 @@
 const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const multer = require('multer');
 const auth = require('../middleware/auth');
 const asyncHandler = require('../middleware/async');
 
@@ -41,8 +44,23 @@ module.exports = (prisma) => {
   // ---- Lançamentos (receitas/despesas gerais com baixa e estorno) ----
 
   const TIPOS = new Set(['receita', 'despesa']);
-  const CATEGORIAS = new Set(['aluguel', 'comissao', 'repasse', 'condominio', 'iptu', 'taxa', 'outro']);
+  const CATEGORIAS = new Set(['aluguel', 'comissao', 'repasse', 'imposto', 'condominio', 'iptu', 'taxa', 'deslocamento', 'documentacao', 'anuncio', 'planta', 'outro']);
   const FORMAS = new Set(['pix', 'boleto', 'transferencia', 'dinheiro', 'cartao', 'outro']);
+
+  // Upload de comprovante (nota fiscal, recibo) — arquivo privado, exige sessão
+  const uploadDir = path.join(__dirname, '..', '..', 'uploads');
+  const uploadComprovante = multer({
+    storage: multer.diskStorage({
+      destination: uploadDir,
+      filename: (req, file, cb) => cb(null, `comp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${path.extname(file.originalname).toLowerCase()}`),
+    }),
+    limits: { fileSize: 15 * 1024 * 1024 },
+    fileFilter: (req, file, cb) => {
+      const ok = /^(image\/(jpeg|png|webp)|application\/pdf)$/.test(file.mimetype)
+        && /\.(jpe?g|png|webp|pdf)$/i.test(path.extname(file.originalname));
+      cb(ok ? null : new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WebP ou PDF.'), ok);
+    },
+  });
 
   const parseDataCivil = (s) => {
     const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})$/);
@@ -115,6 +133,8 @@ module.exports = (prisma) => {
         tipo: b.tipo,
         categoria: b.categoria,
         descricao: String(b.descricao).trim(),
+        pagador: b.pagador ? String(b.pagador).trim() : null,
+        beneficiario: b.beneficiario ? String(b.beneficiario).trim() : null,
         valor: num(b.valor),
         competencia: b.competencia ? parseDataCivil(b.competencia) : null,
         vencimento: b.vencimento ? parseDataCivil(b.vencimento) : null,
@@ -124,6 +144,61 @@ module.exports = (prisma) => {
         criadoPorId: req.user.id,
       },
     }));
+  }));
+
+  // Edição: permitida apenas enquanto previsto; pago/estornado preservam o histórico
+  r.put('/lancamentos/:id', asyncHandler(async (req, res) => {
+    const l = await prisma.lancamento.findUnique({ where: { id: +req.params.id } });
+    if (!l) return res.status(404).json({ error: 'Lançamento não encontrado' });
+    if (l.status !== 'previsto') return res.status(409).json({ error: 'Somente lançamentos previstos podem ser editados; use estorno para os demais' });
+    const erro = await validaLancamento(req.body || {});
+    if (erro) return res.status(400).json({ error: erro });
+    const b = req.body;
+    res.json(await prisma.lancamento.update({
+      where: { id: l.id },
+      data: {
+        tipo: b.tipo,
+        categoria: b.categoria,
+        descricao: String(b.descricao).trim(),
+        pagador: b.pagador ? String(b.pagador).trim() : null,
+        beneficiario: b.beneficiario ? String(b.beneficiario).trim() : null,
+        valor: num(b.valor),
+        competencia: b.competencia ? parseDataCivil(b.competencia) : null,
+        vencimento: b.vencimento ? parseDataCivil(b.vencimento) : null,
+        imovelId: b.imovelId ? +b.imovelId : null,
+        empresaId: b.empresaId ? +b.empresaId : null,
+        oportunidadeId: b.oportunidadeId ? +b.oportunidadeId : null,
+      },
+    }));
+  }));
+
+  // Duplicar: cópia prevista do lançamento (sem baixa/estorno herdados)
+  r.post('/lancamentos/:id/duplicar', asyncHandler(async (req, res) => {
+    const l = await prisma.lancamento.findUnique({ where: { id: +req.params.id } });
+    if (!l) return res.status(404).json({ error: 'Lançamento não encontrado' });
+    res.status(201).json(await prisma.lancamento.create({
+      data: {
+        tipo: l.tipo, categoria: l.categoria, descricao: l.descricao,
+        pagador: l.pagador, beneficiario: l.beneficiario,
+        valor: l.valor, competencia: l.competencia, vencimento: l.vencimento,
+        imovelId: l.imovelId, empresaId: l.empresaId, oportunidadeId: l.oportunidadeId,
+        criadoPorId: req.user.id,
+      },
+    }));
+  }));
+
+  // Comprovante (nota/recibo): arquivo privado, exige sessão para download
+  r.post('/lancamentos/:id/comprovante', uploadComprovante.single('comprovante'), asyncHandler(async (req, res) => {
+    const l = await prisma.lancamento.findUnique({ where: { id: +req.params.id } });
+    if (!l) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      return res.status(404).json({ error: 'Lançamento não encontrado' });
+    }
+    if (!req.file) return res.status(400).json({ error: 'Arquivo obrigatório' });
+    const anterior = l.comprovante;
+    const atualizado = await prisma.lancamento.update({ where: { id: l.id }, data: { comprovante: req.file.filename } });
+    if (anterior) { try { fs.unlinkSync(path.join(uploadDir, anterior)); } catch {} }
+    res.json(atualizado);
   }));
 
   // Baixa (settlement): marca pago com data/valor/forma — preserva o lançamento
@@ -171,9 +246,12 @@ module.exports = (prisma) => {
     const porImovelMap = new Map();
     for (const l of ativos) {
       if (!l.imovelId) continue;
-      const cur = porImovelMap.get(l.imovelId) || { imovel: l.imovel, receita: 0, despesa: 0 };
+      const cur = porImovelMap.get(l.imovelId) || { imovel: l.imovel, receita: 0, despesa: 0, impostos: 0, repasses: 0, pago: true };
       const v = toCents(l.status === 'pago' ? (l.valorPago ?? l.valor) : l.valor) / 100;
       cur[l.tipo] += v;
+      if (l.categoria === 'imposto') cur.impostos += v;
+      if (l.categoria === 'repasse') cur.repasses += v;
+      if (l.status !== 'pago') cur.pago = false;
       porImovelMap.set(l.imovelId, cur);
     }
     const hoje = new Date(); hoje.setUTCHours(0, 0, 0, 0);
@@ -186,7 +264,13 @@ module.exports = (prisma) => {
       resultadoRealizado: receita('pago') - despesa('pago'),
       resultadoPrevisto: receita('previsto') - despesa('previsto'),
       vencidos: { qtd: vencidos.length, total: soma(vencidos) },
-      porImovel: [...porImovelMap.values()].map((p) => ({ ...p, resultado: p.receita - p.despesa })).sort((a, b) => b.resultado - a.resultado),
+      // Resultado por imóvel: comissão líquida = receita bruta − despesas − impostos − repasses
+      porImovel: [...porImovelMap.values()].map((p) => ({
+        ...p,
+        resultado: p.receita - p.despesa,
+        comissaoLiquida: p.receita - p.despesa - p.impostos - p.repasses,
+        situacao: p.pago ? 'concluido' : 'pendente',
+      })).sort((a, b) => b.resultado - a.resultado),
     });
   }));
 

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Buildings, CaretRight, CurrencyDollar, Handshake, IdentificationCard,
+  Brain, Buildings, CaretRight, CurrencyDollar, FolderOpen, GearSix, Handshake, IdentificationCard,
   List, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
@@ -12,23 +12,33 @@ const NAV = [
     caption: 'PRINCIPAL',
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
-      { to: '/imoveis', label: 'Imóveis', icon: Buildings },
       { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar, admin: true },
     ],
   },
   {
-    caption: 'RELACIONAMENTOS',
+    caption: 'CADASTROS',
     items: [
-      { to: '/empresas', label: 'Empresas', icon: Storefront },
+      { to: '/imoveis', label: 'Imóveis', icon: Buildings },
+      { to: '/empresas', label: 'Clientes', icon: Storefront },
       { to: '/proprietarios', label: 'Proprietários', icon: IdentificationCard },
-      { to: '/parceiros', label: 'Parceiros', icon: UsersThree },
+      { to: '/parceiros', label: 'Parceiros comerciais', icon: UsersThree },
       { to: '/leads', label: 'Leads', icon: UserFocus },
+      { to: '/documentos', label: 'Documentação', icon: FolderOpen },
+      { to: '/inteligencia', label: 'Inteligência de mercado', icon: Brain },
     ],
   },
   {
-    caption: 'COMERCIAL',
+    caption: 'OPERAÇÕES E ACESSOS',
     items: [
-      { to: '/oportunidades', label: 'Oportunidades', icon: Handshake },
+      { to: '/oportunidades', label: 'Relacionamentos comerciais', icon: Handshake },
+    ],
+  },
+  {
+    caption: 'CONTA',
+    items: [
+      { to: '/perfil', label: 'Perfil', icon: UserCircle },
+      { to: '/usuarios', label: 'Usuários', icon: UsersThree, admin: true },
+      { to: '/configuracoes', label: 'Configurações', icon: GearSix, admin: true },
     ],
   },
 ];
@@ -47,9 +57,7 @@ export default function Layout() {
     return () => document.removeEventListener('keydown', close);
   }, [open]);
 
-  const title = location.pathname.startsWith('/perfil') ? 'Meu perfil'
-    : location.pathname.startsWith('/usuarios') ? 'Usuários'
-    : ALL_ITEMS.find(item => item.to !== '/' && location.pathname.startsWith(item.to))?.label || 'Visão geral';
+  const title = ALL_ITEMS.find(item => item.to !== '/' && location.pathname.startsWith(item.to))?.label || 'Visão geral';
 
   const item = ({ to, label, icon: Icon }) => (
     <NavLink key={to} to={to} end={to === '/'}>
@@ -77,9 +85,6 @@ export default function Layout() {
               {group.items.filter((navItem) => !navItem.admin || u?.role === 'admin').map(navItem => item(navItem))}
             </div>
           ))}
-          <span className="nav-caption nav-caption-account">CONTA</span>
-          {item({ to: '/perfil', label: 'Perfil', icon: UserCircle })}
-          {u?.role === 'admin' && item({ to: '/usuarios', label: 'Usuários', icon: UsersThree })}
         </nav>
       </div>
       <div className="sidebar-footer">

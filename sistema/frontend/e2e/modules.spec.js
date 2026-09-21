@@ -5,13 +5,16 @@ const MODULES = [
   { path: '/', label: 'Visão geral', marker: 'BEM-VINDO' },
   { path: '/imoveis', label: 'Imóveis', marker: 'PB-E2E' },
   { path: '/financeiro', label: 'Financeiro', marker: null },
-  { path: '/empresas', label: 'Empresas', marker: 'Empresa E2E' },
+  { path: '/empresas', label: 'Clientes', navLabel: 'Clientes', marker: 'Empresa E2E' },
   { path: '/proprietarios', label: 'Proprietários', marker: 'Proprietário E2E' },
-  { path: '/parceiros', label: 'Parceiros', marker: 'Parceiro E2E' },
+  { path: '/parceiros', label: 'Parceiros comerciais', marker: 'Parceiro E2E' },
   { path: '/leads', label: 'Leads', marker: 'Lead E2E' },
-  { path: '/oportunidades', label: 'Oportunidades', marker: null },
-  { path: '/perfil', label: 'Meu perfil', navLabel: 'Perfil', marker: null },
+  { path: '/documentos', label: 'Documentação', marker: null },
+  { path: '/inteligencia', label: 'Inteligência de mercado', marker: null },
+  { path: '/oportunidades', label: 'Relacionamentos comerciais', marker: null },
+  { path: '/perfil', label: 'Perfil', marker: null },
   { path: '/usuarios', label: 'Usuários', marker: 'Admin E2E' },
+  { path: '/configuracoes', label: 'Configurações', marker: 'Parâmetros do sistema' },
 ];
 
 test.beforeEach(async ({ page }) => {

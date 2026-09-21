@@ -267,6 +267,9 @@ model Lancamento {
   formaPagamento String?   @map("forma_pagamento")
   estornadoEm    DateTime? @map("estornado_em")
   estornoMotivo  String?   @map("estorno_motivo")
+  pagador        String?   // quem paga (receita) ou é cobrado
+  beneficiario   String?   // quem recebe o valor
+  comprovante    String?   // arquivo em uploads/
   imovelId       Int?      @map("imovel_id")
   empresaId      Int?      @map("empresa_id")
   oportunidadeId Int?      @map("oportunidade_id")
@@ -289,6 +292,7 @@ model Oportunidade {
   imovelId   Int      @map("imovel_id")
   empresaId  Int      @map("empresa_id")
   etapa      String   @default("apresentado") // apresentado | visita | proposta | negociacao | fechado | perdido
+  modalidade String?  // expansao_redes | locacao_direta | passagem_ponto
   observacao String?
   criadoEm   DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")

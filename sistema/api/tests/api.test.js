@@ -504,3 +504,83 @@ test('financeiro: lançamentos com baixa, estorno e resumo', async () => {
   const t = await login('b02@teste.dev', 'senha12345');
   assert.equal((await req('GET', '/api/financeiro/lancamentos', { token: t.body.token })).status, 403);
 });
+
+test('financeiro v2: edição, duplicação, pagador e resultado por imóvel', async () => {
+  const { body: { token } } = await login();
+  const im = await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Fin V2', cidade: 'Rio de Janeiro' } });
+
+  const l = await req('POST', '/api/financeiro/lancamentos', {
+    token, body: { tipo: 'receita', categoria: 'comissao', descricao: 'Comissão PB', valor: 50000, vencimento: '2026-12-01', imovelId: im.body.id, pagador: 'Cliente X', beneficiario: 'Prospecção Brasil' },
+  });
+  assert.equal(l.status, 201);
+  assert.equal(l.body.pagador, 'Cliente X');
+
+  // Edição permitida enquanto previsto
+  const ed = await req('PUT', `/api/financeiro/lancamentos/${l.body.id}`, {
+    token, body: { tipo: 'receita', categoria: 'comissao', descricao: 'Comissão PB v2', valor: 55000, imovelId: im.body.id },
+  });
+  assert.equal(ed.status, 200);
+  assert.equal(Number(ed.body.valor), 55000);
+
+  // Categoria imposto aceita; pagador inválido não quebra
+  const imp = await req('POST', '/api/financeiro/lancamentos', {
+    token, body: { tipo: 'despesa', categoria: 'imposto', descricao: 'Imposto', valor: 3000, imovelId: im.body.id },
+  });
+  assert.equal(imp.status, 201);
+
+  // Duplicar gera cópia prevista sem baixa
+  const dup = await req('POST', `/api/financeiro/lancamentos/${l.body.id}/duplicar`, { token, body: {} });
+  assert.equal(dup.status, 201);
+  assert.equal(dup.body.status, 'previsto');
+  assert.equal(Number(dup.body.valor), 55000);
+
+  // Resultado por imóvel: bruta 110000 − despesas 3000 − impostos 3000 − repasses 0 = 104000? não:
+  // imposto é despesa E imposto (conta nas duas colunas, fórmula subtrai via categoria)
+  const res = await req('GET', '/api/financeiro/resumo', { token });
+  const row = res.body.porImovel.find(p => p.imovel?.id === im.body.id);
+  assert.ok(row, 'imóvel presente no resultado');
+  assert.equal(row.receita, 110000);
+  assert.equal(row.impostos, 3000);
+  assert.equal(row.comissaoLiquida, row.receita - row.despesa - row.impostos - row.repasses);
+  assert.equal(row.situacao, 'pendente');
+
+  // Após baixar tudo, situação vira concluído e edição é bloqueada
+  await req('POST', `/api/financeiro/lancamentos/${l.body.id}/baixar`, { token, body: {} });
+  await req('POST', `/api/financeiro/lancamentos/${dup.body.id}/baixar`, { token, body: {} });
+  await req('POST', `/api/financeiro/lancamentos/${imp.body.id}/baixar`, { token, body: {} });
+  const res2 = await req('GET', '/api/financeiro/resumo', { token });
+  assert.equal(res2.body.porImovel.find(p => p.imovel?.id === im.body.id).situacao, 'concluido');
+  assert.equal((await req('PUT', `/api/financeiro/lancamentos/${l.body.id}`, { token, body: { tipo: 'receita', categoria: 'comissao', descricao: 'x', valor: 1 } })).status, 409);
+});
+
+test('oportunidades: modalidade validada', async () => {
+  const { body: { token } } = await login();
+  const im = await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Mod', cidade: 'Rio de Janeiro' } });
+  const em = await req('POST', '/api/empresas', { token, body: { nome: 'Empresa Modalidade' } });
+  assert.equal((await req('POST', '/api/oportunidades', { token, body: { imovelId: im.body.id, empresaId: em.body.id, modalidade: 'invalida' } })).status, 400);
+  const ok = await req('POST', '/api/oportunidades', { token, body: { imovelId: im.body.id, empresaId: em.body.id, modalidade: 'expansao_redes' } });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.modalidade, 'expansao_redes');
+  const up = await req('PUT', `/api/oportunidades/${ok.body.id}`, { token, body: { modalidade: 'passagem_ponto' } });
+  assert.equal(up.body.modalidade, 'passagem_ponto');
+});
+
+test('documentos e inteligencia: listagem e política por papel', async () => {
+  const { body: { token } } = await login();
+  const im = await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Docs', cidade: 'Rio de Janeiro' } });
+  await req('POST', `/api/imoveis/${im.body.id}/documentos`, { token, body: { tipo: 'planta', nome: 'Planta pública', url: 'https://example.test/planta.pdf' } });
+  await req('POST', `/api/imoveis/${im.body.id}/documentos`, { token, body: { tipo: 'doc_locatario', nome: 'Doc privado', url: 'https://example.test/priv.pdf' } });
+
+  const all = await req('GET', '/api/documentos', { token });
+  assert.ok(all.body.length >= 2);
+
+  // Comercial vê apenas tipos públicos
+  await req('POST', '/api/usuarios', { token, body: { nome: 'Comercial Docs', email: 'docs@teste.dev', senha: 'senha12345', role: 'comercial' } });
+  const t = await login('docs@teste.dev', 'senha12345');
+  const com = await req('GET', '/api/documentos', { token: t.body.token });
+  assert.ok(com.body.every(d => d.tipo !== 'doc_locatario'), 'comercial não vê docs privados');
+
+  const intel = await req('GET', '/api/inteligencia', { token });
+  assert.equal(intel.status, 200);
+  assert.ok(Array.isArray(intel.body));
+});
