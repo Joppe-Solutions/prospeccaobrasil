@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowUpRight, Brain } from '@phosphor-icons/react';
-import { api } from '../lib/api';
+import { api, getToken } from '../lib/api';
 import DataTable from '../components/DataTable';
 import { PageHeader } from '../components/UI';
 import './collections.css';
@@ -32,7 +32,10 @@ export default function Inteligencia() {
     { accessorKey: 'modelo', header: 'Origem', cell: ({ getValue }) => <small>{getValue() || 'motor-interno'}</small> },
     { accessorKey: 'criadoEm', header: 'Gerada em', cell: ({ getValue }) => fmtData(getValue()) },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => (
-      <Link className="icon-button" to={`/imoveis/${row.original.imovel?.id}`} title="Abrir imóvel" aria-label="Abrir imóvel"><ArrowUpRight size={17} /></Link>
+      <div className="collection-row-actions">
+        <a className="icon-button" href={`/inteligencia/${row.original.id}?token=${getToken()}`} target="_blank" rel="noopener noreferrer" title="Abrir documento completo" aria-label="Abrir documento completo"><ArrowUpRight size={17} /></a>
+        <Link className="icon-button" to={`/imoveis/${row.original.imovel?.id}`} title="Abrir imóvel" aria-label="Abrir imóvel"><ArrowUpRight size={17} /></Link>
+      </div>
     ) },
   ], []);
 

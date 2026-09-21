@@ -228,7 +228,10 @@ export default function ImovelDetalhe() {
       <div className="panel ai-box">
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <h2>Inteligência de mercado</h2>
-          <button className="btn btn-gold btn-sm" onClick={gerarIA} disabled={gerando}>{gerando ? 'Gerando…' : analise ? 'Regenerar análise' : 'Gerar análise'}</button>
+          <div style={{ display: 'flex', gap: 8 }}>
+            {analise && <a className="btn btn-ghost btn-sm" href={`/inteligencia/${analise.id}?token=${getToken()}`} target="_blank" rel="noopener noreferrer">Documento completo ↗</a>}
+            <button className="btn btn-gold btn-sm" onClick={gerarIA} disabled={gerando}>{gerando ? 'Gerando…' : analise ? 'Regenerar análise' : 'Gerar análise'}</button>
+          </div>
         </div>
         {analise ? (
           <div style={{ display: 'flex', gap: 22, marginTop: 16 }}>
