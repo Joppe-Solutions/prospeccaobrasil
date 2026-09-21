@@ -9,6 +9,8 @@
 - Dev front: `cd frontend && npm run dev` (porta 5271, proxy p/ 8090)
 - Build: `cd frontend && npm run build` → copiar `dist/*` para `api/public/`
 - Lint: `cd frontend && npm run lint` (rodar antes de build/deploy — pega imports quebrados que o Vite não detecta)
+- Testes API: `cd api && npm test` (node:test + SQLite temporário, cobre auth e CRUD dos módulos)
+- E2E: `cd frontend && npm run test:e2e` (Playwright; sobe a API em :8190 com banco `prisma/e2e.db` e percorre todos os módulos; precisa de `api/public/` buildado)
 - DB: `npx prisma migrate dev` | seed: `npx prisma db seed`
 - Deploy: na raiz do monorepo `SSHPASS='...' ./scripts/deploy-prod.sh` (VPS `/opt/prospeccao-sistema`, systemd `prospeccao-sistema`)
 

@@ -37,9 +37,16 @@ deploy_landing() {
 }
 
 deploy_sistema() {
-  echo "==> Build frontend do sistema"
+  echo "==> Testes e lint antes do deploy"
+  cd "$ROOT/sistema/api"
+  npm ci
+  npx prisma generate
+  npm test
   cd "$ROOT/sistema/frontend"
   npm ci
+  npm run lint
+
+  echo "==> Build frontend do sistema"
   npm run build
 
   echo "==> Copiar SPA para api/public"

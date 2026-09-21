@@ -103,6 +103,7 @@ module.exports = (prisma) => {
 
   r.post('/', asyncHandler(async (req, res) => {
     const d = pickImovel(req.body);
+    if (!d.endereco || !d.cidade) return res.status(400).json({ error: 'Endereço e cidade são obrigatórios' });
     if (!d.codigo) {
       const n = await prisma.imovel.count();
       d.codigo = `PB-${String(n + 1).padStart(3, '0')}`;

@@ -15,6 +15,7 @@ module.exports = (prisma) => {
 
   r.post('/', asyncHandler(async (req, res) => {
     const { imovelId, empresaId, etapa, observacao } = req.body;
+    if (!imovelId || !empresaId) return res.status(400).json({ error: 'Imóvel e empresa são obrigatórios' });
     res.json(await prisma.oportunidade.create({
       data: { imovelId: +imovelId, empresaId: +empresaId, etapa: etapa || 'apresentado', observacao },
       include: { imovel: true, empresa: true },
