@@ -14,7 +14,8 @@ const STATUS_LEAD = {
   convertido: { label: 'Convertido', badge: 'fechado' },
   perdido: { label: 'Perdido', badge: 'perdido' },
 };
-const EMPTY = { nome: '', telefone: '', email: '', origem: 'site', interesse: '', status: 'novo', observacoes: '' };
+const EMPTY = { nome: '', telefone: '', email: '', origem: 'site', interesse: '', status: 'novo', observacoes: '', responsavelId: '', proximaAcao: '', proximaAcaoEm: '' };
+const TIPOS_ATIVIDADE = [['nota', 'Nota'], ['ligacao', 'Ligação'], ['whatsapp', 'WhatsApp'], ['email', 'E-mail'], ['visita', 'Visita']];
 
 export default function Leads() {
   const [list, setList] = useState([]);
@@ -32,6 +33,10 @@ export default function Leads() {
   const [empresas, setEmpresas] = useState([]);
   const [imoveisDisp, setImoveisDisp] = useState([]);
   const [conv, setConv] = useState({ empresaId: '', empresaNome: '', criarOportunidade: true, imovelId: '' });
+  const [responsaveis, setResponsaveis] = useState([]);
+  const [atividades, setAtividades] = useState([]);
+  const [novaAtividade, setNovaAtividade] = useState({ tipo: 'nota', texto: '' });
+  useEffect(() => { api('/leads/responsaveis').then(setResponsaveis).catch(() => {}); }, []);
 
   async function openConvert(lead) {
     setFormError('');
@@ -68,13 +73,17 @@ export default function Leads() {
       nome: lead.nome || '', telefone: lead.telefone || '', email: lead.email || '',
       origem: lead.origem || 'site', interesse: lead.interesse || '',
       status: lead.status || 'novo', observacoes: lead.observacoes || '',
+      responsavelId: lead.responsavelId || '', proximaAcao: lead.proximaAcao || '',
+      proximaAcaoEm: lead.proximaAcaoEm ? String(lead.proximaAcaoEm).slice(0, 10) : '',
     });
     setFormError(''); setModal({ type: 'edit', lead });
+    setAtividades([]); setNovaAtividade({ tipo: 'nota', texto: '' });
+    api(`/leads/${lead.id}`).then((l) => setAtividades(l.atividades || [])).catch(() => {});
   }
   async function save(e) {
     e.preventDefault(); setFormError(''); setBusy(true);
     try {
-      const body = { ...form, nome: form.nome.trim() };
+      const body = { ...form, nome: form.nome.trim(), responsavelId: form.responsavelId || null, proximaAcaoEm: form.proximaAcaoEm || null };
       await api(modal.type === 'create' ? '/leads' : `/leads/${modal.lead.id}`, {
         method: modal.type === 'create' ? 'POST' : 'PUT',
         body: JSON.stringify(body),
@@ -175,7 +184,31 @@ export default function Leads() {
         <div className="field"><label htmlFor="lead-interesse">Interesse</label><input id="lead-interesse" value={form.interesse} onChange={e => setForm({ ...form, interesse: e.target.value })} placeholder="Ex.: loja em Madureira" /></div>
         <div className="field"><label htmlFor="lead-status">Status</label><select id="lead-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{Object.entries(STATUS_LEAD).filter(([k]) => k !== 'convertido' || modal?.lead?.empresaId).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>{!modal?.lead?.empresaId && <small className="collection-optional">“Convertido” é definido pelo fluxo de conversão.</small>}</div>
         <div className="field"><label htmlFor="lead-obs">Observações <span className="collection-optional">Opcional</span></label><textarea id="lead-obs" rows={3} value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} placeholder="Contexto da ligação..." /></div>
+        <div className="field"><label htmlFor="lead-resp">Responsável</label><select id="lead-resp" value={form.responsavelId} onChange={e => setForm({ ...form, responsavelId: e.target.value })}><option value="">Sem responsável</option>{responsaveis.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</select></div>
+        <div className="field"><label htmlFor="lead-prox">Próxima ação</label><input id="lead-prox" value={form.proximaAcao} onChange={e => setForm({ ...form, proximaAcao: e.target.value })} placeholder="Ex.: retornar ligação" /></div>
+        <div className="field"><label htmlFor="lead-proxem">Prazo da próxima ação</label><input id="lead-proxem" type="date" value={form.proximaAcaoEm} onChange={e => setForm({ ...form, proximaAcaoEm: e.target.value })} /></div>
       </form>
+      {modal?.type === 'edit' && <div className="collection-modal-form" style={{ marginTop: 14 }}>
+        <h3 style={{ fontSize: 14, margin: '0 0 8px' }}>Atividades</h3>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
+          <select aria-label="Tipo de atividade" value={novaAtividade.tipo} onChange={e => setNovaAtividade({ ...novaAtividade, tipo: e.target.value })}>{TIPOS_ATIVIDADE.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+          <input aria-label="Texto da atividade" style={{ flex: 1 }} value={novaAtividade.texto} onChange={e => setNovaAtividade({ ...novaAtividade, texto: e.target.value })} placeholder="Descreva o contato..." />
+          <button type="button" className="btn btn-ghost btn-sm" disabled={busy || !novaAtividade.texto.trim()} onClick={async () => {
+            setBusy(true); setFormError('');
+            try {
+              const a = await api(`/leads/${modal.lead.id}/atividades`, { method: 'POST', body: JSON.stringify(novaAtividade) });
+              setAtividades([a, ...atividades]); setNovaAtividade({ tipo: 'nota', texto: '' });
+            } catch (e) { setFormError(e.message); } finally { setBusy(false); }
+          }}>Registrar</button>
+        </div>
+        <ul style={{ margin: 0, padding: 0, listStyle: 'none', fontSize: 13 }}>
+          {atividades.map(a => <li key={a.id} style={{ padding: '6px 0', borderBottom: '1px solid rgba(0,0,0,.06)' }}>
+            <strong>{TIPOS_ATIVIDADE.find(([k]) => k === a.tipo)?.[1] || a.tipo}</strong> — {a.texto}
+            <span className="muted"> · {a.autor?.nome || 'sistema'} · {new Date(a.criadoEm).toLocaleString('pt-BR')}</span>
+          </li>)}
+          {!atividades.length && <li className="muted">Nenhuma atividade registrada.</li>}
+        </ul>
+      </div>}
     </Modal>}
 
     {converting && <Modal

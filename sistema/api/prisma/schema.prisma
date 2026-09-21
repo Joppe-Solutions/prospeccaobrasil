@@ -16,6 +16,9 @@ model Usuario {
   ativo     Boolean  @default(true)
   criadoEm  DateTime @default(now()) @map("criado_em")
 
+  leadsResponsavel Lead[]        @relation("LeadResponsavel")
+  atividades       LeadAtividade[]
+
   @@map("usuarios")
 }
 
@@ -56,11 +59,16 @@ model Lead {
   observacoes    String?
   empresaId      Int?          @map("empresa_id")
   oportunidadeId Int?          @map("oportunidade_id")
+  responsavelId  Int?          @map("responsavel_id")
+  proximaAcao    String?       @map("proxima_acao")
+  proximaAcaoEm  DateTime?     @map("proxima_acao_em")
   criadoEm       DateTime      @default(now()) @map("criado_em")
   atualizadoEm   DateTime      @updatedAt @map("atualizado_em")
   empresa        Empresa?      @relation(fields: [empresaId], references: [id])
   oportunidade   Oportunidade? @relation(fields: [oportunidadeId], references: [id])
+  responsavel    Usuario?      @relation("LeadResponsavel", fields: [responsavelId], references: [id])
   interacoes     LeadInteracao[]
+  atividades     LeadAtividade[]
 
   @@index([empresaId])
   @@map("leads")
@@ -76,6 +84,20 @@ model LeadInteracao {
 
   @@index([leadId])
   @@map("lead_interacoes")
+}
+
+model LeadAtividade {
+  id        Int      @id @default(autoincrement())
+  leadId    Int      @map("lead_id")
+  tipo      String   @default("nota") // nota | ligacao | whatsapp | email | visita | status
+  texto     String
+  autorId   Int?     @map("autor_id")
+  criadoEm  DateTime @default(now()) @map("criado_em")
+  lead      Lead     @relation(fields: [leadId], references: [id], onDelete: Cascade)
+  autor     Usuario? @relation(fields: [autorId], references: [id])
+
+  @@index([leadId])
+  @@map("lead_atividades")
 }
 
 model Sequencia {

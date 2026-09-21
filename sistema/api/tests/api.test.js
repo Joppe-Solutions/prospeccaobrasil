@@ -411,3 +411,42 @@ test('B01: documento privado exige auth; público e foto são abertos', async ()
   fs.unlinkSync(path.join(uploadDir, arquivoPriv));
   fs.unlinkSync(path.join(uploadDir, arquivoPub));
 });
+
+test('CRM operacional: responsável, próxima ação e atividades', async () => {
+  const lead = await req('POST', '/api/leads', { token, body: { nome: 'Lead CRM' } });
+  const id = lead.body.id;
+  const me = await req('GET', '/api/auth/me', { token });
+
+  // Responsável e próxima ação com data civil
+  const upd = await req('PUT', `/api/leads/${id}`, {
+    token,
+    body: { responsavelId: me.body.id, proximaAcao: 'Retornar ligação', proximaAcaoEm: '2026-10-01' },
+  });
+  assert.equal(upd.status, 200, JSON.stringify(upd.body));
+  assert.equal(upd.body.responsavelId, me.body.id);
+  assert.ok(String(upd.body.proximaAcaoEm).startsWith('2026-10-01'));
+
+  // Responsável inexistente → 400; data inválida → 400
+  assert.equal((await req('PUT', `/api/leads/${id}`, { token, body: { responsavelId: 99999 } })).status, 400);
+  assert.equal((await req('PUT', `/api/leads/${id}`, { token, body: { proximaAcaoEm: '2026-02-30' } })).status, 400);
+
+  // Lista de responsáveis acessível a não-admin
+  const u = await req('POST', '/api/usuarios', { token, body: { nome: 'C', email: 'c2@teste.dev', senha: 'senha12345' } });
+  const t = await login('c2@teste.dev', 'senha12345');
+  const resp = await req('GET', '/api/leads/responsaveis', { token: t.body.token });
+  assert.equal(resp.status, 200);
+  assert.ok(resp.body.every((x) => x.id && x.nome && !x.email), 'só id/nome');
+
+  // Atividade manual + atividade automática de mudança de status
+  const at = await req('POST', `/api/leads/${id}/atividades`, { token, body: { tipo: 'ligacao', texto: 'Liguei, pediu retorno' } });
+  assert.equal(at.status, 201);
+  assert.equal(at.body.autorId, me.body.id);
+  assert.equal((await req('POST', `/api/leads/${id}/atividades`, { token, body: { texto: '' } })).status, 400);
+  await req('PUT', `/api/leads/${id}`, { token, body: { status: 'em_contato' } });
+
+  const det = await req('GET', `/api/leads/${id}`, { token });
+  const tipos = det.body.atividades.map((a) => a.tipo);
+  assert.ok(tipos.includes('ligacao'));
+  assert.ok(tipos.includes('status'), 'mudança de status vira atividade');
+  assert.equal(det.body.responsavel.id, me.body.id);
+});
