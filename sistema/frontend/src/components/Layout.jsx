@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Buildings, CaretRight, Currency, Handshake, IdentificationCard,
+  Buildings, CaretRight, CurrencyDollar, Handshake, IdentificationCard,
   List, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
