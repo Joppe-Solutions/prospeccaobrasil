@@ -57,7 +57,7 @@ module.exports = (prisma) => {
     res.json(await prisma.proprietario.update({ where: { id: +req.params.id }, data: pickProprietario(req.body) }));
   }));
 
-  r.delete('/:id', asyncHandler(async (req, res) => {
+  r.delete('/:id', auth.requireRole('admin'), asyncHandler(async (req, res) => {
     await prisma.proprietario.delete({ where: { id: +req.params.id } });
     res.json({ ok: true });
   }));

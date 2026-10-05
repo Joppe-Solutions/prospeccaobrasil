@@ -3,6 +3,13 @@ const { custoTotal } = require('../services/inteligencia');
 const asyncHandler = require('../middleware/async');
 const { DOC_PUBLICOS } = require('../lib/publicDocs');
 
+const CAMPOS_PUBLICOS = [
+  'id', 'codigo', 'titulo', 'tipo', 'categoria', 'status', 'endereco', 'numero', 'complemento',
+  'bairro', 'cidade', 'uf', 'cep', 'latitude', 'longitude', 'areaTotal', 'areaUtil', 'pisoAreaVenda',
+  'jirau', 'mezanino', 'peDireito', 'frenteImovel', 'vagas', 'acessibilidade', 'cdu', 'aluguel',
+  'condominio', 'iptu', 'precoVenda', 'periodoContrato', 'googleMapsUrl', 'descricao', 'atualizadoEm',
+];
+
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 // Rate limit simples para captação pública (5 req / 10 min por IP)
@@ -12,6 +19,7 @@ function leadLimiter(req, res, next) {
   const now = Date.now();
   const rec = leadAttempts.get(ip) || { n: 0, reset: now + 10 * 60 * 1000 };
   if (now > rec.reset) { rec.n = 0; rec.reset = now + 10 * 60 * 1000; }
+  if (leadAttempts.size > 5000) for (const [k, v] of leadAttempts) if (now > v.reset) leadAttempts.delete(k);
   rec.n++;
   leadAttempts.set(ip, rec);
   if (rec.n > Number(process.env.LEAD_RATE_LIMIT || 5)) return res.status(429).json({ error: 'Muitas tentativas. Tente novamente em alguns minutos.' });
@@ -33,20 +41,16 @@ module.exports = (prisma) => {
     });
     if (!i || i.status === 'inativo') return res.status(404).json({ error: 'Não encontrado' });
 
-    const {
-      proprietario,
-      telProprietario,
-      observacoes,
-      documentos,
-      googleDriveUrl,
-      ...safe
-    } = i;
-
+    // Lista explícita: campo novo no modelo só fica público se entrar aqui
+    const safe = Object.fromEntries(CAMPOS_PUBLICOS.map((k) => [k, i[k]]));
+    const analise = i.analises[0];
     res.json({
       ...safe,
-      documentos: (documentos || [])
+      fotos: i.fotos.map(({ id, arquivo, legenda, ordem, principal }) => ({ id, arquivo, legenda, ordem, principal })),
+      documentos: i.documentos
         .filter((d) => DOC_PUBLICOS.has(d.tipo))
         .map(({ id, tipo, nome, url, arquivo, criadoEm }) => ({ id, tipo, nome, url, arquivo, criadoEm })),
+      analise: analise ? { score: analise.score, resumo: analise.resumo, criadoEm: analise.criadoEm } : null,
       custoTotal: custoTotal(i),
     });
   }));

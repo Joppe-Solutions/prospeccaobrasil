@@ -25,3 +25,6 @@ canvases/
 *.key
 SSHPASS
 .sshpass
+
+# Artefatos temporários de validação e snapshots locais
+/tmp/

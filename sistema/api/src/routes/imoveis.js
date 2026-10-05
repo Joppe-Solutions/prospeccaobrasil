@@ -7,6 +7,8 @@ const { requireRole } = auth;
 const asyncHandler = require('../middleware/async');
 const paginate = require('../lib/paginate');
 const { gerarAnalise } = require('../services/inteligencia');
+const { fail, urlHttp } = require('../lib/validar');
+const { avaliar, DEMANDA_ATIVA, IMOVEL_OFERTAVEL } = require('../lib/compatibilidade');
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -17,7 +19,7 @@ const ALLOWED_MIME = new Set([
 const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.pdf']);
 
 const IMOVEL_FIELDS = [
-  'codigo', 'titulo', 'tipo', 'categoria', 'status', 'endereco', 'numero', 'complemento',
+  'vagas', 'acessibilidade', 'infraestrutura', 'restricoesUso', 'luvas', 'valorPonto', 'carenciaMeses', 'codigo', 'titulo', 'tipo', 'categoria', 'status', 'endereco', 'numero', 'complemento',
   'bairro', 'cidade', 'uf', 'cep', 'latitude', 'longitude',
   'areaTotal', 'areaUtil', 'pisoAreaVenda', 'jirau', 'mezanino', 'peDireito',
   'frenteImovel', 'cdu', 'aluguel', 'condominio', 'iptu', 'precoVenda',
@@ -25,11 +27,21 @@ const IMOVEL_FIELDS = [
   'googleMapsUrl', 'googleDriveUrl', 'descricao', 'observacoes',
 ];
 const NUM_FIELDS = new Set([
+  'vagas', 'luvas', 'valorPonto', 'carenciaMeses',
   'areaTotal', 'areaUtil', 'pisoAreaVenda', 'jirau', 'mezanino', 'peDireito',
   'frenteImovel', 'cdu', 'aluguel', 'condominio', 'iptu', 'precoVenda',
   'latitude', 'longitude',
 ]);
 const ID_FIELDS = new Set(['proprietarioId', 'parceiroId']);
+const INT_FIELDS = new Set(['vagas', 'carenciaMeses']);
+const ENUMS = {
+  tipo: ['locacao', 'venda', 'passagem_ponto'],
+  categoria: ['loja', 'predio', 'terreno', 'outro'],
+  status: ['disponivel', 'negociacao', 'locado', 'vendido', 'inativo'],
+};
+const URL_FIELDS = new Set(['googleMapsUrl', 'googleDriveUrl']);
+const OBRIGATORIOS = ['endereco', 'cidade'];
+const DOC_TIPOS = ['planta', 'inteligencia', 'pre_analise', 'rig', 'avcb', 'convencao', 'iptu_doc', 'outro'];
 
 module.exports = (prisma) => {
   const r = express.Router();
@@ -54,15 +66,38 @@ module.exports = (prisma) => {
   const pickImovel = (body = {}) => {
     const d = {};
     for (const k of IMOVEL_FIELDS) {
-      if (Object.prototype.hasOwnProperty.call(body, k)) {
-        if (NUM_FIELDS.has(k) || ID_FIELDS.has(k)) d[k] = num(body[k]);
-        else d[k] = body[k];
+      if (!Object.prototype.hasOwnProperty.call(body, k)) continue;
+      let v = body[k];
+      if (ID_FIELDS.has(k)) {
+        v = num(v);
+        if (v !== null && (!Number.isSafeInteger(v) || v < 1)) fail(`Vínculo inválido: ${k}`);
+      } else if (NUM_FIELDS.has(k)) {
+        v = num(v);
+        const coordenada = k === 'latitude' || k === 'longitude';
+        if (v !== null && (!Number.isFinite(v) || (!coordenada && v < 0) || (INT_FIELDS.has(k) && !Number.isSafeInteger(v)))) fail(`Valor inválido: ${k}`);
+      } else {
+        if (v !== null && typeof v !== 'string') fail(`Texto inválido: ${k}`);
+        v = typeof v === 'string' ? v.trim() : v;
+        if (ENUMS[k]) {
+          // categoria é opcional; tipo e status não
+          if (!v && k === 'categoria') v = null;
+          else if (!ENUMS[k].includes(v)) fail(`Opção inválida: ${k}`);
+        } else if (URL_FIELDS.has(k)) v = urlHttp(v);
+        else if (OBRIGATORIOS.includes(k) && !v) fail('Endereço e cidade são obrigatórios');
+        else if (v === '' && k !== 'codigo') v = null;
       }
+      d[k] = v;
     }
     return d;
   };
+  const imovelOu404 = async (id) => (await prisma.imovel.findUnique({ where: { id }, select: { id: true } })) || fail('Imóvel não encontrado', 404);
 
   r.use(auth);
+
+  const demandasAtivas = (include) => prisma.demanda.findMany({
+    where: { status: { in: DEMANDA_ATIVA } },
+    ...(include ? { include } : {}),
+  });
 
   r.get('/', asyncHandler(async (req, res) => {
     const { q, status, tipo, cidade, categoria } = req.query;
@@ -75,6 +110,14 @@ module.exports = (prisma) => {
       { codigo: { contains: q } }, { endereco: { contains: q } },
       { bairro: { contains: q } }, { titulo: { contains: q } }, { cidade: { contains: q } },
     ];
+    // Coluna "Diretrizes" da listagem: quantas demandas ativas cada imóvel atende
+    const demandas = await demandasAtivas();
+    const comDiretrizes = (i) => ({
+      ...i,
+      demandasCompativeis: IMOVEL_OFERTAVEL.includes(i.status)
+        ? demandas.filter((d) => avaliar(i, d).nivel === 'compativel').length
+        : null,
+    });
     await paginate(req, res, prisma.imovel, {
       where, orderBy: { criadoEm: 'desc' },
       include: {
@@ -83,6 +126,29 @@ module.exports = (prisma) => {
         parceiro: { select: { id: true, nome: true } },
         _count: { select: { fotos: true, documentos: true } },
       },
+    }, comDiretrizes);
+  }));
+
+  // Demandas cujas diretrizes o imóvel atende (ou quase), com o detalhe por critério
+  r.get('/:id/demandas-compativeis', asyncHandler(async (req, res) => {
+    const imovel = await prisma.imovel.findUnique({
+      where: { id: +req.params.id },
+      include: { oportunidades: { select: { id: true, demandaId: true, empresaId: true, etapa: true } } },
+    });
+    if (!imovel) return res.status(404).json({ error: 'Não encontrado' });
+    const ordem = { compativel: 0, parcial: 1 };
+    const itens = (await demandasAtivas({ empresa: { select: { id: true, nome: true } } }))
+      .map((d) => {
+        const a = avaliar(imovel, d);
+        const oportunidade = imovel.oportunidades.find((o) => o.demandaId === d.id) || null;
+        return { id: d.id, titulo: d.titulo, tipo: d.tipo, status: d.status, empresa: d.empresa, oportunidade, ...a };
+      })
+      .filter((d) => d.nivel !== 'incompativel')
+      .sort((a, b) => ordem[a.nivel] - ordem[b.nivel] || b.atende - a.atende);
+    res.json({
+      imovel: { id: imovel.id, codigo: imovel.codigo, status: imovel.status },
+      ofertavel: IMOVEL_OFERTAVEL.includes(imovel.status),
+      demandas: itens,
     });
   }));
 
@@ -93,7 +159,7 @@ module.exports = (prisma) => {
         fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] },
         documentos: { orderBy: { criadoEm: 'desc' } },
         analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
-        oportunidades: { include: { empresa: true }, orderBy: { criadoEm: 'desc' } },
+        oportunidades: { include: { empresa: true, demanda: true }, orderBy: { criadoEm: 'desc' } },
         // despesas são financeiras: só admin recebe no payload
         ...(req.user.role === 'admin' ? { despesas: { orderBy: { criadoEm: 'desc' } } } : {}),
         proprietarioRel: true,
@@ -167,7 +233,7 @@ module.exports = (prisma) => {
     res.json(await prisma.imovel.update({ where: { id: +req.params.id }, data: pickImovel(req.body) }));
   }));
 
-  r.delete('/:id', asyncHandler(async (req, res) => {
+  r.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     const id = +req.params.id;
     const [despesas, oportunidades] = await Promise.all([
       prisma.imovelDespesa.count({ where: { imovelId: id } }),
@@ -193,6 +259,10 @@ module.exports = (prisma) => {
   // Fotos
   r.post('/:id/fotos', upload.array('fotos', 10), asyncHandler(async (req, res) => {
     const id = +req.params.id;
+    if (!(await prisma.imovel.findUnique({ where: { id }, select: { id: true } }))) {
+      for (const f of req.files || []) { try { fs.unlinkSync(f.path); } catch {} }
+      return res.status(404).json({ error: 'Imóvel não encontrado' });
+    }
     const count = await prisma.imovelFoto.count({ where: { imovelId: id } });
     const criadas = await Promise.all((req.files || []).map((f, idx) =>
       prisma.imovelFoto.create({
@@ -227,10 +297,19 @@ module.exports = (prisma) => {
 
   // Documentos (links ou arquivos)
   r.post('/:id/documentos', upload.single('arquivo'), asyncHandler(async (req, res) => {
-    const { tipo, nome, url } = req.body;
-    res.json(await prisma.imovelDocumento.create({
-      data: { imovelId: +req.params.id, tipo: tipo || 'outro', nome: nome || req.file?.originalname || url || 'Documento', url: url || null, arquivo: req.file?.filename || null },
-    }));
+    const { tipo = 'outro', nome } = req.body;
+    try {
+      await imovelOu404(+req.params.id);
+      if (!DOC_TIPOS.includes(tipo)) fail('Tipo de documento inválido');
+      const url = urlHttp(req.body.url);
+      if (!url && !req.file) fail('Envie um arquivo ou informe um link');
+      res.json(await prisma.imovelDocumento.create({
+        data: { imovelId: +req.params.id, tipo, nome: String(nome || '').trim() || req.file?.originalname || url, url, arquivo: req.file?.filename || null },
+      }));
+    } catch (e) {
+      if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
+      throw e;
+    }
   }));
 
   r.delete('/:id/documentos/:docId', asyncHandler(async (req, res) => {

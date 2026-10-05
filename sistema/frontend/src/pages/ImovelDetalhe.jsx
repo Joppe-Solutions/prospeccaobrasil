@@ -1,16 +1,22 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { api, fmtMoney, fmtNum, STATUS, getToken, getUser } from '../lib/api';
+import { api, fmtMoney, fmtNum, STATUS, TIPOS_IMOVEL, getToken, getUser, useArquivoToken } from '../lib/api';
 
 const DOC_TIPOS = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rig', 'RIG / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Conv. condomínio'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
+const MODALIDADE_PADRAO = { venda: 'venda_ativo', passagem_ponto: 'passagem_ponto' };
+
 export default function ImovelDetalhe() {
+  const arquivoToken = useArquivoToken();
   const location = useLocation();
   const { id } = useParams();
   const [i, setI] = useState(null);
   const [empresas, setEmpresas] = useState([]);
+  const [demandas, setDemandas] = useState([]);
+  const [demandaSel, setDemandaSel] = useState('');
+  const [modalidade, setModalidade] = useState('');
   const [empSel, setEmpSel] = useState('');
   const [docTipo, setDocTipo] = useState('planta');
   const [docNome, setDocNome] = useState('');
@@ -26,6 +32,7 @@ export default function ImovelDetalhe() {
   useEffect(() => {
     setLoadError('');
     load();
+    api('/demandas').then(setDemandas).catch(() => setDemandas([]));
     api('/empresas').then(setEmpresas).catch(() => setEmpresas([]));
   }, [id]);
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
@@ -74,8 +81,8 @@ export default function ImovelDetalhe() {
   async function addOportunidade() {
     if (!empSel) return;
     try {
-      await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel }) });
-      setEmpSel(''); load(); flash('Imóvel apresentado à empresa');
+      await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel, demandaId: demandaSel || null, finalidade: demandas.find(d => String(d.id) === demandaSel)?.finalidade || null, modalidade: modalidade || MODALIDADE_PADRAO[i.tipo] || 'locacao_direta' }) });
+      setEmpSel(''); setDemandaSel(''); setModalidade(''); load(); flash('Imóvel apresentado à empresa');
     } catch (e) { flash(e.message || 'Falha ao registrar apresentação'); }
   }
   async function addDespesa(e) {
@@ -121,12 +128,12 @@ export default function ImovelDetalhe() {
           <div className="sub">{[i.bairro, i.cidade].filter(Boolean).join(' – ')} – {i.uf}{i.cep ? ` · CEP ${i.cep}` : ''}</div>
           <div className="chips">
             <span className={`badge ${i.status}`}>{STATUS[i.status]}</span>
-            <span className="badge disponivel">{i.tipo === 'venda' ? 'VENDA' : 'LOCAÇÃO'}</span>
+            <span className="badge disponivel">{(TIPOS_IMOVEL[i.tipo] || i.tipo).toUpperCase()}</span>
             {i.categoria && <span className="badge apresentado">{CATEGORIAS[i.categoria] || i.categoria}</span>}
             {i.periodoContrato && <span className="badge negociacao">{i.periodoContrato}</span>}
           </div>
           <p style={{ marginTop: 14, fontSize: 14 }}>
-            Área total <b>{fmtNum(i.areaTotal, 'm²')}</b> · Custo total <b>{fmtMoney(custo)}</b>{i.tipo === 'venda' && <> · Venda <b>{fmtMoney(i.precoVenda)}</b></>}
+            Área total <b>{fmtNum(i.areaTotal, 'm²')}</b> · Custo total <b>{fmtMoney(custo)}</b>{i.tipo === 'venda' && <> · Venda <b>{fmtMoney(i.precoVenda)}</b></>}{i.tipo === 'passagem_ponto' && <> · Passagem de ponto <b>{fmtMoney(i.valorPonto)}</b></>}
           </p>
           {i.descricao && <p className="muted" style={{ marginTop: 10 }}>{i.descricao}</p>}
         </div>
@@ -136,7 +143,7 @@ export default function ImovelDetalhe() {
         <h2>Dimensões e termos</h2>
         <div className="form-grid">
           {[['Piso (venda)', fmtNum(i.pisoAreaVenda, 'm²')], ['Jirau', fmtNum(i.jirau, 'm²')], ['Mezanino', fmtNum(i.mezanino, 'm²')], ['Pé direito', fmtNum(i.peDireito, 'mts')],
-            ['Frente', fmtNum(i.frenteImovel, 'mts')], ['Aluguel', fmtMoney(i.aluguel)], ['Condomínio', fmtMoney(i.condominio)], ['IPTU', fmtMoney(i.iptu)], ['CDU', fmtMoney(i.cdu)]]
+            ['Frente', fmtNum(i.frenteImovel, 'mts')], ['Aluguel', fmtMoney(i.aluguel)], ['Condomínio', fmtMoney(i.condominio)], ['IPTU', fmtMoney(i.iptu)], ['CDU', fmtMoney(i.cdu)], ['Luvas', fmtMoney(i.luvas)], ['Passagem de ponto', fmtMoney(i.valorPonto)], ['Carência', fmtNum(i.carenciaMeses, 'meses')], ['Vagas', fmtNum(i.vagas)], ['Acessibilidade', i.acessibilidade || '—'], ['Infraestrutura', i.infraestrutura || '—'], ['Restrições de uso', i.restricoesUso || '—']]
             .map(([l, v]) => <div key={l} className="field"><label>{l}</label><div style={{ fontWeight: 700 }}>{v}</div></div>)}
         </div>
       </div>
@@ -218,7 +225,7 @@ export default function ImovelDetalhe() {
           {i.documentos.map(d => (
             <tr key={d.id}>
               <td><b>{DOC_TIPOS.find(t => t[0] === d.tipo)?.[1] || d.tipo}</b></td>
-              <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}?token=${encodeURIComponent(getToken() || '')}`} target="_blank">{d.nome}</a> : d.nome}</td>
+              <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer">{d.nome}</a> : d.nome}</td>
               <td style={{ width: 60 }}><button className="btn btn-danger btn-sm" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
             </tr>
           ))}
@@ -229,7 +236,7 @@ export default function ImovelDetalhe() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
           <h2>Inteligência de mercado</h2>
           <div style={{ display: 'flex', gap: 8 }}>
-            {analise && <a className="btn btn-ghost btn-sm" href={`/inteligencia/${analise.id}?token=${getToken()}`} target="_blank" rel="noopener noreferrer">Documento completo ↗</a>}
+            {analise && <a className="btn btn-ghost btn-sm" href={`/inteligencia/${analise.id}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer">Documento completo ↗</a>}
             <button className="btn btn-gold btn-sm" onClick={gerarIA} disabled={gerando}>{gerando ? 'Gerando…' : analise ? 'Regenerar análise' : 'Gerar análise'}</button>
           </div>
         </div>
@@ -254,8 +261,8 @@ export default function ImovelDetalhe() {
       </div>
 
       <div className="panel">
-        <h2>Apresentar para empresa</h2>
-        <div style={{ display: 'flex', gap: 10 }}>
+        <h2>Apresentar para empresa</h2><p className="muted">Vincule uma demanda para registrar esta apresentação no acompanhamento da expansão.</p>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
         {(() => {
           const area = Number(i.areaTotal) || 0;
           const regiao = `${i.bairro || ''} ${i.cidade || ''}`.toLowerCase();
@@ -269,18 +276,20 @@ export default function ImovelDetalhe() {
           };
           const ordenadas = [...empresas].sort((a, b) => score(b) - score(a));
           return (
-          <select value={empSel} onChange={e => setEmpSel(e.target.value)} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--line)' }}>
+          <select value={empSel} aria-label="Empresa para apresentação" onChange={e => { setEmpSel(e.target.value); setDemandaSel(''); }} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--line)' }}>
             <option value="">Selecionar empresa…</option>
             {ordenadas.map(e => <option key={e.id} value={e.id}>{score(e) > 0 ? '★ ' : score(e) < 0 ? '⚠ ' : ''}{e.nome} — {e.segmento || 'sem segmento'}{e.areaMinima || e.areaMaxima ? ` (${e.areaMinima || 0}–${e.areaMaxima || '∞'} m²)` : ''}</option>)}
           </select>);
         })()}
-          <button className="btn btn-primary btn-sm" onClick={addOportunidade}>Registrar apresentação</button>
+          <select aria-label="Demanda para apresentação" value={demandaSel} onChange={e => setDemandaSel(e.target.value)}><option value="">Sem demanda vinculada</option>{demandas.filter(d => String(d.empresaId) === empSel && !['concluida','cancelada'].includes(d.status)).map(d => <option key={d.id} value={d.id}>{d.titulo}</option>)}</select>
+          <select aria-label="Modalidade da apresentação" value={modalidade} onChange={e => setModalidade(e.target.value)}><option value="">{{ venda: 'Ativos à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação direta'}</option><option value="locacao_direta">Locação direta</option><option value="passagem_ponto">Passagem de ponto comercial</option><option value="venda_ativo">Ativos à venda</option></select>
+          <button className="btn btn-primary btn-sm" disabled={!empSel} onClick={addOportunidade}>Registrar apresentação</button>
         </div>
         {i.oportunidades.length > 0 && (
           <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Apresentação</th><th>Data</th></tr></thead>
             <tbody>{i.oportunidades.map(o => (
               <tr key={o.id}>
-                <td>{o.empresa.nome}</td>
+                <td>{o.empresa.nome}{o.demanda && <small style={{ display: 'block' }}><Link to={`/demandas/${o.demandaId}`}>{o.demanda.titulo}</Link></small>}</td>
                 <td>{[o.empresa.contatoNome, o.empresa.telefone || o.empresa.email].filter(Boolean).join(' · ') || '—'}</td>
                 <td><span className={`badge ${o.etapa}`}>{ETAPAS[o.etapa] || o.etapa}</span></td>
                 <td><a href={`/apresentacao/${i.id}`} target="_blank" rel="noreferrer">Abrir</a></td>

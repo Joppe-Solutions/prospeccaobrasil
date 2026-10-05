@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  Brain, Buildings, CaretRight, CurrencyDollar, FolderOpen, GearSix, Handshake, IdentificationCard,
+  BookOpen, FileText, Target, Brain, Buildings, CaretRight, CurrencyDollar, FolderOpen, GearSix, Handshake, IdentificationCard,
   List, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
@@ -12,6 +12,7 @@ const NAV = [
     caption: 'PRINCIPAL',
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
+      { to: '/institucional', label: 'Institucional', icon: Buildings },
       { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar, admin: true },
     ],
   },
@@ -19,13 +20,24 @@ const NAV = [
     caption: 'CADASTROS',
     items: [
       { to: '/imoveis', label: 'Imóveis', icon: Buildings },
-      { to: '/empresas', label: 'Clientes', icon: Storefront },
+      { to: '/demandas', label: 'Demandas', icon: Target },
+      { to: '/empresas', label: 'Empresas', icon: Storefront },
       { to: '/proprietarios', label: 'Proprietários', icon: IdentificationCard },
       { to: '/parceiros', label: 'Parceiros comerciais', icon: UsersThree },
       { to: '/leads', label: 'Leads', icon: UserFocus },
       { to: '/documentos', label: 'Documentação', icon: FolderOpen },
-      { to: '/inteligencia', label: 'Inteligência de mercado', icon: Brain },
+      { to: '/inteligencia', label: 'Inteligência de Mercado Imobiliário', icon: Brain },
     ],
+  },
+  {
+    caption: 'GESTÃO DE EXPANSÃO',
+    items: [
+      { to: '/propostas', label: 'Propostas Comerciais', icon: FileText },
+    ],
+  },
+  {
+    caption: 'CONHECIMENTO',
+    items: [{ to: '/glossario', label: 'Glossário Empresarial', icon: BookOpen }],
   },
   {
     caption: 'OPERAÇÕES E ACESSOS',

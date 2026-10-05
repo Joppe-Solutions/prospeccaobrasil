@@ -1,0 +1,342 @@
+[
+  {
+    "local": "Araruama",
+    "municipio": "RJ",
+    "corredor": "Centro / ruas comerciais",
+    "valorM2": 42.0,
+    "minimoM2": 30.0,
+    "maximoM2": 60.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Bangu",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Calçadão / Av. Cônego de Vasconcelos",
+    "valorM2": 35.0,
+    "minimoM2": 25.0,
+    "maximoM2": 50.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Barra da Tijuca",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Av. das Américas / eixos comerciais",
+    "valorM2": 52.71,
+    "minimoM2": 40.0,
+    "maximoM2": 75.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Botafogo",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Voluntários da Pátria / São Clemente",
+    "valorM2": 89.65,
+    "minimoM2": 65.0,
+    "maximoM2": 120.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Bonsucesso",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Teixeira de Castro / Cardoso de Morais",
+    "valorM2": 30.0,
+    "minimoM2": 22.0,
+    "maximoM2": 45.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Cabo Frio",
+    "municipio": "RJ",
+    "corredor": "Centro / principais ruas comerciais",
+    "valorM2": 54.0,
+    "minimoM2": 40.0,
+    "maximoM2": 75.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Campo Grande",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Calçadão / Cel. Agostinho / Augusto de Vasconcelos",
+    "valorM2": 35.48,
+    "minimoM2": 25.0,
+    "maximoM2": 50.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Catete",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Rua do Catete",
+    "valorM2": 65.0,
+    "minimoM2": 50.0,
+    "maximoM2": 90.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Caxias",
+    "municipio": "Duque de Caxias",
+    "corredor": "Rua José de Alvarenga / Calçadão",
+    "valorM2": 240.0,
+    "minimoM2": 150.0,
+    "maximoM2": 350.0,
+    "classe": "Prime",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Copacabana",
+    "municipio": "Rio de Janeiro",
+    "corredor": "N. Sra. de Copacabana / Barata Ribeiro",
+    "valorM2": 40.51,
+    "minimoM2": 35.0,
+    "maximoM2": 60.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Flamengo",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Marquês de Abrantes / Senador Vergueiro",
+    "valorM2": 75.0,
+    "minimoM2": 55.0,
+    "maximoM2": 100.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Gávea",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Marquês de São Vicente",
+    "valorM2": 90.0,
+    "minimoM2": 65.0,
+    "maximoM2": 120.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Grajaú",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Barão de Mesquita / Eng. Richard",
+    "valorM2": 45.0,
+    "minimoM2": 30.0,
+    "maximoM2": 60.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Humaitá",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Rua Humaitá / Voluntários da Pátria",
+    "valorM2": 85.0,
+    "minimoM2": 60.0,
+    "maximoM2": 115.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Ipanema",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Visconde de Pirajá / Garcia D'Ávila",
+    "valorM2": 157.78,
+    "minimoM2": 120.0,
+    "maximoM2": 200.0,
+    "classe": "Prime",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Itaguaí",
+    "municipio": "RJ",
+    "corredor": "Centro / Dr. Curvelo Cavalcanti",
+    "valorM2": 35.0,
+    "minimoM2": 25.0,
+    "maximoM2": 50.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Jardim Botânico",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Rua Jardim Botânico / Lopes Quintas",
+    "valorM2": 90.0,
+    "minimoM2": 65.0,
+    "maximoM2": 125.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Leblon",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Ataulfo de Paiva / Dias Ferreira",
+    "valorM2": 265.93,
+    "minimoM2": 200.0,
+    "maximoM2": 350.0,
+    "classe": "Prime",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Largo do Machado",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Largo do Machado / entorno Rua do Catete",
+    "valorM2": 70.0,
+    "minimoM2": 50.0,
+    "maximoM2": 95.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Madureira",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Calçadão / Min. Edgard Romero / Carolina Machado",
+    "valorM2": 35.0,
+    "minimoM2": 25.0,
+    "maximoM2": 55.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Mesquita",
+    "municipio": "RJ",
+    "corredor": "Centro / Getúlio de Moura",
+    "valorM2": 30.0,
+    "minimoM2": 20.0,
+    "maximoM2": 45.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Miguel Couto",
+    "municipio": "Nova Iguaçu",
+    "corredor": "Centro comercial local",
+    "valorM2": 25.0,
+    "minimoM2": 18.0,
+    "maximoM2": 35.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Nilópolis",
+    "municipio": "RJ",
+    "corredor": "Centro / Rua Mirandela",
+    "valorM2": 30.0,
+    "minimoM2": 22.0,
+    "maximoM2": 45.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Nova Iguaçu",
+    "municipio": "RJ",
+    "corredor": "Rua Governador Portela / Centro",
+    "valorM2": 60.0,
+    "minimoM2": 45.0,
+    "maximoM2": 85.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Penha",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Av. Braz de Pina / Rua Nicarágua",
+    "valorM2": 35.0,
+    "minimoM2": 25.0,
+    "maximoM2": 50.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Piabetá",
+    "municipio": "Magé",
+    "corredor": "Centro / eixo comercial",
+    "valorM2": 25.0,
+    "minimoM2": 18.0,
+    "maximoM2": 35.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Ramos",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Rua Uranos / entorno Av. Brasil",
+    "valorM2": 30.0,
+    "minimoM2": 22.0,
+    "maximoM2": 45.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Recreio dos Bandeirantes",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Av. das Américas / Gláucio Gil / Benvindo de Novaes",
+    "valorM2": 42.34,
+    "minimoM2": 32.0,
+    "maximoM2": 60.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Santa Cruz",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Rua Felipe Cardoso / centro comercial",
+    "valorM2": 40.0,
+    "minimoM2": 25.0,
+    "maximoM2": 60.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Santa Cruz da Serra",
+    "municipio": "Duque de Caxias",
+    "corredor": "Centro / principais eixos comerciais",
+    "valorM2": 22.0,
+    "minimoM2": 15.0,
+    "maximoM2": 30.0,
+    "classe": "C",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "São Cristóvão",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Rua São Cristóvão / Figueira de Melo",
+    "valorM2": 40.0,
+    "minimoM2": 28.0,
+    "maximoM2": 55.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "São Pedro da Aldeia",
+    "municipio": "RJ",
+    "corredor": "Centro / vias comerciais",
+    "valorM2": 50.0,
+    "minimoM2": 35.0,
+    "maximoM2": 70.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Tijuca",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Conde de Bonfim / Barão de Mesquita / Saens Peña",
+    "valorM2": 39.55,
+    "minimoM2": 30.0,
+    "maximoM2": 55.0,
+    "classe": "B",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  },
+  {
+    "local": "Urca",
+    "municipio": "Rio de Janeiro",
+    "corredor": "Av. Portugal / Marechal Cantuária",
+    "valorM2": 70.0,
+    "minimoM2": 50.0,
+    "maximoM2": 100.0,
+    "classe": "A",
+    "fonte": "Prospecção Brasil — Inteligência Imobiliária RJ (PDF fornecido por Luiz; data-base não informada)"
+  }
+]

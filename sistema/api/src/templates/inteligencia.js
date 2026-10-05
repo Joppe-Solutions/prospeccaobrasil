@@ -7,7 +7,7 @@ const present = (v) => v !== null && v !== undefined && v !== '' && Number.isFin
 const num = (v) => present(v) ? Number(v).toLocaleString('pt-BR') : '—';
 const money0 = (v) => present(v) ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL', maximumFractionDigits: 0 }) : '—';
 const address = (i) => [i.endereco, i.numero].filter(Boolean).join(', ') + (i.complemento ? ` - ${i.complemento}` : '');
-const TIPOS = { locacao: 'Locação', venda: 'Venda' };
+const TIPOS = { locacao: 'Locação', venda: 'Venda direta', passagem_ponto: 'Passagem de ponto' };
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Imóvel comercial' };
 const STATUS = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido' };
 const CLASSES = [['A1', 'Acima de 20 sm', 'Acima de 26.040,00', '27.132,05'], ['A2', 'de 15 a 20 sm', '26.040,00', '20.942,44'], ['B1', 'de 10 a 15 sm', '19.530,00', '14.297,27'], ['B2', 'de 6 a 10 sm', '13.020,00', '9.100,92'], ['C1', 'de 4 a 6 sm', '7.812,00', '6.004,19'], ['C2', 'de 2 a 4 sm', '5.208,00', '3.048,74'], ['D', 'de 1 a 2 sm', '2.604,00', '1.524,61'], ['E', 'Até 1 sm', '1.302,00', '595,06']];

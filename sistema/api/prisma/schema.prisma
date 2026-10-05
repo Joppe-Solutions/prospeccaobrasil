@@ -14,6 +14,7 @@ model Usuario {
   senhaHash String   @map("senha_hash")
   role      String   @default("admin")
   ativo     Boolean  @default(true)
+  senhaAlteradaEm DateTime? @map("senha_alterada_em")
   criadoEm  DateTime @default(now()) @map("criado_em")
 
   leadsResponsavel Lead[]        @relation("LeadResponsavel")
@@ -43,6 +44,9 @@ model Empresa {
   status         String    @default("ativo")
   criadoEm       DateTime  @default(now()) @map("criado_em")
   atualizadoEm   DateTime  @updatedAt @map("atualizado_em")
+  razaoSocial    String? @map("razao_social")
+  endereco       String?
+  demandas       Demanda[]
   oportunidades  Oportunidade[]
   lancamentos    Lancamento[]
   leads          Lead[]
@@ -146,9 +150,16 @@ model Parceiro {
 
 model Imovel {
   id              Int      @id @default(autoincrement())
+  vagas           Int?
+  acessibilidade  String?
+  infraestrutura  String?
+  restricoesUso   String? @map("restricoes_uso")
+  luvas           Decimal?
+  valorPonto      Decimal? @map("valor_ponto")
+  carenciaMeses   Int? @map("carencia_meses")
   codigo          String   @unique
   titulo          String?
-  tipo            String   @default("locacao") // locacao | venda
+  tipo            String   @default("locacao") // locacao | venda (venda direta) | passagem_ponto
   categoria       String?  @default("loja") // loja | predio | terreno | outro
   status          String   @default("disponivel") // disponivel | negociacao | locado | vendido | inativo
   endereco        String
@@ -288,6 +299,11 @@ model Lancamento {
 }
 
 model Oportunidade {
+  demandaId Int? @map("demanda_id")
+  demanda Demanda? @relation(fields: [demandaId], references: [id], onDelete: SetNull)
+  finalidade String?
+  proximaAcao String? @map("proxima_acao")
+  proximaAcaoEm String? @map("proxima_acao_em")
   id         Int      @id @default(autoincrement())
   imovelId   Int      @map("imovel_id")
   empresaId  Int      @map("empresa_id")
@@ -302,4 +318,108 @@ model Oportunidade {
   lancamentos Lancamento[]
 
   @@map("oportunidades")
+}
+
+model Demanda {
+  id Int @id @default(autoincrement())
+  empresaId Int @map("empresa_id")
+  empresa Empresa @relation(fields: [empresaId], references: [id])
+  titulo String
+  tipo String @default("locacao")
+  finalidade String @default("expansao_redes")
+  objetivo String?
+  unidades Int?
+  prazo String?
+  regioesInteresse String? @map("regioes_interesse")
+  perfilImovel String? @map("perfil_imovel")
+  areaMinima Decimal? @map("area_minima")
+  areaMaxima Decimal? @map("area_maxima")
+  frenteMinima Decimal? @map("frente_minima")
+  peDireitoMinimo Decimal? @map("pe_direito_minimo")
+  vagasMinimas Int? @map("vagas_minimas")
+  acessibilidade String?
+  exigencias String?
+  aluguelMinimo Decimal? @map("aluguel_minimo")
+  aluguelMaximo Decimal? @map("aluguel_maximo")
+  compraMinima Decimal? @map("compra_minima")
+  compraMaxima Decimal? @map("compra_maxima")
+  cdu Decimal?
+  luvas Decimal?
+  valorPonto Decimal? @map("valor_ponto")
+  carenciaMeses Int? @map("carencia_meses")
+  investimento Decimal?
+  restricoes String?
+  responsavelEmpresa String? @map("responsavel_empresa")
+  consultor String?
+  inicioEm String? @map("inicio_em")
+  proximaAcao String? @map("proxima_acao")
+  proximaAcaoEm String? @map("proxima_acao_em")
+  status String @default("aberta")
+  observacoes String?
+  criadoEm DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  oportunidades Oportunidade[]
+  documentos DemandaDocumento[]
+  atividades DemandaAtividade[]
+  propostas PropostaServico[]
+  @@index([empresaId])
+  @@map("demandas")
+}
+model DemandaDocumento {
+  id Int @id @default(autoincrement())
+  demandaId Int @map("demanda_id")
+  demanda Demanda @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  tipo String
+  nome String
+  url String
+  criadoEm DateTime @default(now()) @map("criado_em")
+  @@map("demanda_documentos")
+}
+model DemandaAtividade {
+  id Int @id @default(autoincrement())
+  demandaId Int @map("demanda_id")
+  demanda Demanda @relation(fields: [demandaId], references: [id], onDelete: Cascade)
+  tipo String @default("nota")
+  texto String
+  criadoEm DateTime @default(now()) @map("criado_em")
+  @@map("demanda_atividades")
+}
+model PropostaServico {
+  id Int @id @default(autoincrement())
+  demandaId Int @map("demanda_id")
+  demanda Demanda @relation(fields: [demandaId], references: [id])
+  titulo String
+  escopo String
+  honorarios Decimal?
+  prazo String?
+  condicoes String?
+  status String @default("rascunho")
+  criadoEm DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  @@map("propostas_servico")
+}
+model GlossarioTermo {
+  id Int @id @default(autoincrement())
+  termo String @unique
+  nomeExtenso String? @map("nome_extenso")
+  categoria String
+  significado String
+  exemplo String?
+  aliases String?
+  relacionados String?
+  fonte String?
+  revisadoEm String? @map("revisado_em")
+  @@map("glossario_termos")
+}
+model BenchmarkLocacao {
+  id Int @id @default(autoincrement())
+  local String @unique
+  municipio String
+  corredor String
+  valorM2 Decimal @map("valor_m2")
+  minimoM2 Decimal @map("minimo_m2")
+  maximoM2 Decimal @map("maximo_m2")
+  classe String
+  fonte String
+  @@map("benchmarks_locacao")
 }

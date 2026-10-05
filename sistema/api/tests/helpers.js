@@ -12,6 +12,9 @@ process.env.NODE_ENV = 'test';
 process.env.LEAD_RATE_LIMIT = '1000';
 process.env.LOGIN_RATE_LIMIT = '1000';
 
+// Precria o arquivo SQLite: o engine em macOS pode falhar ao abrir caminho inexistente.
+fs.closeSync(fs.openSync(DB, 'a'));
+
 execSync('npx prisma migrate deploy', {
   cwd: path.join(__dirname, '..'),
   env: process.env,

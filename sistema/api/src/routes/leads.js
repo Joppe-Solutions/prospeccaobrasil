@@ -204,7 +204,7 @@ module.exports = (prisma) => {
     res.json(resultado);
   }));
 
-  r.delete('/:id', asyncHandler(async (req, res) => {
+  r.delete('/:id', auth.requireRole('admin'), asyncHandler(async (req, res) => {
     const lead = await prisma.lead.findUnique({ where: { id: +req.params.id } });
     if (!lead) return res.status(404).json({ error: 'Não encontrado' });
     await prisma.lead.delete({ where: { id: lead.id } });

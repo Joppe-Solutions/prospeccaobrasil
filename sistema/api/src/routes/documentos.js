@@ -10,6 +10,10 @@ module.exports = (prisma) => {
 
   // Central de documentos: todos os anexos de imóveis.
   // Não-admin vê apenas tipos públicos (mesma política da apresentação).
+  r.get('/demandas', asyncHandler(async (req, res) => {
+    res.json(await prisma.demandaDocumento.findMany({ include: { demanda: { include: { empresa: true } } }, orderBy: { criadoEm: 'desc' } }));
+  }));
+
   r.get('/', asyncHandler(async (req, res) => {
     const { tipo, q } = req.query;
     const where = {};

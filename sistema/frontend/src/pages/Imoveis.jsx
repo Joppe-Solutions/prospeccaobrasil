@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation, useSearchParams } from 'react-router-dom';
-import { ArrowRight, Buildings, CheckCircle, Handshake, Plus, SlidersHorizontal } from '@phosphor-icons/react';
-import { api, fmtMoney, fmtNum, STATUS } from '../lib/api';
+import { ArrowRight, Buildings, CheckCircle, Handshake, Plus, SlidersHorizontal, Target } from '@phosphor-icons/react';
+import { api, fmtMoney, fmtNum, STATUS, TIPOS_IMOVEL } from '../lib/api';
 import DataTable from '../components/DataTable';
+import DemandasCompativeis from '../components/DemandasCompativeis';
 import { PageHeader, StatusBadge } from '../components/UI';
 import './collections.css';
 
@@ -18,6 +19,7 @@ export default function Imoveis() {
   const [status, setStatus] = useState(statusParam && STATUS[statusParam] ? statusParam : '');
   const [tipo, setTipo] = useState('');
   const [categoria, setCategoria] = useState('');
+  const [diretrizes, setDiretrizes] = useState(null);
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try { setList(await api('/imoveis')); } catch (e) { setError(e.message); } finally { setLoading(false); }
@@ -47,8 +49,15 @@ export default function Imoveis() {
     { accessorKey: 'categoria', header: 'Categoria', cell: ({ getValue }) => getValue() ? <span className="collection-tag">{CATEGORIAS[getValue()] || getValue()}</span> : <span className="muted">—</span> },
     { id: 'localizacao', header: 'Localização', accessorFn: i => `${i.cidade}/${i.uf}`, cell: ({ row }) => <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf}</small></span> },
     { accessorKey: 'areaTotal', header: 'Área total', cell: ({ getValue }) => <span className="collection-nowrap">{fmtNum(getValue(), 'm²')}</span> },
-    { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : 'Custo mensal total'}</small></span> },
+    { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : row.original.tipo === 'passagem_ponto' ? `Mensal · ponto ${fmtMoney(row.original.valorPonto)}` : 'Custo mensal total'}</small></span> },
     { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={STATUS[getValue()]} /> },
+    { id: 'diretrizes', header: 'Diretrizes', accessorFn: i => i.demandasCompativeis ?? -1, cell: ({ row, getValue }) => {
+      const n = getValue();
+      if (n < 0) return <span className="muted" title="Imóvel fora de oferta">—</span>;
+      return <button type="button" className={`match-button ${n ? '' : 'is-empty'}`} onClick={() => setDiretrizes(row.original)} aria-label={`Ver demandas compatíveis com o imóvel ${row.original.codigo}`}>
+        <Target size={13} />{n === 0 ? 'Nenhuma' : n === 1 ? '1 demanda' : `${n} demandas`}
+      </button>;
+    } },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <Link className="icon-button" to={`/imoveis/${row.original.id}`} aria-label={`Abrir imóvel ${row.original.codigo}`}><ArrowRight size={18} /></Link> },
   ], []);
   const count = value => loading || error ? '—' : value;
@@ -70,11 +79,12 @@ export default function Imoveis() {
         </div>
       </div>
       <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<>
-        <div className="collection-tabs" aria-label="Tipo de negócio">{[['', 'Todos'], ['locacao', 'Locação'], ['venda', 'Venda']].map(([value, label]) => <button key={value || 't-all'} className={tipo === value ? 'is-active' : ''} onClick={() => setTipo(value)} aria-pressed={tipo === value}>{label}</button>)}</div>
+        <div className="collection-tabs" aria-label="Tipo de negócio">{[['', 'Todos'], ...Object.entries(TIPOS_IMOVEL)].map(([value, label]) => <button key={value || 't-all'} className={tipo === value ? 'is-active' : ''} onClick={() => setTipo(value)} aria-pressed={tipo === value}>{label}</button>)}</div>
         <label className="collection-select"><SlidersHorizontal size={16} /><select aria-label="Filtrar por status" value={status} onChange={e => updateStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         {(status || tipo || categoria) && <button className="btn btn-ghost btn-sm" onClick={() => { updateStatus(''); setTipo(''); setCategoria(''); }}>Limpar filtros</button>}
         {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
       </>} />
     </section>
+    {diretrizes && <DemandasCompativeis imovel={diretrizes} onClose={() => setDiretrizes(null)} onChange={load} />}
   </div>;
 }

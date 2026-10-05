@@ -19,7 +19,7 @@ export default function Perfil() {
     if (nova.length < 8) return setErr('A nova senha precisa de pelo menos 8 caracteres.');
     if (nova !== nova2) return setErr('As senhas não coincidem.');
     setBusy(true);
-    try { await api('/auth/trocar-senha', { method: 'POST', body: JSON.stringify({ atual, nova }) }); setMsg('Sua senha foi alterada com sucesso.'); setAtual(''); setNova(''); setNova2(''); setOpen(false); }
+    try { const r = await api('/auth/trocar-senha', { method: 'POST', body: JSON.stringify({ atual, nova }) }); if (r.token) localStorage.setItem('pb_token', r.token); setMsg('Sua senha foi alterada com sucesso.'); setAtual(''); setNova(''); setNova2(''); setOpen(false); }
     catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
   return <div className="collection-page profile-page">

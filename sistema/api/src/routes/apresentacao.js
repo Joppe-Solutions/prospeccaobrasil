@@ -16,7 +16,7 @@ module.exports = (prisma) => {
     const qrData = await QRCode.toDataURL(locationUrl(imovel), {
       margin: 4, width: 240, color: { dark: '#153c34', light: '#ffffff' },
     });
-    res.type('html').send(renderApresentacao(imovel, qrData));
+    res.type('html').send(renderApresentacao(imovel, qrData, { completa: req.query.formato === 'completa' }));
   }));
   return r;
 };

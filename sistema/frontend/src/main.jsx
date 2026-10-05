@@ -31,6 +31,13 @@ import Configuracoes from './pages/Configuracoes';
 import Perfil from './pages/Perfil';
 import Usuarios from './pages/Usuarios';
 
+import Demandas from './pages/Demandas';
+import DemandaWizard from './pages/DemandaWizard';
+import DemandaDetalhe from './pages/DemandaDetalhe';
+import Glossario from './pages/Glossario';
+import Propostas from './pages/Propostas';
+import Institucional from './pages/Institucional';
+
 const Private = ({ children }) => getToken() ? children : <Navigate to="/login" />;
 
 function App() {
@@ -45,6 +52,14 @@ function App() {
         <Route path="imoveis/novo" element={<ImovelWizard />} />
         <Route path="imoveis/:id" element={<ImovelDetalhe />} />
         <Route path="imoveis/:id/editar" element={<ImovelWizard />} />
+        <Route path="demandas" element={<Demandas />} />
+        <Route path="diretrizes" element={<Navigate to="/imoveis" replace />} />
+        <Route path="demandas/nova" element={<DemandaWizard />} />
+        <Route path="demandas/:id" element={<DemandaDetalhe />} />
+        <Route path="demandas/:id/editar" element={<DemandaWizard />} />
+        <Route path="glossario" element={<Glossario />} />
+        <Route path="propostas" element={<Propostas />} />
+        <Route path="institucional" element={<Institucional />} />
         <Route path="empresas" element={<Empresas />} />
         <Route path="empresas/nova" element={<EmpresaWizard />} />
         <Route path="empresas/:id/editar" element={<EmpresaWizard />} />

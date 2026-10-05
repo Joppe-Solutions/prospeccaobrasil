@@ -45,7 +45,16 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
  .facts-grid { grid-template-columns:1fr; gap:24px; }.facts>div { font-size:12px; padding:8px 0; }.contact .email { font-size:9px; }
  .gallery { grid-template-columns:1fr; }.gallery img { height:auto; max-height:350px; }.document-footer { font-size:7px; }
 }
+.print-only { display:none; }
 @media print {
+ .compact .details,.digital-only { display:none!important; }.print-only { display:block; }
+ .hero img { height:48mm; }.intro { padding:12px 0; } h1 { font-size:25px; }
+ .highlights { margin:12px 0; padding:10px 0; }.highlights strong { font-size:24px; }
+ .facts>div { padding:4px 0; font-size:9px; }.contact { margin-top:12px; padding:10px 0; }.contact h2 { font-size:21px; }
+ .document-header { padding-bottom:10px; }.document-footer { padding-top:7px; }.disclaimer { margin:4px 0 10px; }
+ .section-intro { margin:15px 0; }.description { margin-bottom:15px; }.description p { font-size:10px; line-height:1.5; }
+ .gallery img { height:45mm; }.gallery figcaption { font-size:8px; }.documents { margin:15px 0; }.documents a { padding:6px 0; }
+
  @page { size:A4 portrait; margin:12mm 14mm 14mm; @bottom-right { content:counter(page) ' / ' counter(pages); font-family:Arial,sans-serif; font-size:8pt; color:#67756f; } }
  body { background:white; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
  .toolbar,.print-help { display:none!important; }.sheet { width:auto; min-height:0; margin:0; padding:0; box-shadow:none; }

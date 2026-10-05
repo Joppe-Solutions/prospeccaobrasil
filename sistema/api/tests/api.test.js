@@ -400,7 +400,11 @@ test('B01: documento privado exige auth; público e foto são abertos', async ()
 
   // Autorizado (header e query token) baixa o privado
   assert.equal((await req('GET', `/uploads/${arquivoPriv}`, { token })).status, 200);
-  const viaQuery = await fetch(`${getBase()}/uploads/${arquivoPriv}?token=${token}`);
+  // sessão na URL não vale mais; só o token curto de arquivo
+  assert.equal((await fetch(`${getBase()}/uploads/${arquivoPriv}?token=${token}`)).status, 401);
+  const arquivoToken = (await req('GET', '/api/auth/token-arquivo', { token })).body.token;
+  assert.equal((await req('GET', '/api/auth/me', { token: arquivoToken })).status, 401);
+  const viaQuery = await fetch(`${getBase()}/uploads/${arquivoPriv}?token=${arquivoToken}`);
   assert.equal(viaQuery.status, 200);
   assert.match(viaQuery.headers.get('cache-control') || '', /no-store/);
 
@@ -592,9 +596,11 @@ test('documento de inteligência: A4 paisagem, auth e seções', async () => {
   assert.equal(analise.status, 200);
 
   assert.equal((await req('GET', `/inteligencia/${analise.body.id}`)).status, 401);
-  assert.equal((await req('GET', `/inteligencia/99999?token=${token}`)).status, 404);
+  const arquivoToken = (await req('GET', '/api/auth/token-arquivo', { token })).body.token;
+  assert.equal((await req('GET', `/inteligencia/99999?token=${token}`)).status, 401);
+  assert.equal((await req('GET', `/inteligencia/99999?token=${arquivoToken}`)).status, 404);
 
-  const doc = await req('GET', `/inteligencia/${analise.body.id}?token=${token}`);
+  const doc = await req('GET', `/inteligencia/${analise.body.id}?token=${arquivoToken}`);
   assert.equal(doc.status, 200);
   assert.match(doc.body, /A4 landscape/);
   assert.match(doc.body, /CONTAGEM DEMOGRÁFICA/);
@@ -602,4 +608,140 @@ test('documento de inteligência: A4 paisagem, auth e seções', async () => {
   assert.match(doc.body, /classificação social/i);
   assert.match(doc.body, /sob levantamento/i);
   assert.match(doc.body, /Rua Geo/);
+});
+
+test('demandas: vários briefings por empresa, validação e acompanhamento de operações', async () => {
+  const empresa = (await req('POST','/api/empresas',{token,body:{nome:'Rede demandas',razaoSocial:'Rede Demandas Ltda',endereco:'Rua das lojas, 10'}})).body;
+  assert.equal(empresa.razaoSocial,'Rede Demandas Ltda');
+  const create = body => req('POST','/api/demandas',{token,body:{empresaId:empresa.id,titulo:'Expansão RJ',tipo:'locacao',...body}});
+  assert.equal((await create({areaMinima:200,areaMaxima:100})).status,400);
+  assert.equal((await create({unidades:1.5})).status,400);
+  assert.equal((await create({inicioEm:'2026-02-30'})).status,400);
+  const a=await create({areaMinima:100,areaMaxima:300,cdu:12000,luvas:5000,vagasMinimas:4,regioesInteresse:'Méier'});
+  const b=await create({titulo:'Expansão Oeste',regioesInteresse:'Campo Grande'});
+  assert.equal(a.status,200);assert.equal(b.status,200);assert.notEqual(a.body.id,b.body.id);
+  assert.equal((await req('GET','/api/demandas')).status,401);
+  assert.equal((await req('POST','/api/imoveis',{token,body:{endereco:'Vagas inválidas',cidade:'RJ',vagas:1.5}})).status,400);
+  const imovel=(await req('POST','/api/imoveis',{token,body:{endereco:'Rua demanda',cidade:'Rio de Janeiro',vagas:4,luvas:1000,acessibilidade:'Rampa'}})).body;
+  const op=await req('POST','/api/oportunidades',{token,body:{imovelId:imovel.id,empresaId:empresa.id,demandaId:a.body.id,modalidade:'venda_ativo',finalidade:'expansao_redes'}});
+  assert.equal(op.status,200);assert.equal(op.body.demanda.id,a.body.id);
+  assert.equal((await req('PUT',`/api/oportunidades/${op.body.id}`,{token,body:{etapa:'visita'}})).status,200);
+  const history=await req('GET',`/api/demandas/${a.body.id}`,{token});assert.equal(history.body.atividades.length,2);assert.equal(history.body.oportunidades[0].etapa,'visita');
+  const other=(await req('POST','/api/empresas',{token,body:{nome:'Outra rede'}})).body;
+  assert.equal((await req('POST','/api/oportunidades',{token,body:{imovelId:imovel.id,empresaId:other.id,demandaId:a.body.id}})).status,400);
+  assert.equal((await req('PUT',`/api/demandas/${a.body.id}`,{token,body:{empresaId:other.id}})).status,400);
+  assert.equal((await req('POST',`/api/demandas/${a.body.id}/documentos`,{token,body:{nome:'Contrato',url:'javascript:alert(1)'}})).status,400);
+  assert.equal((await req('POST',`/api/demandas/${a.body.id}/documentos`,{token,body:{nome:'Briefing',tipo:'briefing',url:'https://example.com/briefing'}})).status,200);
+  assert.equal((await req('POST','/api/propostas',{token,body:{demandaId:a.body.id,titulo:'Prospecção',escopo:'Estudo e seleção de pontos',honorarios:10000}})).status,200);
+  assert.equal((await req('DELETE',`/api/empresas/${empresa.id}`,{token})).status,409);
+});
+
+test('glossário e benchmark: conteúdo dos PDFs, edição persistente e validação', async () => {
+  assert.equal((await req('GET','/api/glossario')).status,401);
+  const g=await req('GET','/api/glossario',{token});assert.equal(g.body.length,100);
+  assert.equal(g.body.find(t=>t.termo==='Founder').aliases,'fander');
+  assert.ok(g.body.find(t=>t.termo==='BTS').significado.includes('ocupante'));
+  assert.equal((await req('POST','/api/glossario',{token,body:{termo:'BTS',categoria:'Duplicado',significado:'Duplicado'}})).status,409);
+  assert.equal((await req('POST','/api/glossario',{token,body:{termo:'bts',categoria:'Duplicado',significado:'Duplicado'}})).status,409);
+  const term=await req('POST','/api/glossario',{token,body:{termo:'Test term',categoria:'Expansão',significado:'Um conceito novo',revisadoEm:'2026-10-05'}});assert.equal(term.status,200);
+  assert.equal((await req('PUT',`/api/glossario/${term.body.id}`,{token,body:{exemplo:'Um exemplo de aplicação'}})).body.exemplo,'Um exemplo de aplicação');
+  const bench=await req('GET','/api/benchmarks',{token});assert.equal(bench.body.length,34);assert.equal(Number(bench.body.find(b=>b.local==='Leblon').valorM2),265.93);
+  assert.equal((await req('PUT',`/api/benchmarks/${bench.body[0].id}`,{token,body:{minimoM2:1000}})).status,400);
+  assert.equal((await req('PUT',`/api/benchmarks/${bench.body[0].id}`,{token,body:{fonte:'Revisão local de teste'}})).body.fonte,'Revisão local de teste');
+});
+
+test('diretrizes: imóvel lista demandas compatíveis, quase compatíveis e ignora as inativas', async () => {
+  const empresa = (await req('POST', '/api/empresas', { token, body: { nome: 'Rede diretrizes' } })).body;
+  const demanda = async (body) => (await req('POST', '/api/demandas', { token, body: { empresaId: empresa.id, tipo: 'locacao', ...body } })).body;
+  const ok = await demanda({ titulo: 'Diretriz ok', regioesInteresse: 'Zona Sul, Tijúca', areaMinima: 100, areaMaxima: 300, frenteMinima: 6, aluguelMaximo: 20000, vagasMinimas: 2 });
+  const quase = await demanda({ titulo: 'Diretriz quase', regioesInteresse: 'Tijuca', areaMinima: 400 });
+  await demanda({ titulo: 'Diretriz outra região', regioesInteresse: 'Niterói', areaMinima: 500 });
+  await demanda({ titulo: 'Diretriz compra', tipo: 'aquisicao', regioesInteresse: 'Tijuca' });
+  await demanda({ titulo: 'Diretriz cancelada', regioesInteresse: 'Tijuca', status: 'cancelada' });
+  await demanda({ titulo: 'Diretriz sem premissas' });
+
+  // vagas não informadas: critério fica "sem dado" e não reprova
+  const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua diretriz', bairro: 'Tijuca', cidade: 'Rio de Janeiro', tipo: 'locacao', areaTotal: 200, frenteImovel: 8, aluguel: 15000 } })).body;
+  const res = await req('GET', `/api/imoveis/${imovel.id}/demandas-compativeis`, { token });
+  assert.equal(res.status, 200);
+  const doTeste = res.body.demandas.filter((d) => d.empresa.id === empresa.id);
+  assert.deepEqual(doTeste.map((d) => [d.titulo, d.nivel]), [['Diretriz ok', 'compativel'], ['Diretriz quase', 'parcial']]);
+  assert.equal(doTeste[0].criterios.find((c) => c.chave === 'vagas').status, 'sem_dado');
+  assert.equal(doTeste[1].criterios.find((c) => c.chave === 'area').status, 'nao_atende');
+  assert.equal(doTeste[0].oportunidade, null);
+
+  const listado = async () => (await req('GET', '/api/imoveis', { token })).body.find((i) => i.id === imovel.id);
+  const antes = (await listado()).demandasCompativeis;
+  assert.ok(antes >= 1);
+  const paginado = await req('GET', '/api/imoveis?pagina=1&porPagina=200', { token });
+  assert.equal(paginado.body.items.find((i) => i.id === imovel.id).demandasCompativeis, antes);
+
+  await req('POST', '/api/oportunidades', { token, body: { imovelId: imovel.id, empresaId: empresa.id, demandaId: ok.id } });
+  const depois = await req('GET', `/api/imoveis/${imovel.id}/demandas-compativeis`, { token });
+  assert.equal(depois.body.demandas.find((d) => d.id === ok.id).oportunidade.etapa, 'apresentado');
+
+  // imóvel fora de oferta não conta na coluna
+  await req('PUT', `/api/imoveis/${imovel.id}`, { token, body: { status: 'locado' } });
+  assert.equal((await listado()).demandasCompativeis, null);
+  assert.equal((await req('GET', '/api/imoveis/999999/demandas-compativeis', { token })).status, 404);
+  assert.equal((await req('GET', `/api/imoveis/${imovel.id}/demandas-compativeis`)).status, 401);
+  assert.ok(quase.id);
+});
+
+test('auditoria 3: permissões, validação, API pública e sessão', async () => {
+  const post = (path, body, t = token) => req('POST', path, { token: t, body });
+  const put = (path, body, t = token) => req('PUT', path, { token: t, body });
+  const im = (await post('/api/imoveis', { endereco: 'Rua auditoria', cidade: 'Rio', tipo: 'passagem_ponto', valorPonto: 90000, luvas: 5000, proprietario: 'Fulano', observacoes: 'interno', restricoesUso: 'sigilo' })).body;
+  assert.equal(im.tipo, 'passagem_ponto');
+
+  // C08/C10: edição valida e registro inexistente é 404
+  assert.equal((await put('/api/imoveis/999999', { titulo: 'a' })).status, 404);
+  for (const body of [{ areaTotal: 'abc' }, { aluguel: -1 }, { status: 'qualquer' }, { tipo: 'permuta' }, { endereco: '' }, { googleMapsUrl: 'javascript:alert(1)' }]) {
+    assert.equal((await put(`/api/imoveis/${im.id}`, body)).status, 400, JSON.stringify(body));
+  }
+  assert.equal((await put(`/api/imoveis/${im.id}`, { latitude: -22.9, longitude: -43.2, categoria: '' })).status, 200);
+
+  // C04: link de documento só http(s)
+  assert.equal((await post(`/api/imoveis/${im.id}/documentos`, { nome: 'x', url: 'javascript:alert(1)', tipo: 'planta' })).status, 400);
+  assert.equal((await post(`/api/imoveis/${im.id}/documentos`, { nome: 'x', tipo: 'planta' })).status, 400);
+  assert.equal((await post('/api/imoveis/999999/documentos', { nome: 'x', url: 'https://a.b' })).status, 404);
+  assert.equal((await post(`/api/imoveis/${im.id}/documentos`, { nome: 'Planta', url: 'https://a.b/p', tipo: 'planta' })).status, 200);
+
+  // C03: API pública só devolve a lista permitida
+  const pub = (await req('GET', `/api/public/imoveis/${im.id}`)).body;
+  for (const k of ['luvas', 'valorPonto', 'restricoesUso', 'infraestrutura', 'proprietarioId', 'parceiroId', 'proprietario', 'observacoes', 'analises', 'googleDriveUrl']) {
+    assert.equal(k in pub, false, k);
+  }
+  assert.equal(pub.codigo, im.codigo);
+  assert.equal(pub.documentos.length, 1);
+
+  // C09: perfil validado; admin não remove o próprio acesso
+  const c = (await post('/api/usuarios', { nome: 'Comercial A3', email: 'a3@teste.dev', senha: '12345678', role: 'comercial' })).body;
+  assert.equal((await post('/api/usuarios', { nome: 'X', email: 'x3@teste.dev', senha: '12345678', role: 'superuser' })).status, 400);
+  assert.equal((await put(`/api/usuarios/${c.id}`, { role: 'superuser' })).status, 400);
+  assert.equal((await put('/api/usuarios/99999', { nome: 'x' })).status, 404);
+  const me = (await req('GET', '/api/auth/me', { token })).body;
+  assert.equal((await put(`/api/usuarios/${me.id}`, { role: 'comercial' })).status, 400);
+  assert.equal((await put(`/api/usuarios/${me.id}`, { ativo: false })).status, 400);
+
+  // C02: comercial não exclui cadastros nem operações
+  let ct = (await login('a3@teste.dev', '12345678')).body.token;
+  const emp = (await post('/api/empresas', { nome: 'Empresa A3' })).body;
+  const op = await post('/api/oportunidades', { imovelId: im.id, empresaId: emp.id });
+  assert.equal(op.status, 200);
+  assert.equal((await req('DELETE', `/api/imoveis/${im.id}`, { token: ct })).status, 403);
+  assert.equal((await req('DELETE', `/api/empresas/${emp.id}`, { token: ct })).status, 403);
+  assert.equal((await req('DELETE', `/api/oportunidades/${op.body.id}`, { token: ct })).status, 403);
+
+  // C11: mesma apresentação não duplica
+  assert.equal((await post('/api/oportunidades', { imovelId: im.id, empresaId: emp.id })).status, 409);
+  assert.equal((await req('DELETE', '/api/oportunidades/99999', { token })).status, 404);
+  assert.equal((await req('DELETE', `/api/oportunidades/${op.body.id}`, { token })).status, 200);
+
+  // C06: trocar a senha derruba o token antigo e devolve um novo
+  await new Promise((r) => setTimeout(r, 1100));
+  const troca = await post('/api/auth/trocar-senha', { atual: '12345678', nova: '87654321' }, ct);
+  assert.equal(troca.status, 200);
+  assert.equal((await req('GET', '/api/auth/me', { token: troca.body.token })).status, 200);
+  assert.equal((await req('GET', '/api/auth/me', { token: ct })).status, 401);
 });

@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Buildings } from '@phosphor-icons/react';
-import { api, fmtNum, STATUS } from '../lib/api';
+import { api, fmtNum, STATUS, TIPOS_IMOVEL } from '../lib/api';
 import FormWizard, { WizardReview } from '../components/FormWizard';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
 const SELECTS = {
-  tipo: [['locacao', 'Locação'], ['venda', 'Venda']],
+  tipo: Object.entries(TIPOS_IMOVEL),
   status: [['disponivel', 'Disponível'], ['negociacao', 'Em negociação'], ['locado', 'Locado'], ['vendido', 'Vendido'], ['inativo', 'Inativo']],
   categoria: Object.entries(CATEGORIAS),
 };
@@ -30,11 +30,16 @@ const STEPS = [
       { k: 'pisoAreaVenda', l: 'Piso área de venda (m²)', type: 'number' }, { k: 'jirau', l: 'Jirau (m²)', type: 'number' },
       { k: 'mezanino', l: 'Mezanino (m²)', type: 'number' }, { k: 'peDireito', l: 'Pé direito (mts)', type: 'number' },
       { k: 'frenteImovel', l: 'Frente do imóvel (mts)', type: 'number' },
+      { k: 'vagas', l: 'Vagas de estacionamento', type: 'number' },
+      { k: 'acessibilidade', l: 'Acessibilidade', type: 'textarea', full: true },
+      { k: 'infraestrutura', l: 'Infraestrutura e estado de conservação', type: 'textarea', full: true },
+      { k: 'restricoesUso', l: 'Restrições de uso / atividades permitidas', type: 'textarea', full: true },
     ] },
   { id: 'termos', title: 'Termos', subtitle: 'Valores e contrato', heading: 'Termos comerciais', description: 'Valores mensais e condições que aparecem no bloco "Termos comerciais".',
     fields: [
       { k: 'aluguel', l: 'Aluguel (R$)', type: 'number' }, { k: 'condominio', l: 'Condomínio (R$)', type: 'number' },
-      { k: 'iptu', l: 'IPTU (R$)', type: 'number' }, { k: 'cdu', l: 'CDU / Luvas (R$)', type: 'number' },
+      { k: 'iptu', l: 'IPTU (R$)', type: 'number' }, { k: 'cdu', l: 'CDU — cessão de direito de uso (R$)', type: 'number' },
+      { k: 'luvas', l: 'Luvas (R$)', type: 'number' }, { k: 'valorPonto', l: 'Passagem de ponto (R$)', type: 'number' }, { k: 'carenciaMeses', l: 'Carência (meses)', type: 'number' },
       { k: 'precoVenda', l: 'Preço de venda (R$)', type: 'number' }, { k: 'periodoContrato', l: 'Período de contrato', ph: '5 anos' },
     ] },
   { id: 'vinculos', title: 'Vínculos', subtitle: 'Proprietário e links', heading: 'Proprietário, parceiro e links', description: 'Vínculos cadastrados, contato legado e links de Google Maps/Drive.',
@@ -111,10 +116,10 @@ export default function ImovelWizard() {
         description="Após salvar, você poderá adicionar fotos, documentos e gerar a apresentação pública."
         onEdit={goToStep}
         sections={[
-          { title: 'Identificação', items: [['Código', form.codigo], ['Título', form.titulo], ['Tipo', form.tipo === 'venda' ? 'Venda' : 'Locação'], ['Categoria', CATEGORIAS[form.categoria] || form.categoria], ['Status', STATUS[form.status] || form.status]] },
+          { title: 'Identificação', items: [['Código', form.codigo], ['Título', form.titulo], ['Tipo', TIPOS_IMOVEL[form.tipo]], ['Categoria', CATEGORIAS[form.categoria] || form.categoria], ['Status', STATUS[form.status] || form.status]] },
           { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep]] },
-          { title: 'Dimensões', items: [['Área total', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Piso de venda', form.pisoAreaVenda && `${fmtNum(form.pisoAreaVenda)} m²`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} m`]] },
-          { title: 'Termos', items: [['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
+          { title: 'Dimensões', items: [['Área total', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Piso de venda', form.pisoAreaVenda && `${fmtNum(form.pisoAreaVenda)} m²`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} m`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
+          { title: 'Termos', items: [['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato], ['Luvas', form.luvas], ['Passagem de ponto', form.valorPonto], ['Carência (meses)', form.carenciaMeses]] },
           { title: 'Vínculos', items: [['Proprietário', propNome], ['Parceiro', parcNome]] },
         ]} /> },
   ], [form, options, propNome, parcNome]);

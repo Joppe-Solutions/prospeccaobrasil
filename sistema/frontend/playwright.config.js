@@ -9,6 +9,7 @@ export default defineConfig({
   use: {
     baseURL: 'http://127.0.0.1:8190',
     trace: 'retain-on-failure',
+    launchOptions: process.env.PB_CHROME_PATH ? { executablePath: process.env.PB_CHROME_PATH } : {},
   },
   globalSetup: './e2e/global-setup.js',
   webServer: {

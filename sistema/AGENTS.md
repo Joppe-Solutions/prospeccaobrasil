@@ -46,6 +46,18 @@
 - Landing chama a API via `VITE_API_URL` (fallback: `localhost:8090` em dev,
   `sistema.prospeccaobrasil.com.br` em prod).
 
+## Sessão, permissões e validação
+
+- Token de sessão (12h) só no header `Authorization`. Links que abrem em nova aba
+  (uploads privados, comprovantes, `/inteligencia/:id`) usam `?token=` com o token de
+  arquivo de 10 min (`GET /api/auth/token-arquivo`, hook `useArquivoToken`).
+- Trocar ou redefinir senha grava `senhaAlteradaEm` e invalida tokens anteriores.
+- Exclusões de cadastros e operações exigem `admin`; o sistema nunca fica sem admin ativo.
+- `/api/public/imoveis/:id` devolve só `CAMPOS_PUBLICOS` (campo novo não vaza por padrão).
+- Tipos de imóvel: `locacao`, `venda` (rótulo "Venda direta") e `passagem_ponto`.
+- Coluna "Diretrizes" em Imóveis: regra em `api/src/lib/compatibilidade.js`.
+- CORS restrito aos domínios de produção + localhost (`CORS_ORIGINS` sobrescreve).
+
 ## Dependências externas pendentes
 
 - Conta GitHub com billing bloqueado impede runners `ubuntu-latest` no CI

@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Brain, Buildings, FileText } from '@phosphor-icons/react';
-import { api, getToken } from '../lib/api';
+import { api, useArquivoToken } from '../lib/api';
 import DataTable from '../components/DataTable';
 import { PageHeader } from '../components/UI';
 import './collections.css';
+import './business.css';
+import Benchmarks from '../components/Benchmarks';
 
 const fmtData = (v) => v ? String(v).slice(0, 10).split('-').reverse().join('/') : '—';
 
@@ -19,6 +21,7 @@ export default function Inteligencia() {
   };
   useEffect(load, []);
 
+  const arquivoToken = useArquivoToken();
   const columns = useMemo(() => [
     { id: 'imovel', header: 'Imóvel', accessorFn: a => `${a.imovel?.codigo || ''} ${a.imovel?.endereco || ''} ${a.imovel?.cidade || ''}`, cell: ({ row }) => (
       <Link className="collection-cell-stack collection-title-link" to={`/imoveis/${row.original.imovel?.id}`}>
@@ -33,21 +36,22 @@ export default function Inteligencia() {
     { accessorKey: 'criadoEm', header: 'Gerada em', cell: ({ getValue }) => fmtData(getValue()) },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => (
       <div className="collection-row-actions">
-        <a className="icon-button" href={`/inteligencia/${row.original.id}?token=${getToken()}`} target="_blank" rel="noopener noreferrer" title="Abrir documento completo" aria-label="Abrir documento completo"><FileText size={17} /></a>
+        <a className="icon-button" href={`/inteligencia/${row.original.id}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer" title="Abrir documento completo" aria-label="Abrir documento completo"><FileText size={17} /></a>
         <Link className="icon-button" to={`/imoveis/${row.original.imovel?.id}`} title="Abrir imóvel" aria-label="Abrir imóvel"><Buildings size={17} /></Link>
       </div>
     ) },
-  ], []);
+  ], [arquivoToken]);
 
   return <div className="collection-page">
     <PageHeader
       eyebrow="CADASTROS"
-      title="Inteligência de mercado"
+      title="Inteligência de Mercado Imobiliário"
       description="Triagens heurísticas de viabilidade geradas a partir dos dados cadastrados de cada imóvel."
     />
     <div className="alert" role="note" style={{ marginBottom: 16 }}>
       As análises são heurísticas geradas a partir do cadastro — não constituem estudo de mercado nem substituem avaliação profissional.
     </div>
+    <Benchmarks />
     <section className="panel collection-panel">
       <div className="collection-section-head">
         <div><h2>Análises geradas</h2><p>Histórico de triagens por imóvel.</p></div>

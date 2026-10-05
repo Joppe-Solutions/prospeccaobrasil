@@ -7,7 +7,9 @@ import FormWizard, { WizardReview } from '../components/FormWizard';
 const STEPS = [
   { id: 'empresa', title: 'Empresa', subtitle: 'Identidade e segmento', heading: 'Quem é a empresa', description: 'Dados institucionais usados nas listagens e no match com imóveis.',
     fields: [
-      { k: 'nome', l: 'Nome da empresa', ph: 'Ex.: Rede Farma Sul', req: true, full: true },
+      { k: 'razaoSocial', l: 'Razão social', full: true },
+      { k: 'endereco', l: 'Endereço da sede', full: true },
+      { k: 'nome', l: 'Nome fantasia / empresa', ph: 'Ex.: Rede Farma Sul', req: true, full: true },
       { k: 'segmento', l: 'Segmento', ph: 'Farmácias, moda, pet…' }, { k: 'cnpj', l: 'CNPJ' },
       { k: 'site', l: 'Site', type: 'url' }, { k: 'cidade', l: 'Cidade sede' }, { k: 'uf', l: 'UF' },
     ] },
@@ -55,7 +57,7 @@ export default function EmpresaWizard() {
         description="O perfil buscado alimenta o match com imóveis na página de detalhes de cada ponto."
         onEdit={goToStep}
         sections={[
-          { title: 'Empresa', items: [['Nome', form.nome], ['Segmento', form.segmento], ['CNPJ', form.cnpj], ['Sede', [form.cidade, form.uf].filter(Boolean).join(' / ')]] },
+          { title: 'Empresa', items: [['Nome fantasia', form.nome], ['Razão social', form.razaoSocial], ['Endereço', form.endereco], ['Segmento', form.segmento], ['CNPJ', form.cnpj], ['Sede', [form.cidade, form.uf].filter(Boolean).join(' / ')]] },
           { title: 'Contato', items: [['Contato', form.contatoNome], ['Cargo', form.contatoCargo], ['Telefone', form.telefone], ['E-mail', form.email]] },
           { title: 'Perfil buscado', items: [['Área', form.areaMinima || form.areaMaxima ? `${fmtNum(form.areaMinima)} – ${fmtNum(form.areaMaxima)} m²` : ''], ['Regiões', form.regioesInteresse], ['Perfil', form.perfilLoja]] },
         ]} /> },

@@ -4,7 +4,7 @@ const asyncHandler = require('../middleware/async');
 const paginate = require('../lib/paginate');
 
 const EMPRESA_FIELDS = [
-  'nome', 'segmento', 'cnpj', 'site', 'telefone', 'email',
+  'razaoSocial', 'endereco', 'nome', 'segmento', 'cnpj', 'site', 'telefone', 'email',
   'contatoNome', 'contatoCargo', 'cidade', 'uf', 'perfilLoja',
   'areaMinima', 'areaMaxima', 'regioesInteresse', 'observacoes', 'status',
 ];
@@ -39,7 +39,7 @@ module.exports = (prisma) => {
   r.get('/:id', asyncHandler(async (req, res) => {
     const e = await prisma.empresa.findUnique({
       where: { id: +req.params.id },
-      include: { oportunidades: { include: { imovel: true }, orderBy: { criadoEm: 'desc' } } },
+      include: { demandas: true, oportunidades: { include: { imovel: true }, orderBy: { criadoEm: 'desc' } } },
     });
     if (!e) return res.status(404).json({ error: 'Não encontrada' });
     res.json(e);
@@ -55,11 +55,11 @@ module.exports = (prisma) => {
     res.json(await prisma.empresa.update({ where: { id: +req.params.id }, data: pickEmpresa(req.body) }));
   }));
 
-  r.delete('/:id', asyncHandler(async (req, res) => {
+  r.delete('/:id', auth.requireRole('admin'), asyncHandler(async (req, res) => {
     const id = +req.params.id;
     const vinculos = await prisma.oportunidade.count({ where: { empresaId: id } });
-    if (vinculos > 0) {
-      return res.status(409).json({ error: 'Empresa possui oportunidades vinculadas. Exclua ou transfira as oportunidades antes.' });
+    if (vinculos > 0 || await prisma.demanda.count({ where: { empresaId: id } })) {
+      return res.status(409).json({ error: 'Empresa possui demandas ou oportunidades vinculadas. Inative o cadastro para preservar o histórico.' });
     }
     await prisma.empresa.delete({ where: { id } });
     res.json({ ok: true });

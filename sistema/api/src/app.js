@@ -19,12 +19,16 @@ app.use((req, res, next) => {
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   next();
 });
-app.use(cors());
+// A API só é chamada pelo próprio sistema (mesma origem) e pela landing (captação de leads)
+const ORIGENS = (process.env.CORS_ORIGINS || 'https://prospeccaobrasil.com.br,https://www.prospeccaobrasil.com.br,https://sistema.prospeccaobrasil.com.br')
+  .split(',').map((o) => o.trim()).filter(Boolean);
+const LOCAL = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/;
+app.use(cors({ origin: (origin, cb) => cb(null, !origin || ORIGENS.includes(origin) || LOCAL.test(origin)) }));
 app.use(express.json({ limit: '10mb' }));
 // Entrega controlada de uploads: fotos e documentos de tipos públicos são abertos;
 // documentos internos exigem autenticação (header Authorization ou ?token=).
 const { DOC_PUBLICOS } = require('./lib/publicDocs');
-const jwt = require('jsonwebtoken');
+const { usuarioDaRequisicao } = require('./middleware/auth');
 app.get('/uploads/:arquivo', async (req, res) => {
   const arquivo = path.basename(String(req.params.arquivo || ''));
   if (!arquivo || arquivo !== req.params.arquivo) return res.status(400).end();
@@ -34,30 +38,15 @@ app.get('/uploads/:arquivo', async (req, res) => {
     const comprovante = await prisma.lancamento.findFirst({ where: { comprovante: arquivo }, select: { id: true } });
     if (comprovante) {
       // Comprovante financeiro: exige sessão de administrador
-      const bearer = (req.headers.authorization || '').replace(/^Bearer /, '');
-      const tok = bearer || String(req.query.token || '');
-      try {
-        const payload = jwt.verify(tok, process.env.JWT_SECRET);
-        const usuario = await prisma.usuario.findUnique({ where: { id: payload.id }, select: { ativo: true, role: true } });
-        if (!usuario?.ativo || usuario.role !== 'admin') return res.status(401).json({ error: 'Documento restrito' });
-      } catch {
-        return res.status(401).json({ error: 'Documento restrito' });
-      }
+      const usuario = await usuarioDaRequisicao(req);
+      if (usuario?.role !== 'admin') return res.status(401).json({ error: 'Documento restrito' });
       res.setHeader('Cache-Control', 'private, no-store');
       return res.sendFile(filePath);
     }
     const doc = await prisma.imovelDocumento.findFirst({ where: { arquivo } });
     if (doc && !DOC_PUBLICOS.has(doc.tipo)) {
       // Documento privado: exige sessão válida
-      const bearer = (req.headers.authorization || '').replace(/^Bearer /, '');
-      const tok = bearer || String(req.query.token || '');
-      try {
-        const payload = jwt.verify(tok, process.env.JWT_SECRET);
-        const usuario = await prisma.usuario.findUnique({ where: { id: payload.id }, select: { ativo: true } });
-        if (!usuario?.ativo) return res.status(401).json({ error: 'Documento restrito' });
-      } catch {
-        return res.status(401).json({ error: 'Documento restrito' });
-      }
+      if (!(await usuarioDaRequisicao(req))) return res.status(401).json({ error: 'Documento restrito' });
       res.setHeader('Cache-Control', 'private, no-store');
       return res.sendFile(filePath);
     }
@@ -78,6 +67,7 @@ app.use('/api/auth/login', (req, res, next) => {
   const now = Date.now();
   const rec = attempts.get(ip) || { n: 0, reset: now + 5 * 60 * 1000 };
   if (now > rec.reset) { rec.n = 0; rec.reset = now + 5 * 60 * 1000; }
+  if (attempts.size > 5000) for (const [k, v] of attempts) if (now > v.reset) attempts.delete(k);
   rec.n++;
   attempts.set(ip, rec);
   const max = Number(process.env.LOGIN_RATE_LIMIT || 10);
@@ -86,6 +76,10 @@ app.use('/api/auth/login', (req, res, next) => {
 });
 
 app.use('/api/auth', require('./routes/auth')(prisma));
+app.use('/api/demandas', require('./routes/demandas')(prisma));
+app.use('/api/propostas', require('./routes/propostas')(prisma));
+app.use('/api/glossario', require('./routes/glossario')(prisma));
+app.use('/api/benchmarks', require('./routes/benchmarks')(prisma));
 app.use('/api/empresas', require('./routes/empresas')(prisma));
 app.use('/api/leads', require('./routes/leads')(prisma));
 app.use('/api/proprietarios', require('./routes/proprietarios')(prisma));
@@ -117,6 +111,9 @@ app.use((err, req, res, next) => {
   if (err instanceof multer.MulterError || (err && /não permitido|File too large|Unexpected field/i.test(err.message || ''))) {
     return res.status(400).json({ error: err.message || 'Upload inválido' });
   }
+  // Prisma: registro inexistente e vínculo que impede a operação não são erro interno
+  if (err?.code === 'P2025') return res.status(404).json({ error: 'Registro não encontrado' });
+  if (err?.code === 'P2003') return res.status(409).json({ error: 'Registro possui vínculos e não pode ser alterado ou excluído' });
   const status = Number(err?.status || err?.statusCode);
   if (status >= 400 && status < 500) {
     return res.status(status).json({ error: err.message || 'Erro na requisição' });

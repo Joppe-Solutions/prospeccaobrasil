@@ -15,6 +15,8 @@ export default async function globalSetup() {
     try { fs.unlinkSync(DB + suffix); } catch { /* ok */ }
   }
 
+  fs.closeSync(fs.openSync(DB, 'a'));
+
   const env = { ...process.env, DATABASE_URL: 'file:./e2e.db' };
   execSync('npx prisma migrate deploy', { cwd: API, env, stdio: 'inherit' });
 

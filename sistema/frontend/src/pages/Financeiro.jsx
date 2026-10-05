@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Buildings, CurrencyDollar, Paperclip, PencilSimple, Plus, Receipt, TrendUp, Wallet, Warning } from '@phosphor-icons/react';
-import { api, fmtMoney, getToken } from '../lib/api';
+import { api, fmtMoney, useArquivoToken } from '../lib/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { PageHeader, StatusBadge } from '../components/UI';
@@ -155,6 +155,7 @@ export default function Financeiro() {
     },
   ], []);
 
+  const arquivoToken = useArquivoToken();
   const colLanc = useMemo(() => [
     { accessorKey: 'descricao', header: 'Lançamento', cell: ({ row }) => {
       const l = row.original;
@@ -177,7 +178,7 @@ export default function Financeiro() {
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => {
       const l = row.original;
       return <div className="collection-row-actions">
-        {l.comprovante && <a className="icon-button" href={`/uploads/${encodeURIComponent(l.comprovante)}?token=${getToken()}`} target="_blank" rel="noopener noreferrer" title="Ver comprovante" aria-label={`Comprovante de ${l.descricao}`}><ArrowUpRight size={16} /></a>}
+        {l.comprovante && <a className="icon-button" href={`/uploads/${encodeURIComponent(l.comprovante)}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer" title="Ver comprovante" aria-label={`Comprovante de ${l.descricao}`}><ArrowUpRight size={16} /></a>}
         {l.status === 'previsto' && <>
           <button className="icon-button" title="Baixar (registrar pagamento)" aria-label={`Baixar ${l.descricao}`} onClick={() => abrirBaixa(l)}><Receipt size={17} /></button>
           <button className="icon-button" title="Editar" aria-label={`Editar ${l.descricao}`} onClick={() => openEdit(l)}><PencilSimple size={16} /></button>
@@ -192,7 +193,7 @@ export default function Financeiro() {
         </>}
       </div>;
     } },
-  ], []);
+  ], [arquivoToken]);
 
   const count = v => (loading || error ? '—' : v);
 
@@ -321,7 +322,7 @@ export default function Financeiro() {
 
     {modal && <Modal
       title={editing ? 'Editar lançamento' : `Nova ${form.tipo === 'despesa' ? 'despesa' : 'receita'}`}
-      description={editing ? 'Somente lançamentos previstos podem ser editados.' : 'Receita ou despesa com vencimento e vínculo opcional a imóvel/cliente.'}
+      description={editing ? 'Somente lançamentos previstos podem ser editados.' : 'Receita ou despesa com vencimento e vínculo opcional a imóvel/empresa.'}
       onClose={() => !busy && (setModal(false), setEditing(null))}
       footer={<><button className="btn btn-ghost" disabled={busy} onClick={() => (setModal(false), setEditing(null))}>Cancelar</button><button className="btn btn-primary" type="submit" form="lanc-form" disabled={busy}>{busy ? 'Salvando...' : editing ? 'Salvar alterações' : 'Registrar lançamento'}<ArrowRight size={17} /></button></>}
     >
