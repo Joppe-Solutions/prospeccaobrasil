@@ -19,3 +19,5 @@
 .match-criteria .is-atende{background:#e8f4ea;color:#2f6e45}
 .match-criteria .is-nao_atende{background:#f8e7e4;color:#9b4c4b}
 .match-criteria .is-sem_dado{background:#f5f1e4;color:#85703c}
+.proposta-legend{padding:0;margin-bottom:14px;font-size:13px;font-weight:650;color:var(--green)}
+.proposta-legend small{margin-left:8px;font-size:10px;font-weight:400;color:var(--muted)}

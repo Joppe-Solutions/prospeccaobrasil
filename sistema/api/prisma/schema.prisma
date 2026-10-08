@@ -47,6 +47,7 @@ model Empresa {
   razaoSocial    String? @map("razao_social")
   endereco       String?
   demandas       Demanda[]
+  propostas      PropostaServico[]
   oportunidades  Oportunidade[]
   lancamentos    Lancamento[]
   leads          Lead[]
@@ -398,18 +399,33 @@ model DemandaAtividade {
   criadoEm DateTime @default(now()) @map("criado_em")
   @@map("demanda_atividades")
 }
+// Proposta comercial no modelo oficial (assessoria de expansão): os campos são exatamente os
+// espaços variáveis do documento. Textos livres porque o modelo aceita "R$ 10.000 por unidade", "90 dias" etc.
 model PropostaServico {
-  id Int @id @default(autoincrement())
-  demandaId Int @map("demanda_id")
-  demanda Demanda @relation(fields: [demandaId], references: [id])
-  titulo String
-  escopo String
-  honorarios Decimal?
-  prazo String?
-  condicoes String?
-  status String @default("rascunho")
-  criadoEm DateTime @default(now()) @map("criado_em")
-  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+  id                       Int      @id @default(autoincrement())
+  numero                   String   @unique
+  empresaId                Int      @map("empresa_id")
+  demandaId                Int?     @map("demanda_id")
+  marca                    String?
+  data                     String?  // AAAA-MM-DD
+  areaAtuacao              String?  @map("area_atuacao")
+  quantidadeUnidades       String?  @map("quantidade_unidades")
+  prazoAtuacao             String?  @map("prazo_atuacao")
+  contratante              String?
+  honorariosProspeccao     String?  @map("honorarios_prospeccao")
+  remuneracaoIntermediacao String?  @map("remuneracao_intermediacao")
+  formaPagamento           String?  @map("forma_pagamento")
+  exclusividade            String?
+  validade                 String?
+  observacoes              String?
+  status                   String   @default("rascunho") // rascunho | enviada | aceita | recusada
+  criadoEm                 DateTime @default(now()) @map("criado_em")
+  atualizadoEm             DateTime @updatedAt @map("atualizado_em")
+  empresa                  Empresa  @relation(fields: [empresaId], references: [id])
+  demanda                  Demanda? @relation(fields: [demandaId], references: [id], onDelete: SetNull)
+
+  @@index([empresaId])
+  @@index([demandaId])
   @@map("propostas_servico")
 }
 model GlossarioTermo {

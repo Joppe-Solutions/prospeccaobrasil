@@ -78,6 +78,11 @@
   `/modelos-contratos` (links; só admin mantém), `/diretrizes` (premissas das demandas ativas).
 - Apresentação do imóvel: "Contexto do ponto" (Censo 2022 do bairro + entorno) na folha de
   complementos; o entorno tem 4 s para responder e depois vem do cache.
+- Proposta comercial (`/propostas`): o formulário tem só os campos variáveis do modelo oficial e
+  `/proposta/:id` gera o documento (`templates/proposta.js`), réplica página a página do PDF
+  modelo: fontes Gelasio e Carlito em `frontend/public/fonts`, capa e logo em
+  `frontend/public/proposta`. Campo vazio sai destacado entre colchetes. Ao mudar o texto do
+  modelo, comparar lado a lado com o PDF (render via Playwright + `pdftoppm`).
 - CORS restrito aos domínios de produção + localhost (`CORS_ORIGINS` sobrescreve).
 
 ## Dependências externas pendentes

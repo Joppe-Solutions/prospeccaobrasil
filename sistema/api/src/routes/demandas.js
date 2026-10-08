@@ -21,7 +21,7 @@ function pick(body, allowed = fields) {
   }
   return d;
 }
-const include = {empresa:true, oportunidades:{include:{imovel:true}},documentos:true,atividades:{orderBy:{criadoEm:'desc'}},propostas:true};
+const include = {empresa:true, oportunidades:{include:{imovel:true}},documentos:true,atividades:{orderBy:{criadoEm:'desc'}},propostas:{select:{id:true,numero:true,status:true,data:true}}};
 module.exports = prisma => {
   const r = express.Router(); r.use(auth);
   r.get('/', ah(async(req,res) => res.json(await prisma.demanda.findMany({where:req.query.empresaId ? {empresaId:Number(req.query.empresaId)} : {},include,orderBy:{atualizadoEm:'desc'}}))));

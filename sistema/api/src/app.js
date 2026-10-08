@@ -95,6 +95,7 @@ app.use('/api/usuarios', require('./routes/usuarios')(prisma));
 app.use('/api/public', require('./routes/public')(prisma));
 app.use('/apresentacao', require('./routes/apresentacao')(prisma));
 app.use('/inteligencia', require('./routes/inteligenciaDoc')(prisma));
+app.use('/proposta', require('./routes/propostaDoc')(prisma));
 
 app.get('/api/healthz', async (req, res) => {
   try {

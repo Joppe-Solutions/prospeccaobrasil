@@ -633,7 +633,7 @@ test('demandas: vários briefings por empresa, validação e acompanhamento de o
   assert.equal((await req('PUT',`/api/demandas/${a.body.id}`,{token,body:{empresaId:other.id}})).status,400);
   assert.equal((await req('POST',`/api/demandas/${a.body.id}/documentos`,{token,body:{nome:'Contrato',url:'javascript:alert(1)'}})).status,400);
   assert.equal((await req('POST',`/api/demandas/${a.body.id}/documentos`,{token,body:{nome:'Briefing',tipo:'briefing',url:'https://example.com/briefing'}})).status,200);
-  assert.equal((await req('POST','/api/propostas',{token,body:{demandaId:a.body.id,titulo:'Prospecção',escopo:'Estudo e seleção de pontos',honorarios:10000}})).status,200);
+  assert.equal((await req('POST','/api/propostas',{token,body:{empresaId:empresa.id,demandaId:a.body.id,honorariosProspeccao:'R$ 10.000,00'}})).status,200);
   assert.equal((await req('DELETE',`/api/empresas/${empresa.id}`,{token})).status,409);
 });
 
@@ -858,4 +858,43 @@ test('modelos de contrato: todos leem, só admin mantém, link validado', async 
   assert.equal((await req('PUT', `/api/modelos-contrato/${ok.body.id}`, { token, body: { descricao: 'Padrão 2026' } })).body.descricao, 'Padrão 2026');
   assert.equal((await req('PUT', '/api/modelos-contrato/99999', { token, body: { descricao: 'x' } })).status, 404);
   assert.equal((await req('DELETE', `/api/modelos-contrato/${ok.body.id}`, { token })).status, 200);
+});
+
+test('proposta comercial: campos do modelo, numeração, documento e regras', async () => {
+  const empresa = (await req('POST', '/api/empresas', { token, body: { nome: 'Rede Modelo S.A.' } })).body;
+  const outra = (await req('POST', '/api/empresas', { token, body: { nome: 'Outra Rede' } })).body;
+  const demanda = (await req('POST', '/api/demandas', { token, body: { empresaId: empresa.id, titulo: 'Expansão 2027' } })).body;
+  const criar = (body) => req('POST', '/api/propostas', { token, body });
+  assert.equal((await criar({ marca: 'Sem cliente' })).status, 400);
+  assert.equal((await criar({ empresaId: outra.id, demandaId: demanda.id })).status, 400);
+  assert.equal((await criar({ empresaId: empresa.id, data: '2026-02-30' })).status, 400);
+  assert.equal((await criar({ empresaId: empresa.id, status: 'inventado' })).status, 400);
+
+  const p = await criar({ empresaId: empresa.id, demandaId: demanda.id, marca: ' Marca <b>X</b> ', areaAtuacao: 'Grande Rio', honorariosProspeccao: 'R$ 10.000,00 por unidade' });
+  assert.equal(p.status, 200);
+  assert.match(p.body.numero, /^PC-\d{4}-\d{3}$/);
+  assert.match(p.body.data, /^\d{4}-\d{2}-\d{2}$/);
+  assert.equal(p.body.marca, 'Marca <b>X</b>');
+  const segunda = await criar({ empresaId: empresa.id });
+  assert.notEqual(segunda.body.numero, p.body.numero);
+  assert.equal((await req('PUT', `/api/propostas/${segunda.body.id}`, { token, body: { numero: p.body.numero } })).status, 409);
+  assert.equal((await req('PUT', `/api/propostas/${p.body.id}`, { token, body: { numero: '' } })).status, 400);
+  assert.equal((await req('PUT', `/api/propostas/${p.body.id}`, { token, body: { validade: '30 dias', status: 'enviada' } })).body.validade, '30 dias');
+  assert.equal((await req('GET', `/api/propostas?demandaId=${demanda.id}`, { token })).body.length, 1);
+
+  // documento: restrito, com os campos preenchidos e os pendentes destacados como no modelo
+  assert.equal((await fetch(`${getBase()}/proposta/${p.body.id}`)).status, 401);
+  const arquivoToken = (await req('GET', '/api/auth/token-arquivo', { token })).body.token;
+  assert.equal((await fetch(`${getBase()}/proposta/99999?token=${arquivoToken}`)).status, 404);
+  const html = await (await fetch(`${getBase()}/proposta/${p.body.id}?token=${arquivoToken}`)).text();
+  assert.equal((html.match(/<section class="pg/g) || []).length, 12);
+  for (const trecho of ['Assessoria Estratégica de', 'Mensagem da Proposta', 'Fluxo de Aprovação', 'Entregas Previstas', 'Termo de Aceite', 'Rede Modelo S.A.', 'Grande Rio', 'R$ 10.000,00 por unidade', '30 dias', '[CONTRATANTE]', '[QUANTIDADE DE UNIDADES]']) {
+    assert.ok(html.includes(trecho), trecho);
+  }
+  assert.ok(html.includes('Marca &lt;b&gt;X&lt;/b&gt;'));
+  assert.ok(!html.includes('[NOME DA EMPRESA CLIENTE]'));
+
+  // empresa com proposta não é excluída; só admin exclui proposta
+  assert.equal((await req('DELETE', `/api/empresas/${outra.id}`, { token })).status, 200);
+  assert.equal((await req('DELETE', `/api/propostas/${segunda.body.id}`, { token })).status, 200);
 });
