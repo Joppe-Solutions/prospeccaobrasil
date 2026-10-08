@@ -151,7 +151,7 @@ ${sheet(`${topStrip(imovel, dataDoc)}
       <dl class="facts">
         <div><dt>Tipo / categoria</dt><dd>${esc(TIPOS[imovel.tipo] || imovel.tipo)} · ${esc(CATEGORIAS[imovel.categoria] || '—')}</dd></div>
         <div><dt>Status</dt><dd>${esc(STATUS[imovel.status] || imovel.status)}</dd></div>
-        <div><dt>Área total</dt><dd>${present(imovel.areaTotal) ? `${Number(imovel.areaTotal).toLocaleString('pt-BR')} m²` : '—'}</dd></div>
+        <div><dt>ABL</dt><dd>${present(imovel.areaTotal) ? `${Number(imovel.areaTotal).toLocaleString('pt-BR')} m²` : '—'}</dd></div>
         <div><dt>Coordenadas</dt><dd>${demo?.geo ? `${demo.geo.lat.toFixed(5)}, ${demo.geo.lon.toFixed(5)}` : 'Não geocodificadas'}</dd></div>
       </dl>
       ${imovel.googleMapsUrl ? `<p style="margin-top:10px"><a href="${esc(imovel.googleMapsUrl)}" target="_blank" rel="noopener noreferrer" style="text-decoration:underline">Abrir localização no Google Maps ↗</a></p>` : ''}

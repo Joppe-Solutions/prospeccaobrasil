@@ -37,3 +37,22 @@ export function useArquivoToken() {
   }, []);
   return token;
 }
+
+export const MAPS_AUTO = 'https://www.google.com/maps/search/?api=1&query=';
+// Mesmo link que a API grava ao salvar: busca do Google Maps pelo endereço do imóvel.
+export function mapsUrl(i) {
+  if (i.googleMapsUrl && !i.googleMapsUrl.startsWith(MAPS_AUTO)) return i.googleMapsUrl;
+  const consulta = [[i.endereco, i.numero].filter(Boolean).join(', '), i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', ');
+  return consulta ? MAPS_AUTO + encodeURIComponent(consulta) : '';
+}
+
+// Envia fotos de um imóvel (a API aceita 10 por requisição) e devolve as criadas, na ordem.
+export async function enviarFotos(imovelId, files) {
+  const criadas = [];
+  for (let n = 0; n < files.length; n += 10) {
+    const body = new FormData();
+    files.slice(n, n + 10).forEach(f => body.append('fotos', f));
+    criadas.push(...await api(`/imoveis/${imovelId}/fotos`, { method: 'POST', body }));
+  }
+  return criadas;
+}

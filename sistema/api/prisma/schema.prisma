@@ -197,6 +197,7 @@ model Imovel {
   proprietarioRel Proprietario? @relation(fields: [proprietarioId], references: [id], onDelete: SetNull)
   parceiro        Parceiro?     @relation(fields: [parceiroId], references: [id], onDelete: SetNull)
   fotos           ImovelFoto[]
+  areas           ImovelArea[]
   documentos      ImovelDocumento[]
   analises        AnaliseMercado[]
   oportunidades   Oportunidade[]
@@ -223,6 +224,19 @@ model ImovelDespesa {
 
   @@index([imovelId])
   @@map("imovel_despesas")
+}
+
+// Composição de áreas do imóvel (térreo, 2º piso, jirau...). A ABL (areaTotal) sugere a soma.
+model ImovelArea {
+  id       Int     @id @default(autoincrement())
+  imovelId Int     @map("imovel_id")
+  nome     String
+  area     Decimal
+  ordem    Int     @default(0)
+  imovel   Imovel  @relation(fields: [imovelId], references: [id], onDelete: Cascade)
+
+  @@index([imovelId])
+  @@map("imovel_areas")
 }
 
 model ImovelFoto {

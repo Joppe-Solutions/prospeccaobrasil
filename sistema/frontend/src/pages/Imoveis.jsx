@@ -48,8 +48,8 @@ export default function Imoveis() {
     } },
     { accessorKey: 'categoria', header: 'Categoria', cell: ({ getValue }) => getValue() ? <span className="collection-tag">{CATEGORIAS[getValue()] || getValue()}</span> : <span className="muted">—</span> },
     { id: 'localizacao', header: 'Localização', accessorFn: i => `${i.cidade}/${i.uf}`, cell: ({ row }) => <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf}</small></span> },
-    { accessorKey: 'areaTotal', header: 'Área total', cell: ({ getValue }) => <span className="collection-nowrap">{fmtNum(getValue(), 'm²')}</span> },
-    { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : row.original.tipo === 'passagem_ponto' ? `Mensal · ponto ${fmtMoney(row.original.valorPonto)}` : 'Custo mensal total'}</small></span> },
+    { accessorKey: 'areaTotal', header: 'ABL', cell: ({ getValue }) => <span className="collection-nowrap">{fmtNum(getValue(), 'm²')}</span> },
+    { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : 'Custo mensal total'}</small></span> },
     { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={STATUS[getValue()]} /> },
     { id: 'diretrizes', header: 'Diretrizes', accessorFn: i => i.demandasCompativeis ?? -1, cell: ({ row, getValue }) => {
       const n = getValue();

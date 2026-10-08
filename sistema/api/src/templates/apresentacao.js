@@ -50,9 +50,10 @@ function renderApresentacao(i, qrData, { completa = false } = {}) {
     ...(present(i.luvas) ? [['Luvas', money(i.luvas)]] : []),
     ...(present(i.valorPonto) ? [['Passagem de ponto', money(i.valorPonto)]] : []),
   ];
-  const dimensions = [['Área total', measure(i.areaTotal)], ['Área útil', measure(i.areaUtil)],
-    ['Piso / área de venda', measure(i.pisoAreaVenda)], ['Jirau', measure(i.jirau)],
-    ['Mezanino', measure(i.mezanino)], ['Frente', measure(i.frenteImovel, 'm')], ['Pé-direito', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['Vagas', String(i.vagas)]] : [])];
+  const areas = (i.areas || []).map(a => [a.nome, measure(a.area)]);
+  const dimensions = [['Área bruta locável (ABL)', measure(i.areaTotal)], ['Área útil', measure(i.areaUtil)],
+    ...(areas.length ? areas : [['Piso / área de venda', measure(i.pisoAreaVenda)], ['Jirau', measure(i.jirau)], ['Mezanino', measure(i.mezanino)]]),
+    ['Frente', measure(i.frenteImovel, 'm')], ['Pé-direito', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['Vagas', String(i.vagas)]] : [])];
   const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const title = i.titulo || address(i);
@@ -76,4 +77,24 @@ ${docs.length ? `<section class="documents"><h3>Documentos para consulta</h3><p 
 </main><p class="print-help">Para gerar o PDF, clique em “Imprimir / Salvar PDF” e escolha “Salvar como PDF”. Use papel A4 e desative os cabeçalhos e rodapés do navegador.</p>
 </body></html>`;
 }
-module.exports = { renderApresentacao, locationUrl };
+// Página pública só com as fotos do imóvel, para compartilhar no lugar de uma pasta externa.
+function renderGaleria(i) {
+  const photos = (i.fotos || []).filter(f => f.arquivo);
+  const title = i.titulo || address(i);
+  const place = [i.bairro, [i.cidade, i.uf].filter(Boolean).join(' / ')].filter(Boolean).join(' · ');
+  return `<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex">
+<title>${esc(i.codigo)} - Fotos</title><style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,sans-serif;background:#f6f4ee;color:#153c34}
+header{padding:28px 20px 8px;max-width:1180px;margin:0 auto}header span{font-size:11px;letter-spacing:1.6px;font-weight:700;color:#a27d42}
+h1{margin:6px 0 4px;font-size:24px}header p{margin:0;color:#60726a;font-size:13px}header a{color:#153c34;font-size:13px}
+main{max-width:1180px;margin:0 auto;padding:16px 20px 40px;display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:14px}
+figure{margin:0;background:#fff;border-radius:12px;overflow:hidden;border:1px solid #e3e1d6}figure a{display:block}
+img{display:block;width:100%;height:230px;object-fit:cover}figcaption{padding:9px 12px;font-size:12px;color:#60726a}
+.empty{grid-column:1/-1;text-align:center;color:#60726a;padding:60px 0}footer{text-align:center;font-size:11px;color:#8d9a92;padding:0 0 28px}
+</style></head><body>
+<header><span>PROSPECÇÃO BRASIL · ${esc(i.codigo)}</span><h1>${esc(title)}</h1><p>${esc(place)} · ${photos.length} ${photos.length === 1 ? 'foto' : 'fotos'} · <a href="/apresentacao/${i.id}">Ver apresentação do imóvel</a></p></header>
+<main>${photos.length ? photos.map((f, n) => `<figure><a href="${esc(uploadUrl(f.arquivo))}" target="_blank" rel="noopener"><img src="${esc(uploadUrl(f.arquivo))}" alt="${esc(f.legenda || `Foto ${n + 1} do imóvel ${i.codigo}`)}" loading="${n < 6 ? 'eager' : 'lazy'}"></a>${f.legenda ? `<figcaption>${esc(f.legenda)}</figcaption>` : ''}</figure>`).join('') : '<p class="empty">Este imóvel ainda não tem fotos publicadas.</p>'}</main>
+<footer>Prospecção Brasil · Retail &amp; Real Estate · prospeccaobrasil.com.br</footer></body></html>`;
+}
+
+module.exports = { renderApresentacao, renderGaleria, locationUrl };

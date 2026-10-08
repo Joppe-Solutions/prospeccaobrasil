@@ -745,3 +745,35 @@ test('auditoria 3: permissões, validação, API pública e sessão', async () =
   assert.equal((await req('GET', '/api/auth/me', { token: troca.body.token })).status, 200);
   assert.equal((await req('GET', '/api/auth/me', { token: ct })).status, 401);
 });
+
+test('imóvel: composição de áreas, link do Maps automático e galeria pública', async () => {
+  const criado = await req('POST', '/api/imoveis', { token, body: {
+    endereco: 'Rua das Áreas', numero: '10', bairro: 'Centro', cidade: 'Rio de Janeiro', areaTotal: 350,
+    areas: [{ nome: 'Térreo', area: 200 }, { nome: '2º piso', area: '120' }, { nome: 'Jirau', area: 30 }, { nome: '', area: '' }],
+  } });
+  assert.equal(criado.status, 200);
+  assert.deepEqual(criado.body.areas.map((a) => [a.nome, Number(a.area)]), [['Térreo', 200], ['2º piso', 120], ['Jirau', 30]]);
+  assert.equal(Number(criado.body.jirau), 30);
+  assert.match(criado.body.googleMapsUrl, /^https:\/\/www\.google\.com\/maps\/search\/\?api=1&query=Rua%20das%20%C3%81reas%2C%2010/);
+  const id = criado.body.id;
+
+  for (const areas of [[{ nome: 'Sem metragem' }], [{ nome: '', area: 10 }], [{ nome: 'Negativa', area: -1 }], 'texto']) {
+    assert.equal((await req('PUT', `/api/imoveis/${id}`, { token, body: { areas } })).status, 400, JSON.stringify(areas));
+  }
+  // edição troca a composição inteira e o link acompanha o endereço
+  const editado = await req('PUT', `/api/imoveis/${id}`, { token, body: { numero: '99', areas: [{ nome: 'Loja', area: 90 }] } });
+  assert.deepEqual(editado.body.areas.map((a) => a.nome), ['Loja']);
+  assert.equal(editado.body.jirau, null);
+  assert.match(editado.body.googleMapsUrl, /%2C%2099/);
+  // sem "areas" no corpo a composição é preservada; link colado manualmente também
+  const manual = await req('PUT', `/api/imoveis/${id}`, { token, body: { googleMapsUrl: 'https://maps.app.goo.gl/abc', numero: '5' } });
+  assert.equal(manual.body.areas.length, 1);
+  assert.equal(manual.body.googleMapsUrl, 'https://maps.app.goo.gl/abc');
+  assert.equal((await req('GET', `/api/imoveis/${id}`, { token })).body.areas.length, 1);
+  assert.deepEqual((await req('GET', `/api/public/imoveis/${id}`)).body.areas, [{ nome: 'Loja', area: '90' }]);
+
+  const galeria = await fetch(`${getBase()}/apresentacao/${id}/fotos`);
+  assert.equal(galeria.status, 200);
+  assert.match(await galeria.text(), /ainda não tem fotos/);
+  assert.equal((await fetch(`${getBase()}/apresentacao/999999/fotos`)).status, 404);
+});

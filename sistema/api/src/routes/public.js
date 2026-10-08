@@ -35,6 +35,7 @@ module.exports = (prisma) => {
       where: { id: +req.params.id },
       include: {
         fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] },
+        areas: { orderBy: { ordem: 'asc' } },
         documentos: true,
         analises: { orderBy: { criadoEm: 'desc' }, take: 1 },
       },
@@ -46,6 +47,7 @@ module.exports = (prisma) => {
     const analise = i.analises[0];
     res.json({
       ...safe,
+      areas: i.areas.map(({ nome, area }) => ({ nome, area })),
       fotos: i.fotos.map(({ id, arquivo, legenda, ordem, principal }) => ({ id, arquivo, legenda, ordem, principal })),
       documentos: i.documentos
         .filter((d) => DOC_PUBLICOS.has(d.tipo))

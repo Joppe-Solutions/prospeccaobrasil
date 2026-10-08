@@ -107,3 +107,11 @@
   .wz-step-indicator { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .wz-step-content, .wz-spinner { animation: none; } }
+
+/* Composição de áreas (linhas dinâmicas) */
+.wz-areas { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.wz-areas li { display: grid; grid-template-columns: minmax(0, 1fr) 140px 46px; gap: 10px; align-items: center; }
+.wz-areas .icon-button { width: 46px; height: 46px; }
+.wz-link { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: #2f6e55; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
+a.wz-link { font-size: 13px; }
+@media (max-width: 640px) { .wz-areas li { grid-template-columns: minmax(0, 1fr) 96px 46px; } }

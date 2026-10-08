@@ -114,3 +114,10 @@ tr:hover td { background: #faf8f2; }
   .detail-photo { width: 100%; }
   table { font-size: 13px; } td, th { padding: 8px 6px; }
 }
+.detail-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 36px; }
+.detail-columns section + section { border-left: 1px solid var(--line); padding-left: 36px; }
+.detail-list { display: grid; grid-template-columns: minmax(120px, 42%) 1fr; margin: 0; }
+.detail-list dt, .detail-list dd { margin: 0; padding: 10px 0; border-bottom: 1px solid var(--line); font-size: 13px; }
+.detail-list dt { color: var(--muted); }
+.detail-list dd { font-weight: 600; text-align: right; white-space: pre-wrap; }
+@media (max-width: 860px) { .detail-columns { grid-template-columns: 1fr; } .detail-columns section + section { border-left: 0; padding-left: 0; margin-top: 22px; } }

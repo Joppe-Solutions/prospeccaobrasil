@@ -40,6 +40,7 @@ const ENUMS = {
   status: ['disponivel', 'negociacao', 'locado', 'vendido', 'inativo'],
 };
 const URL_FIELDS = new Set(['googleMapsUrl', 'googleDriveUrl']);
+const semAcento = (v) => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const OBRIGATORIOS = ['endereco', 'cidade'];
 const DOC_TIPOS = ['planta', 'inteligencia', 'pre_analise', 'rig', 'avcb', 'convencao', 'iptu_doc', 'outro'];
 
@@ -90,6 +91,37 @@ module.exports = (prisma) => {
     }
     return d;
   };
+  // Composição de áreas: [{ nome, area }]. Linhas totalmente vazias são ignoradas.
+  const pickAreas = (body = {}) => {
+    if (!Object.prototype.hasOwnProperty.call(body, 'areas')) return undefined;
+    if (!Array.isArray(body.areas) || body.areas.length > 30) fail('Áreas inválidas');
+    return body.areas
+      .filter((a) => a && (String(a.nome ?? '').trim() || num(a.area) !== null))
+      .map((a, ordem) => {
+        const nome = String(a.nome ?? '').trim();
+        const area = num(a.area);
+        if (!nome || nome.length > 60) fail('Informe o nome de cada área (até 60 caracteres)');
+        if (area === null || !Number.isFinite(area) || area < 0) fail(`Informe a metragem de "${nome}"`);
+        return { nome, area, ordem };
+      });
+  };
+  // Mantém as colunas antigas (usadas pela inteligência de mercado) coerentes com a composição
+  const legadoDasAreas = (areas) => {
+    const soma = (re) => areas.filter((a) => re.test(semAcento(a.nome))).reduce((n, a) => n + a.area, 0) || null;
+    return { pisoAreaVenda: soma(/venda/), jirau: soma(/jirau/), mezanino: soma(/mezanino/) };
+  };
+  // Link do Google Maps gerado pelo endereço; um link colado manualmente (legado) é preservado
+  const MAPS_AUTO = 'https://www.google.com/maps/search/?api=1&query=';
+  const comMapa = (d, atual = {}) => {
+    const i = { ...atual, ...d };
+    const link = i.googleMapsUrl;
+    if (link && !link.startsWith(MAPS_AUTO)) return d;
+    const logradouro = [i.endereco, i.numero].filter(Boolean).join(', ');
+    const consulta = [logradouro, i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', ');
+    return { ...d, googleMapsUrl: consulta ? MAPS_AUTO + encodeURIComponent(consulta) : null };
+  };
+  const AREAS = { areas: { orderBy: { ordem: 'asc' } } };
+
   const imovelOu404 = async (id) => (await prisma.imovel.findUnique({ where: { id }, select: { id: true } })) || fail('Imóvel não encontrado', 404);
 
   r.use(auth);
@@ -157,6 +189,7 @@ module.exports = (prisma) => {
       where: { id: +req.params.id },
       include: {
         fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] },
+        ...AREAS,
         documentos: { orderBy: { criadoEm: 'desc' } },
         analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
         oportunidades: { include: { empresa: true, demanda: true }, orderBy: { criadoEm: 'desc' } },
@@ -195,13 +228,15 @@ module.exports = (prisma) => {
   };
 
   r.post('/', asyncHandler(async (req, res) => {
-    const d = pickImovel(req.body);
+    const areas = pickAreas(req.body);
+    const d = comMapa({ ...pickImovel(req.body), ...(areas ? legadoDasAreas(areas) : {}) });
     if (!d.endereco || !d.cidade) return res.status(400).json({ error: 'Endereço e cidade são obrigatórios' });
+    if (areas?.length) d.areas = { create: areas };
 
     if (d.codigo) {
       // Código explícito: duplicado é conflito, nunca substituído silenciosamente
       try {
-        const criado = await prisma.imovel.create({ data: d });
+        const criado = await prisma.imovel.create({ data: d, include: AREAS });
         // Código manual acima da sequência a reposiciona (PB-999 manual → próximo é PB-1000+)
         const mm = /^PB-(\d+)$/.exec(d.codigo);
         if (mm) {
@@ -220,7 +255,7 @@ module.exports = (prisma) => {
     for (let tentativa = 0; tentativa < 5; tentativa++) {
       d.codigo = await proximoCodigo();
       try {
-        return res.json(await prisma.imovel.create({ data: d }));
+        return res.json(await prisma.imovel.create({ data: d, include: AREAS }));
       } catch (e) {
         if (e.code === 'P2002' && tentativa < 4) continue; // código manual à frente da sequência
         if (e.code === 'P2002') return res.status(409).json({ error: 'Conflito ao gerar código. Tente novamente.' });
@@ -230,7 +265,13 @@ module.exports = (prisma) => {
   }));
 
   r.put('/:id', asyncHandler(async (req, res) => {
-    res.json(await prisma.imovel.update({ where: { id: +req.params.id }, data: pickImovel(req.body) }));
+    const id = +req.params.id;
+    const atual = await prisma.imovel.findUnique({ where: { id } });
+    if (!atual) return res.status(404).json({ error: 'Imóvel não encontrado' });
+    const areas = pickAreas(req.body);
+    const data = comMapa({ ...pickImovel(req.body), ...(areas ? legadoDasAreas(areas) : {}) }, atual);
+    if (areas) data.areas = { deleteMany: {}, create: areas };
+    res.json(await prisma.imovel.update({ where: { id }, data, include: AREAS }));
   }));
 
   r.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {

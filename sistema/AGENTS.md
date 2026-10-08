@@ -56,6 +56,14 @@
 - `/api/public/imoveis/:id` devolve só `CAMPOS_PUBLICOS` (campo novo não vaza por padrão).
 - Tipos de imóvel: `locacao`, `venda` (rótulo "Venda direta") e `passagem_ponto`.
 - Coluna "Diretrizes" em Imóveis: regra em `api/src/lib/compatibilidade.js`.
+- Dimensões do imóvel: `imovel_areas` guarda a composição (térreo, 2º piso, jirau...);
+  `areaTotal` é a ABL (sugerida pela soma, editável). As colunas `pisoAreaVenda`, `jirau`
+  e `mezanino` são derivadas das linhas pela API e não aparecem mais no formulário.
+- `googleMapsUrl` é gerado pela API a partir do endereço; link manual antigo é preservado.
+- Fotos: componente `PhotoUploader` (formulário e detalhe); galeria pública em
+  `/apresentacao/:id/fotos`. `proprietario`/`telProprietario`/`googleDriveUrl`/`valorPonto`
+  são legados: continuam no banco, fora do formulário.
+- E2E local sem o Chromium do Playwright: `PB_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`.
 - CORS restrito aos domínios de produção + localhost (`CORS_ORIGINS` sobrescreve).
 
 ## Dependências externas pendentes

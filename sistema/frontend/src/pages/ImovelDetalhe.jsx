@@ -1,6 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { api, fmtMoney, fmtNum, STATUS, TIPOS_IMOVEL, getToken, getUser, useArquivoToken } from '../lib/api';
+import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, STATUS, TIPOS_IMOVEL, getToken, getUser, useArquivoToken } from '../lib/api';
+import PhotoUploader from '../components/PhotoUploader';
 
 const DOC_TIPOS = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rig', 'RIG / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Conv. condomínio'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
@@ -25,7 +26,7 @@ export default function ImovelDetalhe() {
   const [toast, setToast] = useState('');
   const [gerando, setGerando] = useState(false);
   const [loadError, setLoadError] = useState('');
-  const fileRef = useRef();
+  const [enviando, setEnviando] = useState(false);
   const docFileRef = useRef();
 
   const load = () => api(`/imoveis/${id}`).then(setI).catch((e) => { setI(null); setLoadError(e.message); });
@@ -45,19 +46,13 @@ export default function ImovelDetalhe() {
   const analise = i.analises[0];
   const ai = analise?.conteudoJson ? JSON.parse(analise.conteudoJson) : null;
 
-  async function uploadFotos(e) {
-    const files = [...e.target.files];
-    e.target.value = '';
-    if (!files.length) return;
-    const fd = new FormData();
-    files.forEach(f => fd.append('fotos', f));
-    try {
-      const res = await fetch(`/api/imoveis/${id}/fotos`, { method: 'POST', headers: { Authorization: `Bearer ${getToken()}` }, body: fd });
-      const json = await res.json().catch(() => ({}));
-      if (!res.ok) return flash(json.error || 'Falha ao enviar fotos');
-      load(); flash('Fotos enviadas');
-    } catch { flash('Falha ao enviar fotos'); }
+  async function uploadFotos(files) {
+    setEnviando(true);
+    try { await enviarFotos(id, files); await load(); flash('Fotos enviadas'); }
+    catch (e) { flash(e.message || 'Falha ao enviar fotos'); } finally { setEnviando(false); }
   }
+  const acaoFoto = (key, acao) => api(`/imoveis/${id}/fotos/${key}${acao === 'capa' ? '/principal' : ''}`, { method: acao === 'capa' ? 'POST' : 'DELETE' })
+    .then(load).catch(e => flash(e.message || 'Não foi possível atualizar a foto'));
   async function addDoc(e) {
     e.preventDefault();
     const fd = new FormData();
@@ -102,12 +97,25 @@ export default function ImovelDetalhe() {
       load(); flash('Despesa estornada');
     } catch (e) { flash(e.message || 'Falha ao estornar despesa'); }
   }
-  async function copiarLink() {
+  async function copiarLink(caminho = '', aviso = 'Link público copiado') {
     try {
-      await navigator.clipboard.writeText(`${window.location.origin}/apresentacao/${i.id}`);
-      flash('Link público copiado');
+      await navigator.clipboard.writeText(`${window.location.origin}/apresentacao/${i.id}${caminho}`);
+      flash(aviso);
     } catch { flash('Não foi possível copiar o link'); }
   }
+  const mapa = mapsUrl(i);
+  const m2 = v => fmtNum(v, 'm²');
+  const dimensoes = [
+    ['Área Bruta Locável (ABL)', m2(i.areaTotal)], ['Área útil', m2(i.areaUtil)],
+    ...(i.areas || []).map(a => [a.nome, m2(a.area)]),
+    ['Pé direito', fmtNum(i.peDireito, 'mts')], ['Frente', fmtNum(i.frenteImovel, 'mts')], ['Vagas', fmtNum(i.vagas)],
+    ['Acessibilidade', i.acessibilidade || '—'], ['Infraestrutura', i.infraestrutura || '—'], ['Restrições de uso', i.restricoesUso || '—'],
+  ];
+  const termos = [
+    ['CDU', fmtMoney(i.cdu)], ['Aluguel', fmtMoney(i.aluguel)], ['IPTU', fmtMoney(i.iptu)], ['Condomínio', fmtMoney(i.condominio)],
+    ['Custo mensal total', fmtMoney(custo)], ['Luvas', fmtMoney(i.luvas)], ['Carência', fmtNum(i.carenciaMeses, 'meses')],
+    ['Preço de venda', fmtMoney(i.precoVenda)], ['Período de contrato', i.periodoContrato || '—'],
+  ];
 
   return (
     <>
@@ -116,7 +124,7 @@ export default function ImovelDetalhe() {
         <h1>{i.codigo} — {i.endereco}{i.numero ? `, ${i.numero}` : ''}</h1>
         <div style={{ display: 'flex', gap: 8 }}>
           <a className="btn btn-gold" href={`/apresentacao/${i.id}`} target="_blank">Apresentação (PDF)</a>
-          <button className="btn btn-ghost" onClick={copiarLink}>Copiar link</button>
+          <button className="btn btn-ghost" onClick={() => copiarLink()}>Copiar link</button>
           <Link className="btn btn-ghost" to={`/imoveis/${i.id}/editar`} state={{ backgroundLocation: location }}>Editar</Link>
         </div>
       </div>
@@ -133,18 +141,19 @@ export default function ImovelDetalhe() {
             {i.periodoContrato && <span className="badge negociacao">{i.periodoContrato}</span>}
           </div>
           <p style={{ marginTop: 14, fontSize: 14 }}>
-            Área total <b>{fmtNum(i.areaTotal, 'm²')}</b> · Custo total <b>{fmtMoney(custo)}</b>{i.tipo === 'venda' && <> · Venda <b>{fmtMoney(i.precoVenda)}</b></>}{i.tipo === 'passagem_ponto' && <> · Passagem de ponto <b>{fmtMoney(i.valorPonto)}</b></>}
+            ABL <b>{fmtNum(i.areaTotal, 'm²')}</b> · Custo total <b>{fmtMoney(custo)}</b>{i.tipo === 'venda' && <> · Venda <b>{fmtMoney(i.precoVenda)}</b></>}
           </p>
+          {mapa && <p style={{ marginTop: 8 }}><a href={mapa} target="_blank" rel="noopener noreferrer">Ver no Google Maps ↗</a></p>}
           {i.descricao && <p className="muted" style={{ marginTop: 10 }}>{i.descricao}</p>}
         </div>
       </div></div>
 
       <div className="panel">
-        <h2>Dimensões e termos</h2>
-        <div className="form-grid">
-          {[['Piso (venda)', fmtNum(i.pisoAreaVenda, 'm²')], ['Jirau', fmtNum(i.jirau, 'm²')], ['Mezanino', fmtNum(i.mezanino, 'm²')], ['Pé direito', fmtNum(i.peDireito, 'mts')],
-            ['Frente', fmtNum(i.frenteImovel, 'mts')], ['Aluguel', fmtMoney(i.aluguel)], ['Condomínio', fmtMoney(i.condominio)], ['IPTU', fmtMoney(i.iptu)], ['CDU', fmtMoney(i.cdu)], ['Luvas', fmtMoney(i.luvas)], ['Passagem de ponto', fmtMoney(i.valorPonto)], ['Carência', fmtNum(i.carenciaMeses, 'meses')], ['Vagas', fmtNum(i.vagas)], ['Acessibilidade', i.acessibilidade || '—'], ['Infraestrutura', i.infraestrutura || '—'], ['Restrições de uso', i.restricoesUso || '—']]
-            .map(([l, v]) => <div key={l} className="field"><label>{l}</label><div style={{ fontWeight: 700 }}>{v}</div></div>)}
+        <div className="detail-columns">
+          {[['Dimensões', dimensoes], ['Termos comerciais', termos]].map(([titulo, itens]) => <section key={titulo}>
+            <h2>{titulo}</h2>
+            <dl className="detail-list">{itens.map(([l, v]) => <Fragment key={l}><dt>{l}</dt><dd>{v}</dd></Fragment>)}</dl>
+          </section>)}
         </div>
       </div>
 
@@ -165,6 +174,7 @@ export default function ImovelDetalhe() {
               {i.parceiro?.telefone ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.parceiro.telefone}</div> : null}
             </div>
           </div>
+          {i.observacoes && <div className="field" style={{ gridColumn: 'span 2' }}><label>Observações internas</label><div style={{ whiteSpace: 'pre-wrap' }}>{i.observacoes}</div></div>}
         </div>
       </div>
 
@@ -192,24 +202,15 @@ export default function ImovelDetalhe() {
       </div>}
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
           <h2 style={{ margin: 0 }}>Fotos</h2>
-          <button className="btn btn-ghost btn-sm" onClick={() => fileRef.current.click()}>+ Enviar fotos</button>
-          <input ref={fileRef} type="file" accept="image/*" multiple hidden onChange={uploadFotos} />
+          {i.fotos.length > 0 && <div style={{ display: 'flex', gap: 8 }}>
+            <a className="btn btn-ghost btn-sm" href={`/apresentacao/${i.id}/fotos`} target="_blank" rel="noopener noreferrer">Abrir galeria pública ↗</a>
+            <button className="btn btn-ghost btn-sm" onClick={() => copiarLink('/fotos', 'Link da galeria copiado')}>Copiar link da galeria</button>
+          </div>}
         </div>
-        <div className="fotos-grid">
-          {i.fotos.map(f => (
-            <div className="f" key={f.id}>
-              <img src={`/uploads/${f.arquivo}`} />
-              {f.principal && <span className="principal-tag">PRINCIPAL</span>}
-              <div className="acts">
-                <button onClick={() => api(`/imoveis/${id}/fotos/${f.id}/principal`, { method: 'POST' }).then(load)}>★</button>
-                <button onClick={() => api(`/imoveis/${id}/fotos/${f.id}`, { method: 'DELETE' }).then(load)}>✕</button>
-              </div>
-            </div>
-          ))}
-        </div>
-        {!i.fotos.length && <div className="empty">Sem fotos. Envie a fachada e internas.</div>}
+        <PhotoUploader busy={enviando} onAdd={uploadFotos} onCover={key => acaoFoto(key, 'capa')} onRemove={key => acaoFoto(key, 'remover')}
+          items={i.fotos.map(f => ({ key: String(f.id), src: `/uploads/${f.arquivo}`, capa: f.principal }))} />
       </div>
 
       <div className="panel">
