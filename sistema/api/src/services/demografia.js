@@ -96,23 +96,37 @@ async function censoMunicipio(munId) {
 
 // Coordenadas: usa cadastro ou geocodifica endereço via Nominatim (OSM)
 async function geocode(imovel) {
+  // Number(null) é 0: sem coordenada no cadastro não pode virar o ponto (0, 0)
+  const temCoord = imovel.latitude != null && imovel.longitude != null;
   const lat = Number(imovel.latitude), lon = Number(imovel.longitude);
-  if (Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon, fonte: 'cadastro' };
+  if (temCoord && Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon, fonte: 'cadastro' };
   const q = [imovel.endereco && `${imovel.endereco}${imovel.numero ? `, ${imovel.numero}` : ''}`, imovel.bairro, imovel.cidade, imovel.uf, 'Brasil'].filter(Boolean).join(', ');
   if (!imovel.cidade) return null;
   try {
-    const r = await cached(`geo:${norm(q)}`, () => fetchJson(
-      `https://nominatim.openstreetmap.org/search?format=json&limit=1&countrycodes=br&q=${encodeURIComponent(q)}`,
+    const r = await cached(`geo2:${norm(q)}`, () => fetchJson(
+      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=br&q=${encodeURIComponent(q)}`,
       'prospeccao-brasil-inteligencia/1.0'));
-    const g = r?.[0];
+    const g = escolherResultado(r || [], imovel);
     return g ? { lat: Number(g.lat), lon: Number(g.lon), fonte: 'geocodificação do endereço (OSM)' } : null;
   } catch { return null; }
 }
 
-// Tiles OSM (4x3 em zoom 15) + posição dos raios 1km/2km em pixels
-function mapa(geo) {
+// Ruas homônimas são comuns (há "Rua da Assembleia" em vários municípios e bairros): só vale
+// resultado na cidade do cadastro e, havendo bairro, no bairro — melhor sem mapa que mapa errado.
+function escolherResultado(resultados, imovel) {
+  const campos = (r, chaves) => chaves.map((k) => norm(r.address?.[k] || '')).filter(Boolean);
+  const naCidade = resultados.filter((r) => campos(r, ['city', 'town', 'municipality', 'village']).includes(norm(imovel.cidade)));
+  if (!imovel.bairro) return naCidade[0] || null;
+  const bairro = norm(imovel.bairro);
+  const noBairro = naCidade.find((r) => campos(r, ['suburb', 'neighbourhood', 'city_district', 'quarter', 'borough'])
+    .some((b) => b === bairro || b.includes(bairro) || bairro.includes(b)));
+  return noBairro || (naCidade.length === 1 ? naCidade[0] : null);
+}
+
+// Grade de tiles OSM ao redor do ponto + posição do ponto e dos raios 1km/2km em pixels
+function mapa(geo, { z = 15, cols = 3, rows = 3 } = {}) {
   if (!geo) return null;
-  const z = 15, n = 2 ** z, ts = 256, cols = 3, rows = 3;
+  const n = 2 ** z, ts = 256;
   const fx = (geo.lon + 180) / 360 * n;
   const fy = (1 - Math.log(Math.tan(geo.lat * Math.PI / 180) + 1 / Math.cos(geo.lat * Math.PI / 180)) / Math.PI) / 2 * n;
   const cx = Math.floor(fx), cy = Math.floor(fy);
@@ -150,4 +164,4 @@ async function demografia(imovel) {
   }
 }
 
-module.exports = { demografia };
+module.exports = { demografia, geocode, mapa };

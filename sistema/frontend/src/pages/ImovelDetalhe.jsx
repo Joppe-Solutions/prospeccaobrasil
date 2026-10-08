@@ -113,7 +113,7 @@ export default function ImovelDetalhe() {
   ];
   const termos = [
     ['CDU', fmtMoney(i.cdu)], ['Aluguel', fmtMoney(i.aluguel)], ['IPTU', fmtMoney(i.iptu)], ['Condomínio', fmtMoney(i.condominio)],
-    ['Custo mensal total', fmtMoney(custo)], ['Luvas', fmtMoney(i.luvas)], ['Carência', fmtNum(i.carenciaMeses, 'meses')],
+    ['Custo mensal total', fmtMoney(custo)], ['Carência', fmtNum(i.carenciaMeses, 'meses')],
     ['Preço de venda', fmtMoney(i.precoVenda)], ['Período de contrato', i.periodoContrato || '—'],
   ];
 

@@ -39,7 +39,7 @@ const STEPS = [
     fields: [
       { k: 'cdu', l: 'CDU — cessão de direito de uso (R$)', type: 'number' }, { k: 'aluguel', l: 'Aluguel (R$)', type: 'number' },
       { k: 'iptu', l: 'IPTU (R$)', type: 'number' }, { k: 'condominio', l: 'Condomínio (R$)', type: 'number' },
-      { k: 'luvas', l: 'Luvas (R$)', type: 'number' }, { k: 'carenciaMeses', l: 'Carência (meses)', type: 'number' },
+      { k: 'carenciaMeses', l: 'Carência (meses)', type: 'number' },
       { k: 'precoVenda', l: 'Preço de venda (R$)', type: 'number' }, { k: 'periodoContrato', l: 'Período de contrato', ph: '5 anos' },
     ] },
   { id: 'vinculos', title: 'Vínculos', subtitle: 'Proprietário e parceiro', heading: 'Proprietário, parceiro e observações', description: 'Quem é o dono, quem trouxe o imóvel e o texto usado na apresentação.',
@@ -197,7 +197,7 @@ export default function ImovelWizard() {
           { title: 'Identificação', items: [['Código', form.codigo], ['Título', form.titulo], ['Tipo', TIPOS_IMOVEL[form.tipo]], ['Categoria', CATEGORIAS[form.categoria] || form.categoria], ['Status', STATUS[form.status] || form.status]] },
           { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep]] },
           { title: 'Dimensões', items: [['ABL', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Áreas', form.areas.filter(a => a.nome.trim() && a.area !== '').map(a => `${a.nome.trim()}: ${fmtNum(a.area)} m²`).join(' · ')], ['Pé direito', form.peDireito && `${fmtNum(form.peDireito)} m`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} m`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
-          { title: 'Termos', items: [['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['Luvas', form.luvas && `R$ ${fmtNum(form.luvas)}`], ['Carência (meses)', form.carenciaMeses], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
+          { title: 'Termos', items: [['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['Carência (meses)', form.carenciaMeses], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
           { title: 'Vínculos', items: [['Proprietário', propNome], ['Parceiro', parcNome], ['Descrição', form.descricao], ['Observações internas', form.observacoes]] },
           { title: 'Fotos', items: [['Fotos', itensFoto.length ? `${itensFoto.length} ${itensFoto.length === 1 ? 'foto' : 'fotos'}${pendentes.length ? ` (${pendentes.length} a enviar)` : ''}` : '']] },
         ]} /> },

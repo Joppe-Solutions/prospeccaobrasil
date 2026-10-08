@@ -777,3 +777,14 @@ test('imóvel: composição de áreas, link do Maps automático e galeria públi
   assert.match(await galeria.text(), /ainda não tem fotos/);
   assert.equal((await fetch(`${getBase()}/apresentacao/999999/fotos`)).status, 404);
 });
+
+test('apresentação: mapa ao lado da foto quando há coordenadas; sem luvas', async () => {
+  const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua do Mapa', cidade: 'Rio de Janeiro', cdu: 30000, luvas: 9000, latitude: -22.9068, longitude: -43.1729 } })).body;
+  const html = await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text();
+  assert.match(html, /class="hero-row has-map"/);
+  assert.equal((html.match(/tile\.openstreetmap\.org\/16\//g) || []).length, 15);
+  assert.match(html, /Cessão de direito de uso \(CDU\)/);
+  assert.doesNotMatch(html, /Luvas/);
+  const semCoord = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua sem mapa', cidade: 'Rio de Janeiro' } })).body;
+  assert.match(await (await fetch(`${getBase()}/apresentacao/${semCoord.id}`)).text(), /class="hero-row"/);
+});
