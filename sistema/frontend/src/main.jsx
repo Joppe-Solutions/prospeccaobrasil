@@ -37,6 +37,9 @@ import DemandaDetalhe from './pages/DemandaDetalhe';
 import Glossario from './pages/Glossario';
 import Propostas from './pages/Propostas';
 import Institucional from './pages/Institucional';
+import Diretrizes from './pages/Diretrizes';
+import Benchmark from './pages/Benchmark';
+import ModelosContrato from './pages/ModelosContrato';
 
 const Private = ({ children }) => getToken() ? children : <Navigate to="/login" />;
 
@@ -53,7 +56,9 @@ function App() {
         <Route path="imoveis/:id" element={<ImovelDetalhe />} />
         <Route path="imoveis/:id/editar" element={<ImovelWizard />} />
         <Route path="demandas" element={<Demandas />} />
-        <Route path="diretrizes" element={<Navigate to="/imoveis" replace />} />
+        <Route path="diretrizes" element={<Diretrizes />} />
+        <Route path="benchmark" element={<Benchmark />} />
+        <Route path="modelos-contratos" element={<ModelosContrato />} />
         <Route path="demandas/nova" element={<DemandaWizard />} />
         <Route path="demandas/:id" element={<DemandaDetalhe />} />
         <Route path="demandas/:id/editar" element={<DemandaWizard />} />

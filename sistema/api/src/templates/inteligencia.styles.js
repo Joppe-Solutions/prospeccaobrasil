@@ -44,6 +44,9 @@ table.crit th:first-child, table.crit td:first-child, table.demo th:first-child,
 table.crit th, table.demo th { background:var(--ink); color:white; font-weight:600; letter-spacing:.6px; font-size:10px; text-transform:uppercase; }
 table.demo tr.hl td { background:#f4f6f1; font-weight:700; }
 table.demo tr.dim td { color:var(--muted); }
+.map-real { zoom:.78; flex:none; }
+table.demo.compact th, table.demo.compact td { padding:4px 9px; font-size:10px; } table.demo small { color:var(--muted); font-weight:400; }
+table.demo td:not(:first-child) { white-space:nowrap; }
 .src { font-size:8.5px; color:var(--muted); margin-top:8px; font-style:italic; }
 .note { border:1px dashed var(--gold); border-radius:6px; padding:12px 14px; font-size:10.5px; background:#fbfaf6; color:#6b571f; margin-top:14px; }
 

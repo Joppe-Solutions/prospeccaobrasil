@@ -603,10 +603,11 @@ test('documento de inteligência: A4 paisagem, auth e seções', async () => {
   const doc = await req('GET', `/inteligencia/${analise.body.id}?token=${arquivoToken}`);
   assert.equal(doc.status, 200);
   assert.match(doc.body, /A4 landscape/);
-  assert.match(doc.body, /CONTAGEM DEMOGRÁFICA/);
+  assert.match(doc.body, /INTELIGÊNCIA DE MERCADO/);
   assert.match(doc.body, /Evolução populacional/);
   assert.match(doc.body, /classificação social/i);
-  assert.match(doc.body, /sob levantamento/i);
+  assert.match(doc.body, /RUA E ENTORNO/);
+  assert.doesNotMatch(doc.body, /Censo( Demográfico)? 2010|sob levantamento/i);
   assert.match(doc.body, /Rua Geo/);
 });
 
@@ -787,4 +788,74 @@ test('apresentação: mapa ao lado da foto quando há coordenadas; sem luvas', a
   assert.doesNotMatch(html, /Luvas/);
   const semCoord = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua sem mapa', cidade: 'Rio de Janeiro' } })).body;
   assert.match(await (await fetch(`${getBase()}/apresentacao/${semCoord.id}`)).text(), /class="hero-row"/);
+});
+
+test('inteligência: Censo 2022 por bairro, entorno da rua e documento sem campos vazios', () => {
+  const censo2022 = require('../src/services/censo2022');
+  const { resumir } = require('../src/services/entorno');
+  const { renderInteligencia } = require('../src/templates/inteligencia');
+
+  const rio = censo2022.municipio(3304557);
+  assert.equal(rio.populacao, 6211223);
+  const centro = censo2022.bairro(3304557, 'centro');
+  assert.equal(centro.populacao, 23774);
+  assert.equal(centro.rendaMediana, 3000);
+  assert.equal(centro.faixas.length, censo2022.FAIXAS.length);
+  assert.equal(censo2022.bairro(3304557, 'Tijúca').nome, 'Tijuca');
+  // "Barra" casa com mais de um bairro: sem palpite
+  assert.equal(censo2022.bairro(3304557, 'Barra'), null);
+  assert.equal(censo2022.bairro(3304557, 'Bairro que não existe'), null);
+
+  const geo = { lat: -22.9036, lon: -43.1739 };
+  const perto = (dLat, tags, type = 'node') => ({ type, lat: geo.lat + dLat, lon: geo.lon, tags });
+  const ent = resumir([
+    perto(0.0003, { amenity: 'restaurant', name: 'Bistrô', 'addr:street': 'Rua da Assembléia' }),
+    perto(0.003, { shop: 'supermarket', name: 'Mercado A' }),
+    perto(0.006, { shop: 'supermarket', name: 'Mercado B' }),
+    perto(0.002, { highway: 'bus_stop' }),
+    perto(0.001, { railway: 'station', name: 'Carioca' }),
+    perto(0.001, { amenity: 'bench' }),
+    { type: 'way', center: geo, tags: { highway: 'pedestrian', name: 'Rua da Assembléia' } },
+  ], geo, { endereco: 'Rua da Assembleia' });
+  const linha = (rotulo) => ent.linhas.find((l) => l.rotulo.startsWith(rotulo));
+  assert.deepEqual([linha('Supermercados').r500, linha('Supermercados').r1000], [1, 2]);
+  assert.equal(linha('Alimentação').r500, 1);
+  assert.equal(ent.total1000, 3);
+  assert.equal(ent.transporte[0].r500, 1);
+  assert.equal(ent.via.tipo, 'Calçadão (pedestres)');
+  assert.deepEqual(ent.destaques.map((d) => d.nome), ['Carioca', 'Mercado A']);
+  assert.deepEqual(ent.naRua.map((n) => n.nome), ['Bistrô']);
+
+  const imovel = { codigo: 'PB-T', endereco: 'Rua da Assembleia', numero: '58', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel' };
+  const analise = { score: 70, resumo: 'ok', criadoEm: new Date(), conteudoJson: '{}' };
+  const html = renderInteligencia(imovel, analise, { censo: { municipio: rio, bairro: centro, temBairros: true }, entorno: ent, geo, fonte: 'x' });
+  assert.match(html, /Bairro Centro/);
+  assert.match(html, /23\.774/);
+  assert.match(html, /Renda — Censo 2022/);
+  assert.match(html, /Carioca/);
+  assert.match(html, /Leitura dos dados/);
+  assert.doesNotMatch(html, /undefined|NaN/);
+  // bairro fora da base: documento explica e segue só com o município
+  const semBairro = renderInteligencia({ ...imovel, bairro: 'Xyz' }, analise, { censo: { municipio: rio, bairro: null, temBairros: true }, entorno: null, geo: null, fonte: 'x' });
+  assert.match(semBairro, /Bairro não identificado/);
+  assert.match(semBairro, /Entorno indisponível/);
+  assert.doesNotMatch(semBairro, /undefined|NaN/);
+});
+
+test('modelos de contrato: todos leem, só admin mantém, link validado', async () => {
+  const criar = (body, t = token) => req('POST', '/api/modelos-contrato', { token: t, body });
+  assert.equal((await criar({ nome: 'Locação', url: 'javascript:alert(1)' })).status, 400);
+  assert.equal((await criar({ url: 'https://a.b/c.docx' })).status, 400);
+  assert.equal((await criar({ nome: 'X', url: 'https://a.b', categoria: 'inventada' })).status, 400);
+  const ok = await criar({ nome: ' Locação comercial ', categoria: 'locacao', url: 'https://a.b/locacao.docx' });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.nome, 'Locação comercial');
+  await req('POST', '/api/usuarios', { token, body: { nome: 'Comercial MC', email: 'mc@teste.dev', senha: '12345678', role: 'comercial' } });
+  const ct = (await login('mc@teste.dev', '12345678')).body.token;
+  assert.equal((await req('GET', '/api/modelos-contrato', { token: ct })).body.length, 1);
+  assert.equal((await criar({ nome: 'Y', url: 'https://a.b' }, ct)).status, 403);
+  assert.equal((await req('DELETE', `/api/modelos-contrato/${ok.body.id}`, { token: ct })).status, 403);
+  assert.equal((await req('PUT', `/api/modelos-contrato/${ok.body.id}`, { token, body: { descricao: 'Padrão 2026' } })).body.descricao, 'Padrão 2026');
+  assert.equal((await req('PUT', '/api/modelos-contrato/99999', { token, body: { descricao: 'x' } })).status, 404);
+  assert.equal((await req('DELETE', `/api/modelos-contrato/${ok.body.id}`, { token })).status, 200);
 });

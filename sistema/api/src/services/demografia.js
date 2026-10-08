@@ -1,15 +1,18 @@
 // Dados reais para o relatório geomarketing:
 // - IBGE agregado 6579: série de população estimada (município + UF) e projeção TGCA
-// - IBGE Censo 2010: faixa etária, sexo, classes de rendimento e renda média (município)
+// - IBGE Censo 2022 por bairro e município: services/censo2022.js (arquivo local)
+// - OpenStreetMap: entorno da rua (services/entorno.js)
 // - Nominatim/OSM: geocodificação do endereço + tiles para mapa real
 // Cache em memória 24h (IBGE atualiza anualmente; Nominatim pede uso moderado).
+
+const censo2022 = require('./censo2022');
+const { entorno } = require('./entorno');
 
 const CACHE = new Map();
 const TTL = 24 * 60 * 60 * 1000;
 const norm = (s) => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const IBGE = 'https://servicodados.ibge.gov.br/api/v3/agregados';
 const UF_ID = { AC: 12, AL: 27, AP: 16, AM: 13, BA: 29, CE: 23, DF: 53, ES: 32, GO: 52, MA: 21, MT: 51, MS: 50, MG: 31, PA: 15, PB: 25, PR: 41, PE: 26, PI: 22, RJ: 33, RN: 24, RS: 43, RO: 11, RR: 14, SC: 42, SP: 35, SE: 28, TO: 17 };
-const GRUPOS_IDADE = [0, 1140, 1141, 1142, 1143, 1144, 1145, 1146, 1147, 1148, 1149, 1150, 1151, 1152, 1153, 1154, 1155, 6802, 6803, 92963, 92964];
 
 async function fetchJson(url, ua) {
   const r = await fetch(url, {
@@ -55,43 +58,6 @@ function projetar(serie) {
   proj[base + 2] = Math.round(serie.anos[base] * Math.pow(1 + tgca, 2));
   proj[base + 4] = Math.round(serie.anos[base] * Math.pow(1 + tgca, 4));
   return { anos: [base, base + 2, base + 4], serie: proj, tgca, anoBase: base };
-}
-
-// Censo 2010: sexo, faixa etária, classes de rendimento per capita, renda média
-async function censoMunicipio(munId) {
-  const [idade, classes, renda] = await Promise.all([
-    cached(`id:${munId}`, () => fetchJson(
-      `${IBGE}/200/periodos/2010/variaveis/93?localidades=N6%5B${munId}%5D&classificacao=2%5B0,4,5%5D|1%5B0%5D|58%5B${GRUPOS_IDADE.join(',')}%5D`)),
-    cached(`cl:${munId}`, () => fetchJson(
-      `${IBGE}/1427/periodos/2010/variaveis/96?localidades=N6%5B${munId}%5D&classificacao=386%5Ball%5D|1%5B0%5D`)),
-    cached(`rd:${munId}`, () => fetchJson(
-      `${IBGE}/3974/periodos/2010/variaveis/3948?localidades=N6%5B${munId}%5D`)),
-  ]);
-
-  const cat = (s, id) => s.classificacoes?.find((c) => c.id === String(id))?.categoria || {};
-  const val = (s) => {
-    const v = Object.values(s.series?.[0]?.serie || {})[0];
-    return v && v !== '...' ? Number(v) : null;
-  };
-  const res = idade?.[0]?.resultados || [];
-  const faixaEtaria = {}; const sexoSimples = {};
-  for (const s of res) {
-    const g = cat(s, 58), sx = cat(s, 2);
-    const gk = Object.keys(g)[0], sk = Object.keys(sx)[0];
-    if (gk === '0' && sk === '4') sexoSimples.homens = val(s);
-    else if (gk === '0' && sk === '5') sexoSimples.mulheres = val(s);
-    else if (gk !== '0' && sk === '0') faixaEtaria[g[gk]] = val(s);
-  }
-  const classesRendimento = (classes?.[0]?.resultados || [])
-    .map((s) => ({ faixa: Object.values(cat(s, 386))[0] || '', total: val(s) }))
-    .filter((c) => c.faixa && c.faixa !== 'Total');
-  const rendaPerCapita = renda?.[0]?.resultados?.[0]?.series?.[0]?.serie?.['2010'];
-  return {
-    faixaEtaria,
-    sexo: Object.keys(sexoSimples).length ? sexoSimples : null,
-    classesRendimento,
-    rendaPerCapita: rendaPerCapita && rendaPerCapita !== '...' ? Number(rendaPerCapita) : null,
-  };
 }
 
 // Coordenadas: usa cadastro ou geocodifica endereço via Nominatim (OSM)
@@ -143,20 +109,27 @@ async function demografia(imovel) {
   try {
     if (!imovel.cidade || !imovel.uf) return null;
     const uf = String(imovel.uf).toUpperCase();
-    const mun = await municipioId(imovel.cidade, uf);
-    const [serieMun, serieUF, censo, geo] = await Promise.all([
-      mun ? seriePopulacao('N6', mun.id) : null,
-      seriePopulacao('N3', UF_ID[uf]),
-      mun ? censoMunicipio(mun.id).catch(() => null) : null,
+    const [mun, geo] = await Promise.all([
+      municipioId(imovel.cidade, uf).catch(() => null),
       geocode(imovel).catch(() => null),
+    ]);
+    const [serieMun, serieUF, entornoRua] = await Promise.all([
+      mun ? seriePopulacao('N6', mun.id).catch(() => null) : null,
+      seriePopulacao('N3', UF_ID[uf]).catch(() => null),
+      entorno(geo, imovel),
     ]);
     return {
       municipio: serieMun ? { nome: serieMun.nome, ...projetar(serieMun) } : null,
       uf: serieUF ? { nome: serieUF.nome, ...projetar(serieUF) } : null,
-      censo2010: censo,
+      censo: mun ? {
+        municipio: censo2022.municipio(mun.id),
+        bairro: censo2022.bairro(mun.id, imovel.bairro),
+        temBairros: censo2022.temBairros(mun.id),
+      } : null,
       geo,
       mapa: mapa(geo),
-      fonte: 'Estimativas de população — IBGE (agregado 6579) · Universo Censo Demográfico 2010 — IBGE',
+      entorno: entornoRua,
+      fonte: `Estimativas de população — IBGE (agregado 6579) · ${censo2022.FONTE}`,
     };
   } catch (e) {
     console.error('Demografia indisponível:', e.message);

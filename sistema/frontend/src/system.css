@@ -345,3 +345,14 @@ h1, h2, h3, .wz-content-header h2 { font-family: 'Montserrat', 'Inter', sans-ser
 /* Nav badge/hover suave */
 .sidebar nav a { border-radius: 10px; }
 .topbar { box-shadow: 0 1px 0 #e6e2d5; }
+
+/* Menu "Espaço Work": linha de apoio sob o rótulo e subitens */
+.nav-item { display: flex; flex-direction: column; }
+.nav-text { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.nav-text small { font-size: 10px; font-weight: 400; color: #7f9a8b; }
+.sidebar nav a.active .nav-text small { color: #c9b27c; }
+.nav-children { display: flex; flex-direction: column; margin: 0 0 4px 21px; padding-left: 10px; border-left: 1px solid rgba(255,255,255,.1); }
+.sidebar nav .nav-children a { padding: 5px 10px; font-size: 11.5px; font-weight: 400; color: #9db5a7; gap: 5px; }
+.sidebar nav .nav-children a svg { color: inherit; opacity: .7; }
+.sidebar nav .nav-children a.active { background: transparent; color: var(--gold); font-weight: 600; }
+.sidebar nav .nav-children a.active::before { display: none; }

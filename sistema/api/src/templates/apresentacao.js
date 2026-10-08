@@ -39,7 +39,25 @@ function mapFigure(i, m) {
 <span class="map-attr">© OpenStreetMap</span></a><figcaption>Localização aproximada<span>${esc([i.bairro, i.cidade].filter(Boolean).join(' · '))}</span></figcaption></figure>`;
 }
 
-function renderApresentacao(i, qrData, { completa = false, mapa = null } = {}) {
+// Contexto do ponto: números do bairro (Censo 2022) e do entorno (OpenStreetMap). Só entra o que existe.
+function contextSection(i, contexto) {
+  const b = contexto?.bairro, e = contexto?.entorno;
+  const int = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
+  const tiles = [
+    b && present(b.populacao) && ['Moradores no bairro', int(b.populacao), `${esc(b.nome)} · Censo 2022`],
+    b && present(b.rendaMedia) && ['Renda média', `R$ ${int(b.rendaMedia)}`, 'do responsável pelo domicílio'],
+    b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), 'no bairro · Censo 2022'],
+    e && ['Comércio e serviços', int(e.total500), 'mapeados a até 500 m'],
+  ].filter(Boolean);
+  const proximos = (e?.destaques || []).slice(0, 5);
+  if (!tiles.length && !proximos.length) return '';
+  return `<section class="context"><h3>Contexto do ponto</h3>
+${tiles.length ? `<div class="context-grid">${tiles.map(([label, value, note]) => `<div><span class="small-label">${label}</span><strong>${value}</strong><small>${note}</small></div>`).join('')}</div>` : ''}
+${proximos.length ? `<ul class="nearby">${proximos.map(p => `<li><span>${esc(p.rotulo)}</span><strong>${esc(p.nome)}</strong><em>${int(p.dist)} m</em></li>`).join('')}</ul>` : ''}
+<p class="fine-print">Fontes: IBGE, Censo Demográfico 2022${e ? '; OpenStreetMap (distâncias em linha reta, mapeamento colaborativo)' : ''}.</p></section>`;
+}
+
+function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto = null } = {}) {
   const sale = i.tipo === 'venda';
   const deal = { venda: 'Venda', passagem_ponto: 'Passagem de ponto' }[i.tipo] || 'Locação';
   const photos = (i.fotos || []).filter(f => f.arquivo);
@@ -55,32 +73,38 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null } = {}) {
   const rows = [
     [sale ? 'Valor de venda' : 'Aluguel', money(sale ? i.precoVenda : i.aluguel)],
     ['Condomínio', money(i.condominio)], ['IPTU / cota cadastrada', money(i.iptu)],
-    ['Cessão de direito de uso (CDU)', money(i.cdu)],
+    ...(present(i.cdu) ? [['Cessão de direito de uso (CDU)', money(i.cdu)]] : []),
     ...(present(i.valorPonto) ? [['Passagem de ponto', money(i.valorPonto)]] : []),
   ];
   const areas = (i.areas || []).map(a => [a.nome, measure(a.area)]);
   const dimensions = [['Área bruta locável (ABL)', measure(i.areaTotal)], ['Área útil', measure(i.areaUtil)],
     ...(areas.length ? areas : [['Piso / área de venda', measure(i.pisoAreaVenda)], ['Jirau', measure(i.jirau)], ['Mezanino', measure(i.mezanino)]]),
-    ['Frente', measure(i.frenteImovel, 'm')], ['Pé-direito', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['Vagas', String(i.vagas)]] : [])];
+    ['Frente', measure(i.frenteImovel, 'm')], ['Pé-direito', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['Vagas', String(i.vagas)]] : [])]
+    // Medida não cadastrada não vira linha vazia (a ABL fica sempre, é o dado principal)
+    .filter(([label, value], index) => index === 0 || value !== 'Não informada');
+  const base = sale ? i.precoVenda : i.aluguel;
+  const porM2 = present(base) && Number(i.areaTotal) > 0 ? money(Number(base) / Number(i.areaTotal)) : null;
+  const context = contextSection(i, contexto);
   const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const title = i.titulo || address(i);
-  const hasDetails = Boolean(i.descricao?.trim() || docs.length || photos.length > 1);
+  const hasDetails = Boolean(i.descricao?.trim() || docs.length || photos.length > 1 || context);
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(i.codigo)} - Apresentação comercial</title><style>${styles}</style></head><body class="${completa ? 'complete' : 'compact'}">
 <nav class="toolbar" aria-label="Ações da apresentação"><div><strong>Apresentação do imóvel</strong><span>Documento A4 · pronto para compartilhar</span></div><a href="?formato=${completa ? 'resumo' : 'completa'}">${completa ? 'Resumo · 1 folha' : 'Complementos · até 2 folhas'}</a><button type="button" onclick="window.print()">Imprimir / Salvar PDF</button></nav>
 <main><article class="sheet" aria-label="Ficha comercial">${header}
 <section class="intro"><div class="eyebrow">${esc(categories[i.categoria] || 'Imóvel comercial')} <span>/</span> ${deal} <span class="status">${esc(statuses[i.status] || 'Status sob consulta')}</span></div><h1 class="digital-only">${esc(title)}</h1><h1 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h1>${i.titulo ? `<p class="street">${esc(address(i))}</p>` : ''}<p class="location">${esc(subtitle)}</p></section>
 <div class="hero-row${mapa ? ' has-map' : ''}"><figure class="hero">${photos[0] ? `<img src="${esc(uploadUrl(photos[0].arquivo))}" alt="${esc(photos[0].legenda || `Foto do imóvel ${i.codigo}`)}" loading="eager">` : '<div class="no-photo"><span>PROSPECÇÃO BRASIL</span><strong>Fotografia não cadastrada</strong><p>Solicite imagens à nossa equipe comercial.</p></div>'}<figcaption>${photos[0] ? '01 / Imagem cadastrada do imóvel' : 'Imagens sob consulta'}<span>${esc(i.codigo)}</span></figcaption></figure>${mapa ? mapFigure(i, mapa) : ''}</div>
-<section class="highlights" aria-label="Informações principais"><div><span class="small-label">${sale ? 'Valor de venda' : 'Custo mensal de ocupação'}</span><strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div><div><span class="small-label">Área bruta locável (ABL)</span><strong>${measure(i.areaTotal)}</strong><small>Área útil: ${measure(i.areaUtil)}</small></div></section>
+<section class="highlights${porM2 ? ' three' : ''}" aria-label="Informações principais"><div><span class="small-label">${sale ? 'Valor de venda' : 'Custo mensal de ocupação'}</span><strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div><div><span class="small-label">Área bruta locável (ABL)</span><strong>${measure(i.areaTotal)}</strong><small>${present(i.areaUtil) ? `Área útil: ${measure(i.areaUtil)}` : 'Conforme cadastro do imóvel'}</small></div>${porM2 ? `<div><span class="small-label">${sale ? 'Valor por m²' : 'Aluguel por m²'}</span><strong>${porM2}</strong><small>${sale ? 'Valor de venda ÷ ABL' : 'Aluguel ÷ ABL, sem encargos'}</small></div>` : ''}</section>
 <div class="facts-grid"><section><h2><span>01</span> Condições comerciais</h2><dl class="facts">${rows.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${i.periodoContrato ? `<p class="contract">Prazo de contrato: ${esc(i.periodoContrato)}</p>` : ''}<p class="fine-print">${sale ? 'Encargos apresentados conforme cadastro.' : '* Composição conforme valores cadastrados. Confirmar a periodicidade da cota de IPTU.'} CDU não integra o total mensal. Valores ausentes permanecem sob consulta.</p></section><section><h2><span>02</span> Características do imóvel</h2><dl class="facts dimensions">${dimensions.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl></section></div>
 <section class="contact"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></section>
 <p class="disclaimer">Disponibilidade e condições sujeitas a confirmação. Esta apresentação não substitui a documentação técnica do imóvel.</p>
 ${footer}</article>
 ${hasDetails ? `<article class="sheet details" aria-label="Informações complementares">${header}<div class="section-intro"><span class="eyebrow">Informações complementares</span><h2 class="digital-only">${esc(title)}</h2><h2 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h2><p>${esc(subtitle)}</p></div>
 ${i.descricao?.trim() ? `<section class="description"><h3>Sobre o imóvel</h3><p class="digital-only">${esc(i.descricao)}</p><p class="print-only">${esc(i.descricao.slice(0, 600))}${i.descricao.length > 600 ? '… Descrição completa na versão digital.' : ''}</p></section>` : ''}
+${context}
 ${photos.length > 1 ? `<section class="gallery-section"><h3>Galeria do imóvel</h3><div class="gallery">${photos.slice(1).map((photo,index) => `<figure class="${index > 1 ? 'digital-only' : ''}"><img src="${esc(uploadUrl(photo.arquivo))}" alt="${esc(photo.legenda || `Foto ${index + 2} do imóvel`)}" loading="eager"><figcaption><span>${String(index + 2).padStart(2,'0')}</span> <span class="digital-only">${esc(photo.legenda || 'Imagem cadastrada do imóvel')}</span><span class="print-only">${esc((photo.legenda || 'Imagem cadastrada do imóvel').slice(0,100))}</span></figcaption></figure>`).join('')}</div></section>` : ''}
-${docs.length ? `<section class="documents"><h3>Documentos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul>${docs.map(d => `<li class="${docs.indexOf(d) > 3 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer"><span><strong class="digital-only">${esc(d.nome || labels[d.tipo])}</strong><strong class="print-only">${esc((d.nome || labels[d.tipo]).slice(0,100))}</strong><small>${esc(labels[d.tipo])}</small></span><span aria-hidden="true">↗</span></a></li>`).join('')}</ul></section>` : ''}
+${docs.length ? `<section class="documents"><h3>Documentos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul>${docs.map(d => `<li class="${docs.indexOf(d) > (context ? 1 : 3) ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer"><span><strong class="digital-only">${esc(d.nome || labels[d.tipo])}</strong><strong class="print-only">${esc((d.nome || labels[d.tipo]).slice(0,100))}</strong><small>${esc(labels[d.tipo])}</small></span><span aria-hidden="true">↗</span></a></li>`).join('')}</ul></section>` : ''}
 <p class="print-only fine-print">Seleção de imagens e documentos. Consulte a versão digital para ver todos os complementos.</p>${footer}</article>` : ''}
 </main><p class="print-help">Para gerar o PDF, clique em “Imprimir / Salvar PDF” e escolha “Salvar como PDF”. Use papel A4 e desative os cabeçalhos e rodapés do navegador.</p>
 </body></html>`;

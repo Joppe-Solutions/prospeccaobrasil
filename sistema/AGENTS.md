@@ -64,6 +64,20 @@
   `/apresentacao/:id/fotos`. `proprietario`/`telProprietario`/`googleDriveUrl`/`valorPonto`
   são legados: continuam no banco, fora do formulário.
 - E2E local sem o Chromium do Playwright: `PB_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"`.
+- Inteligência de mercado (`/inteligencia/:id`): Censo 2022 por bairro e município vem de
+  `api/src/data/censo2022.json` (gerado por `scripts/build-censo2022.py` a partir dos
+  Agregados do IBGE; sem chamada externa). Entorno da rua vem do OpenStreetMap/Overpass
+  (`services/entorno.js`), com cache em disco em `api/cache/entorno/` (30 dias; o serviço
+  público oscila, então a última consulta vale como reserva). Estimativas anuais e
+  geocodificação continuam online (IBGE 6579 e Nominatim).
+- Menu lateral segue o PDF "Espaço Work" do cliente (`NAV` em `components/Layout.jsx`):
+  `sub` = linha de apoio, `children` = subitens. Rotas mantidas: Clientes = `/empresas`,
+  Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários e
+  Documentação não estavam no PDF e foram mantidos em Cadastros.
+- Conhecimento: `/inteligencia` (um relatório por imóvel), `/benchmark` (rental rate),
+  `/modelos-contratos` (links; só admin mantém), `/diretrizes` (premissas das demandas ativas).
+- Apresentação do imóvel: "Contexto do ponto" (Censo 2022 do bairro + entorno) na folha de
+  complementos; o entorno tem 4 s para responder e depois vem do cache.
 - CORS restrito aos domínios de produção + localhost (`CORS_ORIGINS` sobrescreve).
 
 ## Dependências externas pendentes

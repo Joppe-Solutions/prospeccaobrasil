@@ -1,48 +1,53 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  BookOpen, FileText, Target, Brain, Buildings, CaretRight, CurrencyDollar, FolderOpen, GearSix, Handshake, IdentificationCard,
-  List, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
+  ArrowSquareOut, BookOpen, ChartBar, FileText, Target, Brain, Buildings, CaretRight, CurrencyDollar, FolderOpen, GearSix, Handshake, IdentificationCard,
+  List, MapPinArea, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
 import { Avatar } from './UI';
 
+// Estrutura do menu lateral "Espaço Work" definida pelo cliente (PDF Espaco_Work_Menu_Lateral).
+// `sub` é a linha de apoio sob o rótulo; `children` são os subitens (com `href` para links externos).
 const NAV = [
   {
     caption: 'PRINCIPAL',
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
-      { to: '/institucional', label: 'Institucional', icon: Buildings },
+      { to: '/institucional', label: 'Institucional', icon: Buildings, children: [
+        { to: '/diretrizes', label: 'Diretrizes' },
+        { to: '/propostas', label: 'Carta modelo de Proposta Comercial', title: 'Propostas Comerciais' },
+        { href: 'https://prospeccaobrasil.com.br', label: 'Site institucional' },
+      ] },
       { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar, admin: true },
     ],
   },
   {
     caption: 'CADASTROS',
     items: [
-      { to: '/imoveis', label: 'Imóveis', icon: Buildings },
-      { to: '/demandas', label: 'Demandas', icon: Target },
-      { to: '/empresas', label: 'Empresas', icon: Storefront },
+      { to: '/imoveis', label: 'Imóveis', sub: 'Pontos comerciais', icon: MapPinArea },
+      { to: '/empresas', label: 'Clientes', sub: 'Redes e operadoras', icon: Storefront },
+      { to: '/demandas', label: 'Demandas', sub: 'Demandas de expansão', icon: Target },
+      { to: '/parceiros', label: 'Consultores', sub: 'Parceiros comerciais', icon: UsersThree },
+      { to: '/leads', label: 'Leads', sub: 'Sites e portais', icon: UserFocus },
+      // Fora da lista do cliente, mantidos por serem usados no cadastro de imóveis
       { to: '/proprietarios', label: 'Proprietários', icon: IdentificationCard },
-      { to: '/parceiros', label: 'Parceiros comerciais', icon: UsersThree },
-      { to: '/leads', label: 'Leads', icon: UserFocus },
       { to: '/documentos', label: 'Documentação', icon: FolderOpen },
-      { to: '/inteligencia', label: 'Inteligência de Mercado Imobiliário', icon: Brain },
     ],
   },
   {
-    caption: 'GESTÃO DE EXPANSÃO',
+    caption: 'KNOWLEDGE (CONHECIMENTO)',
     items: [
-      { to: '/propostas', label: 'Propostas Comerciais', icon: FileText },
+      { to: '/glossario', label: 'Glossário de Varejo', icon: BookOpen },
+      { to: '/inteligencia', label: 'Inteligência de Mercado', icon: Brain },
+      { to: '/benchmark', label: 'Benchmark', icon: ChartBar, children: [{ to: '/benchmark', label: 'Rental rate (R$/m²)' }] },
+      { to: '/modelos-contratos', label: 'Modelos de contratos', icon: FileText },
     ],
   },
   {
-    caption: 'CONHECIMENTO',
-    items: [{ to: '/glossario', label: 'Glossário Empresarial', icon: BookOpen }],
-  },
-  {
-    caption: 'OPERAÇÕES E ACESSOS',
+    caption: 'RELACIONAMENTO COMERCIAL',
     items: [
-      { to: '/oportunidades', label: 'Relacionamentos comerciais', icon: Handshake },
+      { to: '/oportunidades', label: 'Ações das operações', icon: Handshake },
     ],
   },
   {
@@ -55,7 +60,9 @@ const NAV = [
   },
 ];
 
-const ALL_ITEMS = NAV.flatMap(g => g.items);
+// Título da barra superior: o caminho mais específico vence (subitens antes do item pai)
+const ALL_ITEMS = NAV.flatMap(g => g.items.flatMap(i => [i, ...(i.children || []).filter(c => c.to && c.to !== i.to)]))
+  .sort((a, b) => b.to.length - a.to.length);
 
 export default function Layout() {
   const u = getUser();
@@ -69,12 +76,19 @@ export default function Layout() {
     return () => document.removeEventListener('keydown', close);
   }, [open]);
 
-  const title = ALL_ITEMS.find(item => item.to !== '/' && location.pathname.startsWith(item.to))?.label || 'Visão geral';
+  const atual = ALL_ITEMS.find(item => item.to !== '/' && location.pathname.startsWith(item.to));
+  const title = atual?.title || atual?.label || 'Visão geral';
 
-  const item = ({ to, label, icon: Icon }) => (
-    <NavLink key={to} to={to} end={to === '/'}>
-      <Icon size={18} weight="duotone" /><span>{label}</span>
-    </NavLink>
+  const item = ({ to, label, sub, icon: Icon, children }) => (
+    <div key={to} className="nav-item">
+      <NavLink to={to} end={to === '/'}>
+        <Icon size={18} weight="duotone" />
+        <span className="nav-text"><span>{label}</span>{sub && <small>{sub}</small>}</span>
+      </NavLink>
+      {children && <div className="nav-children">{children.map(child => child.href
+        ? <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer">{child.label} <ArrowSquareOut size={11} /></a>
+        : <NavLink key={child.label} to={child.to}>{child.label}</NavLink>)}</div>}
+    </div>
   );
 
   return <div className="shell">

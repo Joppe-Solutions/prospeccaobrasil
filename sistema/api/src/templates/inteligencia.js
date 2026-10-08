@@ -1,6 +1,7 @@
 // Documento de inteligência de mercado — modelo geomarketing (Endurance-style),
 // folhas A4 em paisagem, dados demográficos reais do IBGE quando disponíveis.
 const styles = require('./inteligencia.styles');
+const { FONTE: CENSO_FONTE } = require('../services/censo2022');
 
 const esc = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const present = (v) => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
@@ -12,19 +13,22 @@ const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro:
 const STATUS = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido' };
 const CLASSES = [['A1', 'Acima de 20 sm', 'Acima de 26.040,00', '27.132,05'], ['A2', 'de 15 a 20 sm', '26.040,00', '20.942,44'], ['B1', 'de 10 a 15 sm', '19.530,00', '14.297,27'], ['B2', 'de 6 a 10 sm', '13.020,00', '9.100,92'], ['C1', 'de 4 a 6 sm', '7.812,00', '6.004,19'], ['C2', 'de 2 a 4 sm', '5.208,00', '3.048,74'], ['D', 'de 1 a 2 sm', '2.604,00', '1.524,61'], ['E', 'Até 1 sm', '1.302,00', '595,06']];
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-// Faixas do modelo Endurance → soma dos grupos quinquenais do Censo
-const FAIXAS = [['0–9', ['0 a 4 anos', '5 a 9 anos']], ['10–19', ['10 a 14 anos', '15 a 19 anos']], ['20–29', ['20 a 24 anos', '25 a 29 anos']], ['30–39', ['30 a 34 anos', '35 a 39 anos']], ['40–49', ['40 a 44 anos', '45 a 49 anos']], ['50–59', ['50 a 54 anos', '55 a 59 anos']], ['60–69', ['60 a 64 anos', '65 a 69 anos']], ['70+', ['70 a 74 anos', '75 a 79 anos', '80 a 84 anos', '85 a 89 anos', '90 a 94 anos', '95 a 99 anos']]];
+// Faixas do documento → índices das faixas do Censo 2022 (services/censo2022.js)
+const FAIXAS = [['0–14', [0, 1, 2]], ['15–29', [3, 4, 5]], ['30–39', [6]], ['40–49', [7]], ['50–59', [8]], ['60–69', [9]], ['70+', [10]]];
+const SM_2022 = 1212;
+const dec = (v, casas = 1) => present(v) ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: casas, maximumFractionDigits: casas }) : '—';
+const perc = (parte, total) => present(parte) && total ? `${dec((parte / total) * 100)}%` : '—';
 
 function topStrip(i, date) {
   const local = [i.bairro, i.cidade, i.uf].filter(Boolean).join(' | ') || 'Local a confirmar';
-  return `<div class="page-top"><span>CONTAGEM DEMOGRÁFICA&nbsp;&nbsp;|&nbsp;&nbsp;Brasil, ${esc(i.codigo)}&nbsp;|&nbsp;${esc(local)}</span><span>${esc(date)}</span></div>`;
+  return `<div class="page-top"><span>INTELIGÊNCIA DE MERCADO&nbsp;&nbsp;|&nbsp;&nbsp;Brasil, ${esc(i.codigo)}&nbsp;|&nbsp;${esc(local)}</span><span>${esc(date)}</span></div>`;
 }
 function foot(i, src = 'Prospecção Brasil · Retail & Real Estate') {
   return `<div class="page-foot"><span>${esc(src)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div>`;
 }
 const sheet = (content, cls = '') => `<article class="sheet ${cls}"><div class="geo-brand">G E O M A R K E T I N G</div><div class="sheet-inner">${content}</div></article>`;
 
-// Mapa real: tiles OSM + anéis 1km/2km em SVG; fallback esquemático se sem geo
+// Mapa real: tiles OSM + anéis 500 m/1 km em SVG; fallback esquemático se sem geo
 function mapVisual(imovel, demo) {
   const m = demo?.mapa;
   if (m) {
@@ -33,11 +37,11 @@ function mapVisual(imovel, demo) {
     return `<div class="map-real" style="width:${m.w}px;height:${m.h}px" role="img" aria-label="Mapa da área de influência">
       ${tiles}
       <svg width="${m.w}" height="${m.h}" style="position:absolute;left:0;top:0">
-        <circle cx="${m.px}" cy="${m.py}" r="${m.r2}" fill="rgba(21,60,52,0.08)" stroke="#a27a35" stroke-width="2" stroke-dasharray="8 5"/>
-        <circle cx="${m.px}" cy="${m.py}" r="${m.r1}" fill="rgba(21,60,52,0.12)" stroke="#a27a35" stroke-width="2"/>
+        <circle cx="${m.px}" cy="${m.py}" r="${m.r1}" fill="rgba(21,60,52,0.08)" stroke="#a27a35" stroke-width="2" stroke-dasharray="8 5"/>
+        <circle cx="${m.px}" cy="${m.py}" r="${m.r1 / 2}" fill="rgba(21,60,52,0.12)" stroke="#a27a35" stroke-width="2"/>
         <circle cx="${m.px}" cy="${m.py}" r="8" fill="#153c34" stroke="#fff" stroke-width="2"/>
+        <text x="${Math.min(m.px + 14, m.w - 60)}" y="${m.py - m.r1 / 2 - 8}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">500 m</text>
         <text x="${Math.min(m.px + 14, m.w - 60)}" y="${m.py - m.r1 - 8}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">1 km</text>
-        <text x="${Math.min(m.px + 14, m.w - 60)}" y="${m.py - m.r2 - 8}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">2 km</text>
         <text x="${Math.min(m.px + 16, m.w - 80)}" y="${m.py + 5}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(imovel.codigo)}</text>
       </svg>
       <span class="map-attr">© OpenStreetMap contributors${demo.geo?.fonte ? ` · centro: ${esc(demo.geo.fonte)}` : ''}</span>
@@ -49,8 +53,8 @@ function mapVisual(imovel, demo) {
   <circle cx="180" cy="150" r="70" fill="#153c3410" stroke="#a27a35" stroke-width="1.6"/>
   <circle cx="180" cy="150" r="7" fill="#153c34"/>
   <text x="196" y="146" font-size="11" font-weight="700" fill="#153c34">${esc(imovel.codigo)}</text>
-  <text x="196" y="95" font-size="10" fill="#67756f">1 km</text>
-  <text x="196" y="28" font-size="10" fill="#67756f">2 km</text>
+  <text x="196" y="95" font-size="10" fill="#67756f">500 m</text>
+  <text x="196" y="28" font-size="10" fill="#67756f">1 km</text>
   <text x="180" y="288" font-size="8" fill="#67756f" text-anchor="middle">Mapa esquemático — endereço não geocodificado</text>
   </svg>`;
 }
@@ -59,7 +63,6 @@ function popRow(label, obj, anos, cls = '') {
   const cells = anos.map((a) => `<td>${obj?.serie?.[a] ? num(obj.serie[a]) : '—'}</td>`).join('');
   return `<tr class="${cls}"><td>${esc(label)}</td><td>${obj?.tgca != null ? (obj.tgca * 100).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</td>${cells}<td>${obj?.anoBase || '—'}</td></tr>`;
 }
-const lev = (label, cols) => `<tr class="dim"><td>${esc(label)}</td>${'<td>—</td>'.repeat(cols)}</tr>`;
 const L = (arr) => (arr || []).map((p) => `<li>${esc(p)}</li>`).join('');
 
 function renderInteligencia(imovel, analise, demo) {
@@ -70,18 +73,31 @@ function renderInteligencia(imovel, analise, demo) {
   const score = analise?.score ?? ai.score ?? '—';
   const pct = Number.isFinite(Number(score)) ? Math.max(0, Math.min(100, Number(score))) : 0;
   const anos = demo?.municipio?.anos || demo?.uf?.anos || [];
-  const censo = demo?.censo2010;
   const munNome = demo?.municipio?.nome || imovel.cidade || 'Município';
   const foto = imovel.fotos?.[0];
-  const notaLev = `<p class="note"><strong>Sob levantamento geomarketing:</strong> dados por raio de influência (1 km / 2 km) exigem pesquisa de campo e recorte por setores censitários. As linhas de município e UF usam dados oficiais IBGE; as linhas de raio ficam reservadas ao levantamento.</p>`;
-
-  // Agrega faixas quinquenais do Censo nas faixas do modelo
-  const faixaVals = FAIXAS.map(([rotulo, grupos]) => [rotulo, grupos.reduce((s, g) => s + (censo?.faixaEtaria?.[g] || 0), 0) || null]);
-  const totalFaixas = faixaVals.reduce((s, [, v]) => s + (v || 0), 0);
-  const rendaPerCap = censo?.rendaPerCapita;
-  const popCenso = censo?.sexo ? (censo.sexo.homens || 0) + (censo.sexo.mulheres || 0) : null;
-  const rendaTotal = rendaPerCap && popCenso ? rendaPerCap * popCenso : null;
-  const domTotal = censo?.classesRendimento?.reduce((s, c) => s + (c.total || 0), 0);
+  const censo = demo?.censo;
+  const ent = demo?.entorno;
+  // Colunas das tabelas do Censo: bairro (quando identificado) e município
+  const areas = [censo?.bairro && [`Bairro ${censo.bairro.nome}`, censo.bairro], censo?.municipio && [censo.municipio.nome, censo.municipio]].filter(Boolean);
+  const semBairro = censo && !censo.bairro
+    ? `<p class="note"><strong>Bairro não identificado.</strong> ${imovel.bairro ? `"${esc(imovel.bairro)}" não consta` : 'O cadastro não informa o bairro e por isso ele não consta'} ${censo.temBairros ? 'na base de bairros do Censo 2022 deste município — confira a grafia no cadastro do imóvel.' : 'neste recorte: o IBGE não divulga dados por bairro para este município.'} As tabelas trazem apenas o município.</p>` : '';
+  const tabela = (linhas, primeira = 'Indicador') => areas.length ? `<table class="demo"><thead><tr><th>${primeira}</th>${areas.map(([n]) => `<th>${esc(n)}</th>`).join('')}</tr></thead>
+  <tbody>${linhas.map(([rotulo, fn, cls = '']) => `<tr class="${cls}"><td>${rotulo}</td>${areas.map(([, a]) => `<td>${fn(a)}</td>`).join('')}</tr>`).join('')}</tbody></table>`
+    : '<p class="note">Dados do Censo 2022 indisponíveis: município do cadastro não identificado na base do IBGE.</p>';
+  const faixa = (a, idx) => idx.reduce((n, i) => n + (a.faixas[i] || 0), 0);
+  const massa = (a) => (present(a.rendaMedia) && present(a.responsaveis) ? a.rendaMedia * a.responsaveis : null);
+  const indice = (a) => (censo?.municipio?.rendaMedia && present(a.rendaMedia) ? Math.round((a.rendaMedia / censo.municipio.rendaMedia) * 100) : null);
+  const b = censo?.bairro;
+  const m = censo?.municipio;
+  // Leitura em texto: só afirma o que os números das tabelas sustentam
+  const leitura = [];
+  if (b && m) {
+    if (indice(b)) leitura.push(`A renda média do responsável pelo domicílio no bairro equivale a ${indice(b)}% da média do município (${money0(b.rendaMedia)} contra ${money0(m.rendaMedia)}).`);
+    leitura.push(`Moradores de 30 a 59 anos são ${perc(faixa(b, [6, 7, 8]), b.populacao)} da população do bairro (${perc(faixa(m, [6, 7, 8]), m.populacao)} no município); 60 anos ou mais, ${perc(faixa(b, [9, 10]), b.populacao)} (${perc(faixa(m, [9, 10]), m.populacao)} no município).`);
+    if (present(b.domiciliosVagos) && b.domicilios) leitura.push(`${perc(b.domiciliosVagos, b.domicilios)} dos domicílios do bairro estavam vagos no Censo (${perc(m.domiciliosVagos, m.domicilios)} no município).`);
+    if (present(b.densidade)) leitura.push(`Densidade de ${num(Math.round(b.densidade))} hab/km² no bairro, contra ${num(Math.round(m.densidade))} hab/km² no município.`);
+  }
+  if (ent) leitura.push(`Há ${num(ent.total500)} estabelecimentos mapeados a até 500 m do ponto e ${num(ent.total1000)} a até 1 km.`);
 
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(imovel.codigo)} - Inteligência de mercado</title><style>${styles}</style></head><body>
@@ -93,8 +109,8 @@ function renderInteligencia(imovel, analise, demo) {
     <div class="cover-left">
       <img class="cover-logo" src="/images/logo-wide.png" alt="Prospecção Brasil">
       <div class="cover-mid">
-        <div class="eyebrow">Geomarketing</div>
-        <h1>Contagem<br>demográfica</h1>
+        <div class="eyebrow">Geomarketing · bairro e rua</div>
+        <h1>Inteligência<br>de mercado</h1>
         <div class="cover-rule"></div>
         <div class="cover-place">${esc(local)}</div>
         <p style="margin-top:10px;font-size:13px;color:var(--muted)">${esc(imovel.titulo || address(imovel))}</p>
@@ -125,10 +141,10 @@ ${sheet(`${topStrip(imovel, dataDoc)}
     <div>
       <p><strong>Premissas deste documento.</strong></p>
       <ul>
-        <li>A projeção da população para os anos seguintes está baseada na TGCA — Taxa Geométrica de Crescimento Anual.</li>
-        <li>As séries demográficas usam estimativas oficiais do IBGE; os dados de universo (idade, sexo, rendimento) vêm do Censo Demográfico 2010.</li>
-        <li>A renda domiciliar adotada em estudos de campo segue cruzamentos entre rendimento domiciliar e rendimento das famílias (POF/IBGE), obedecendo à divisão de classes do Critério Brasil.</li>
-        <li>Dados por raio de influência (1 km / 2 km) são marcados "sob levantamento" até que o recorte censitário e o trabalho de campo sejam executados.</li>
+        <li>A projeção da população do município e do estado usa a TGCA — Taxa Geométrica de Crescimento Anual — sobre as estimativas oficiais do IBGE.</li>
+        <li><strong>Bairro:</strong> população, domicílios, faixa etária e rendimento vêm do Censo Demográfico 2022 (IBGE), no recorte do bairro do imóvel, sempre comparado ao município.</li>
+        <li><strong>Rua:</strong> o entorno imediato (estabelecimentos, transporte e a própria via) vem do OpenStreetMap, nos raios de 500 m e 1 km a partir do ponto.</li>
+        <li>O rendimento é o da pessoa responsável pelo domicílio (média e mediana), o indicador de renda que o Censo 2022 divulga por bairro.</li>
       </ul>
       ${demo ? `<p class="src">Fonte demográfica: ${esc(demo.fonte)}.</p>` : `<p class="src">Série demográfica indisponível no momento da geração.</p>`}
     </div>
@@ -142,7 +158,7 @@ ${sheet(`${topStrip(imovel, dataDoc)}
   <p class="src">Fonte: IBGE / Critério Brasil — POF referente ao estado da federação do imóvel.</p>
   ${foot(imovel)}`)}
 ${sheet(`${topStrip(imovel, dataDoc)}
-  <h2 class="sec"><span>ÁREA DE INFLUÊNCIA</span>Dados demográficos</h2>
+  <h2 class="sec"><span>LOCALIZAÇÃO</span>O ponto e os raios de 500 m e 1 km</h2>
   <div class="map-box">
     ${mapVisual(imovel, demo)}
     <div class="map-info">
@@ -155,58 +171,83 @@ ${sheet(`${topStrip(imovel, dataDoc)}
         <div><dt>Coordenadas</dt><dd>${demo?.geo ? `${demo.geo.lat.toFixed(5)}, ${demo.geo.lon.toFixed(5)}` : 'Não geocodificadas'}</dd></div>
       </dl>
       ${imovel.googleMapsUrl ? `<p style="margin-top:10px"><a href="${esc(imovel.googleMapsUrl)}" target="_blank" rel="noopener noreferrer" style="text-decoration:underline">Abrir localização no Google Maps ↗</a></p>` : ''}
-      ${notaLev}
     </div>
   </div>
   ${foot(imovel)}`)}
 ${sheet(`${topStrip(imovel, dataDoc)}
-  <h2 class="sec"><span>ÁREA DE INFLUÊNCIA</span>Evolução populacional — habitantes ${anos.length ? `${anos[0]} / ${anos[1]} / ${anos[2]}` : ''}</h2>
-  <table class="demo"><thead><tr><th>Área de influência</th><th>TGCA %</th>${anos.map((a) => `<th>${a}</th>`).join('')}<th>Base</th></tr></thead>
+  <h2 class="sec"><span>BAIRRO E MUNICÍPIO</span>População e domicílios — Censo 2022</h2>
+  ${tabela([
+    ['População residente', (a) => num(a.populacao), 'hl'],
+    ['Homens', (a) => `${num(a.homens)} <small>(${perc(a.homens, a.homens + a.mulheres)})</small>`],
+    ['Mulheres', (a) => `${num(a.mulheres)} <small>(${perc(a.mulheres, a.homens + a.mulheres)})</small>`],
+    ['Área (km²)', (a) => dec(a.areaKm2, 2)],
+    ['Densidade (hab/km²)', (a) => num(Math.round(a.densidade))],
+    ['Domicílios', (a) => num(a.domicilios), 'hl'],
+    ['Domicílios ocupados', (a) => `${num(a.domiciliosOcupados)} <small>(${perc(a.domiciliosOcupados, a.domicilios)})</small>`],
+    ['Domicílios vagos', (a) => `${num(a.domiciliosVagos)} <small>(${perc(a.domiciliosVagos, a.domicilios)})</small>`],
+    ['Domicílios de uso ocasional', (a) => `${num(a.usoOcasional)} <small>(${perc(a.usoOcasional, a.domicilios)})</small>`],
+    ['Moradores por domicílio ocupado', (a) => dec(a.moradoresPorDomicilio)],
+  ])}
+  <p class="src">Fonte: ${esc(CENSO_FONTE)}.</p>
+  ${semBairro}
+  ${foot(imovel)}`)}
+${sheet(`${topStrip(imovel, dataDoc)}
+  <h2 class="sec"><span>MUNICÍPIO E ESTADO</span>Evolução populacional — habitantes ${anos.length ? `${anos[0]} / ${anos[1]} / ${anos[2]}` : ''}</h2>
+  ${anos.length ? `<table class="demo"><thead><tr><th>Território</th><th>TGCA % a.a.</th>${anos.map((a) => `<th>${a}</th>`).join('')}<th>Base</th></tr></thead>
   <tbody>
-    ${lev('1 KM', 2 + anos.length)}
-    ${lev('2 KM', 2 + anos.length)}
-    ${lev('Total raios', 2 + anos.length)}
     ${popRow(munNome, demo?.municipio, anos, 'hl')}
     ${popRow(demo?.uf?.nome || 'UF', demo?.uf, anos, '')}
   </tbody></table>
-  <p class="src">Fonte: estimativas oficiais IBGE; projeções por TGCA sobre o último ano estimado.</p>
-  ${censo?.sexo ? `<table class="demo" style="margin-top:16px"><thead><tr><th>Censo 2010 — ${esc(munNome)}</th><th>Homens</th><th>Mulheres</th><th>Total</th></tr></thead>
-  <tbody><tr class="hl"><td>População residente</td><td>${num(censo.sexo.homens)}</td><td>${num(censo.sexo.mulheres)}</td><td>${num(popCenso)}</td></tr></tbody></table>
-  <p class="src">Fonte: Censo Demográfico 2010 — IBGE.</p>` : ''}
-  ${notaLev}
+  <p class="src">Fonte: estimativas oficiais de população do IBGE; os anos seguintes ao ano-base são projeção por TGCA. O IBGE não publica estimativa anual por bairro: para o bairro vale o Censo 2022 da página anterior.</p>`
+    : '<p class="note">Série de estimativas do IBGE indisponível no momento da geração. Abra o documento novamente para incluí-la.</p>'}
   ${foot(imovel)}`)}
 ${sheet(`${topStrip(imovel, dataDoc)}
-  <h2 class="sec"><span>ÁREA DE INFLUÊNCIA</span>Domicílios por faixa de rendimento — Censo 2010</h2>
-  <table class="demo"><thead><tr><th>Área de influência</th>${(censo?.classesRendimento || [[''], [''], [''], [''], [''], [''], [''], [''], ['']]).map((c) => `<th style="font-size:8.5px">${esc(c.faixa || '')}</th>`).join('')}<th>Total</th></tr></thead>
-  <tbody>
-    ${lev('1 KM', (censo?.classesRendimento?.length || 8) + 1)}
-    ${lev('2 KM', (censo?.classesRendimento?.length || 8) + 1)}
-    ${censo?.classesRendimento?.length ? `<tr class="hl"><td>${esc(munNome)}</td>${censo.classesRendimento.map((c) => `<td>${num(c.total)}</td>`).join('')}<td>${num(domTotal)}</td></tr>` : `<tr class="dim"><td>${esc(munNome)}</td>${'<td>—</td>'.repeat(9)}</tr>`}
-  </tbody></table>
-  <p class="src">Fonte: Censo Demográfico 2010 — IBGE (classes de rendimento nominal mensal domiciliar per capita).</p>
-  ${notaLev}
+  <h2 class="sec"><span>BAIRRO E MUNICÍPIO</span>Habitantes por faixa etária — Censo 2022</h2>
+  ${areas.length ? `<table class="demo"><thead><tr><th>Território</th>${FAIXAS.map(([r]) => `<th>${r}</th>`).join('')}<th>Total</th></tr></thead>
+  <tbody>${areas.map(([nome, a]) => `<tr class="hl"><td>${esc(nome)}</td>${FAIXAS.map(([, idx]) => `<td>${num(faixa(a, idx))}</td>`).join('')}<td>${num(a.populacao)}</td></tr>
+    <tr class="dim"><td>% do total</td>${FAIXAS.map(([, idx]) => `<td>${perc(faixa(a, idx), a.populacao)}</td>`).join('')}<td>100%</td></tr>`).join('')}</tbody></table>
+  <p class="src">Fonte: ${esc(CENSO_FONTE)}. Faixas agregadas a partir dos grupos de idade divulgados.</p>` : tabela([])}
+  ${semBairro}
   ${foot(imovel)}`)}
 ${sheet(`${topStrip(imovel, dataDoc)}
-  <h2 class="sec"><span>ÁREA DE INFLUÊNCIA</span>Habitantes por faixa etária — Censo 2010</h2>
-  <table class="demo"><thead><tr><th>Área de influência</th>${FAIXAS.map(([r]) => `<th>${r}</th>`).join('')}<th>Total</th></tr></thead>
-  <tbody>
-    ${lev('1 KM', FAIXAS.length + 1)}
-    ${lev('2 KM', FAIXAS.length + 1)}
-    <tr class="hl"><td>${esc(munNome)}</td>${faixaVals.map(([, v]) => `<td>${v ? num(v) : '—'}</td>`).join('')}<td>${totalFaixas ? num(totalFaixas) : '—'}</td></tr>
-  </tbody></table>
-  <p class="src">Fonte: Censo Demográfico 2010 — IBGE (grupos quinquenais agregados nas faixas do modelo).</p>
+  <h2 class="sec"><span>BAIRRO E MUNICÍPIO</span>Renda — Censo 2022</h2>
+  ${tabela([
+    ['Rendimento médio mensal do responsável', (a) => money0(a.rendaMedia), 'hl'],
+    ['Rendimento mediano mensal do responsável', (a) => money0(a.rendaMediana)],
+    ['Rendimento médio em salários mínimos de 2022', (a) => (present(a.rendaMedia) ? `${dec(a.rendaMedia / SM_2022)} sm` : '—')],
+    ['Índice de renda (município = 100)', (a) => (indice(a) ?? '—')],
+    ['Responsáveis por domicílio', (a) => num(a.responsaveis)],
+    ['Massa de renda mensal estimada', (a) => money0(massa(a)), 'hl'],
+  ])}
+  <p class="src">Fonte: ${esc(CENSO_FONTE)}. Valores nominais de 2022 (salário mínimo de R$ 1.212). Massa de renda = rendimento médio × responsáveis por domicílio; é uma estimativa de ordem de grandeza, pois a média considera apenas responsáveis com rendimento.</p>
+  ${semBairro}
   ${foot(imovel)}`)}
 ${sheet(`${topStrip(imovel, dataDoc)}
-  <h2 class="sec"><span>ÁREA DE INFLUÊNCIA</span>RMDM e potencial de consumo</h2>
-  <table class="demo"><thead><tr><th>Área de influência</th><th>RMDM per capita R$ (2010)</th><th>População 2010</th><th>Renda total estimada R$/mês</th><th>Observação</th></tr></thead>
-  <tbody>
-    ${lev('1 KM', 4)}
-    ${lev('2 KM', 4)}
-    <tr class="hl"><td>${esc(munNome)}</td><td>${rendaPerCap ? money0(rendaPerCap) : '—'}</td><td>${num(popCenso)}</td><td>${rendaTotal ? money0(rendaTotal) : '—'}</td><td style="text-align:left">estimativa: renda per capita × população</td></tr>
-  </tbody></table>
-  <p class="src">Fonte: Censo Demográfico 2010 — IBGE (rendimento nominal médio mensal domiciliar per capita). O potencial de consumo por categoria exige levantamento de campo e POF.</p>
-  ${notaLev}
+  <h2 class="sec"><span>RUA E ENTORNO</span>O que existe ao redor do ponto</h2>
+  ${ent ? `<div class="two-col">
+    <section>
+      <table class="demo compact"><thead><tr><th>Estabelecimentos mapeados</th><th>Até 500 m</th><th>Até 1 km</th></tr></thead>
+      <tbody>${ent.linhas.map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r500)}</td><td>${num(l.r1000)}</td></tr>`).join('')}
+      <tr class="hl"><td>Total</td><td>${num(ent.total500)}</td><td>${num(ent.total1000)}</td></tr></tbody></table>
+    </section>
+    <section>
+      <table class="demo compact"><thead><tr><th>Transporte</th><th>Até 500 m</th><th>Até 1 km</th></tr></thead>
+      <tbody>${ent.transporte.map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r500)}</td><td>${num(l.r1000)}</td></tr>`).join('')}</tbody></table>
+      ${ent.via ? `<table class="demo compact" style="margin-top:10px"><thead><tr><th colspan="2">A via — ${esc(ent.via.nome)}</th></tr></thead>
+      <tbody><tr><td>Tipo</td><td>${esc(ent.via.tipo)}</td></tr>${ent.via.faixas ? `<tr><td>Faixas</td><td>${esc(ent.via.faixas)}</td></tr>` : ''}${ent.via.maoUnica ? `<tr><td>Sentido</td><td>${esc(ent.via.maoUnica)}</td></tr>` : ''}${ent.via.velocidade ? `<tr><td>Velocidade máxima</td><td>${esc(ent.via.velocidade)}</td></tr>` : ''}</tbody></table>` : ''}
+      ${ent.destaques.length ? `<table class="demo compact" style="margin-top:10px"><thead><tr><th>Mais próximo</th><th>Nome</th><th>Distância</th></tr></thead>
+      <tbody>${ent.destaques.map((d) => `<tr><td>${esc(d.rotulo)}</td><td>${esc(d.nome)}</td><td>${num(d.dist)} m</td></tr>`).join('')}</tbody></table>` : ''}
+    </section>
+  </div>
+  ${ent.naRua.length ? `<p style="font-size:10px;margin-top:10px;line-height:1.5"><strong>Na mesma rua ou vizinhos imediatos:</strong> ${ent.naRua.map((n) => esc(n.nome)).join(' · ')}.</p>` : ''}
+  <p class="src">Fonte: OpenStreetMap (Overpass API), consulta de ${new Date(ent.consultadoEm || Date.now()).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })}; distâncias em linha reta a partir do ponto do mapa. Mapeamento colaborativo: as contagens indicam o mínimo existente e não substituem levantamento de campo.</p>`
+    : `<p class="note"><strong>Entorno indisponível.</strong> ${demo?.geo ? 'O serviço de mapas não respondeu no momento da geração. Abra o documento novamente em alguns minutos.' : 'O endereço não pôde ser localizado no mapa — confira logradouro, bairro e cidade no cadastro do imóvel.'}</p>`}
   ${foot(imovel)}`)}
+${leitura.length ? sheet(`${topStrip(imovel, dataDoc)}
+  <h2 class="sec"><span>SÍNTESE</span>Leitura dos dados</h2>
+  <ul class="findings fortes" style="font-size:12.5px;line-height:1.9">${L(leitura)}</ul>
+  <p class="src">Síntese gerada a partir das tabelas anteriores (Censo 2022 e OpenStreetMap). Não inclui fluxo de pedestres, concorrência qualificada nem potencial de consumo por categoria, que dependem de levantamento de campo.</p>
+  ${foot(imovel)}`) : ''}
 ${sheet(`${topStrip(imovel, dataDoc)}
   <h2 class="sec"><span>DIAGNÓSTICO CADASTRAL</span>Triagem do ponto — ${esc(imovel.codigo)}</h2>
   <div class="score-line"><div class="score-ring" style="background:conic-gradient(var(--gold) ${pct}%, #e7ebe6 0)"><span>${esc(score)}</span></div>
@@ -224,9 +265,9 @@ ${sheet(`${topStrip(imovel, dataDoc)}
   <h2 class="sec"><span>ENCERRAMENTO</span>Limitações e uso do documento</h2>
   <div class="body-cols">
     <div><ul style="padding-left:18px;font-size:11px;line-height:1.8">
-      <li>Séries populacionais: estimativas oficiais IBGE com projeção por TGCA.</li>
-      <li>Sexo, faixa etária, rendimento e domicílios por faixa: universo Censo Demográfico 2010 (IBGE), no recorte municipal.</li>
-      <li>Recortes por raio (1 km / 2 km) e potencial de consumo por categoria ficam "sob levantamento" até o trabalho de campo e o recorte por setores censitários.</li>
+      <li>Séries populacionais (município e estado): estimativas oficiais IBGE com projeção por TGCA.</li>
+      <li>População, domicílios, faixa etária e rendimento: Censo Demográfico 2022 (IBGE), nos recortes de bairro e município.</li>
+      <li>Entorno da rua: OpenStreetMap. A cobertura varia por região; ausência de um estabelecimento no mapa não prova que ele não existe.</li>
       <li>A triagem cadastral é heurística: deriva exclusivamente dos dados do imóvel e não substitui estudo de mercado.</li>
     </ul></div>
     <div><ul style="padding-left:18px;font-size:11px;line-height:1.8">

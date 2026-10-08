@@ -437,3 +437,16 @@ model BenchmarkLocacao {
   fonte String
   @@map("benchmarks_locacao")
 }
+
+// Biblioteca de modelos de contrato (links para os arquivos-padrão da empresa)
+model ModeloContrato {
+  id           Int      @id @default(autoincrement())
+  nome         String
+  categoria    String   @default("outro") // locacao | compra_venda | passagem_ponto | prestacao_servicos | confidencialidade | outro
+  descricao    String?
+  url          String
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@map("modelos_contrato")
+}

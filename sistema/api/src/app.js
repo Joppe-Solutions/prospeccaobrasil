@@ -80,6 +80,7 @@ app.use('/api/demandas', require('./routes/demandas')(prisma));
 app.use('/api/propostas', require('./routes/propostas')(prisma));
 app.use('/api/glossario', require('./routes/glossario')(prisma));
 app.use('/api/benchmarks', require('./routes/benchmarks')(prisma));
+app.use('/api/modelos-contrato', require('./routes/modelosContrato')(prisma));
 app.use('/api/empresas', require('./routes/empresas')(prisma));
 app.use('/api/leads', require('./routes/leads')(prisma));
 app.use('/api/proprietarios', require('./routes/proprietarios')(prisma));

@@ -28,3 +28,4 @@ SSHPASS
 
 # Artefatos temporários de validação e snapshots locais
 /tmp/
+sistema/api/cache/
