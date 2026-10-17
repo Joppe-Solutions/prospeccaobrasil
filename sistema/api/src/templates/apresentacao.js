@@ -1,5 +1,6 @@
 const { Prisma } = require('@prisma/client');
 const { DOC_PUBLICOS } = require('../lib/publicDocs');
+const { TIPOS_PARCEIRO, registroProfissional } = require('../lib/parceiros');
 const styles = require('./apresentacao.styles');
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({
@@ -105,11 +106,13 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const infra = infraSection(contexto);
   const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
-  const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
-  const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>`;
-  const footerBand = footer.replace('class="document-footer"', 'class="document-footer band"');
-  const title = i.titulo || address(i);
   const hasDetails = Boolean(i.descricao?.trim() || docs.length || photos.length > 1 || infra);
+  // Vínculo comercial do imóvel (parceiro que o trouxe): tipo, nome e registro profissional
+  const vinculo = i.parceiro?.nome ? `<div class="partner"><span>${esc(TIPOS_PARCEIRO[i.parceiro.tipo] || 'Parceiro')}</span><strong>${esc(i.parceiro.nome)}</strong>${registroProfissional(i.parceiro) ? `<span>${esc(registroProfissional(i.parceiro))}</span>` : ''}</div>` : '';
+  const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div>${hasDetails ? '' : vinculo}<div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
+  const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>`;
+  const footerBand = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div>${vinculo}<div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
+  const title = i.titulo || address(i);
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(i.codigo)} - Apresentação comercial</title><style>${styles}</style></head><body class="${completa ? 'complete' : 'compact'}">
 <nav class="toolbar" aria-label="Ações da apresentação"><div><strong>Apresentação do imóvel</strong><span>Documento A4 · pronto para compartilhar</span></div><a href="?formato=${completa ? 'resumo' : 'completa'}">${completa ? 'Resumo · 1 folha' : 'Complementos · até 2 folhas'}</a><button type="button" onclick="window.print()">Imprimir / Salvar PDF</button></nav>

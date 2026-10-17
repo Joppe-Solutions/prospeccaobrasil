@@ -82,7 +82,8 @@ async function demografia(imovel) {
     if (!imovel.cidade || !imovel.uf) return null;
     const uf = String(imovel.uf).toUpperCase();
     const [mun, geo] = await Promise.all([
-      municipioId(imovel.cidade, uf).catch(() => null),
+      // Código do município: tabela local do Censo (sem rede); a consulta ao IBGE só entra se o nome não bater
+      Promise.resolve(censo2022.codigoMunicipio(imovel.cidade, uf)).then((codigo) => (codigo ? { id: codigo } : municipioId(imovel.cidade, uf))).catch(() => null),
       geocode(imovel).catch(() => null),
     ]);
     const [serieMun, serieUF, entornoRua] = await Promise.all([
@@ -100,7 +101,7 @@ async function demografia(imovel) {
         temBairros: censo2022.temBairros(mun.id),
       } : null,
       geo,
-      mapa: mapa(geo),
+      mapa: mapa(geo, { z: 15, cols: 4, rows: 4 }),
       entorno: entornoRua,
       fonte: `Estimativas de população — IBGE (agregado 6579) · ${censo2022.FONTE}`,
     };

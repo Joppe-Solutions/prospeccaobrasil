@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { Storefront } from '@phosphor-icons/react';
 import { api, fmtNum } from '../lib/api';
 import FormWizard, { WizardReview } from '../components/FormWizard';
+import { CampoNumerico } from '../components/NumberFields';
 
 const STEPS = [
   { id: 'empresa', title: 'Empresa', subtitle: 'Identidade e segmento', heading: 'Quem é a empresa', description: 'Dados institucionais usados nas listagens e no match com imóveis.',
@@ -20,7 +21,7 @@ const STEPS = [
     ] },
   { id: 'perfil', title: 'Perfil buscado', subtitle: 'Demanda de expansão', heading: 'O que a empresa procura', description: 'Esses dados alimentam o match inteligente com os imóveis disponíveis.',
     fields: [
-      { k: 'areaMinima', l: 'Área mínima (m²)', type: 'number' }, { k: 'areaMaxima', l: 'Área máxima (m²)', type: 'number' },
+      { k: 'areaMinima', l: 'Área mínima (m²)', fmt: 'decimal' }, { k: 'areaMaxima', l: 'Área máxima (m²)', fmt: 'decimal' },
       { k: 'regioesInteresse', l: 'Regiões de interesse', ph: 'Zona Oeste, Barra, Centro…', full: true },
       { k: 'perfilLoja', l: 'Perfil de loja buscado', type: 'textarea', full: true },
       { k: 'observacoes', l: 'Observações', type: 'textarea', full: true },
@@ -32,7 +33,9 @@ function Field({ def, value, onChange }) {
     <label htmlFor={`wz-${def.k}`}>{def.l}{def.req && <span className="wz-required">*</span>}</label>
     {def.type === 'textarea'
       ? <textarea id={`wz-${def.k}`} value={value || ''} onChange={e => onChange(e.target.value)} />
-      : <input id={`wz-${def.k}`} type={def.type || 'text'} step="any" placeholder={def.ph || ''} value={value ?? ''} onChange={e => onChange(e.target.value)} required={def.req} />}
+      : def.fmt
+        ? <CampoNumerico id={`wz-${def.k}`} formato={def.fmt} value={value ?? ''} onChange={onChange} required={def.req} />
+        : <input id={`wz-${def.k}`} type={def.type || 'text'} placeholder={def.ph || ''} value={value ?? ''} onChange={e => onChange(e.target.value)} required={def.req} />}
   </div>;
 }
 

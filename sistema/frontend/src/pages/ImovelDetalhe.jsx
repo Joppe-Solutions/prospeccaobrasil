@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
-import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, STATUS, TIPOS_IMOVEL, getToken, getUser, useArquivoToken } from '../lib/api';
+import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO, getToken, getUser, useArquivoToken } from '../lib/api';
 import PhotoUploader from '../components/PhotoUploader';
+import { DinheiroInput } from '../components/NumberFields';
 
-const DOC_TIPOS = [['planta', 'Planta'], ['dwg', 'DWG'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
+const DOC_TIPOS = [['planta', 'Planta (PDF)'], ['dwg', 'Planta (DWG)'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -171,6 +172,7 @@ export default function ImovelDetalhe() {
             <label>Parceiro</label>
             <div style={{ fontWeight: 700 }}>
               {i.parceiro?.nome || '—'}
+              {i.parceiro ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{[TIPOS_PARCEIRO[i.parceiro.tipo], registroProfissional(i.parceiro)].filter(Boolean).join(' · ')}</div> : null}
               {i.parceiro?.telefone ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.parceiro.telefone}</div> : null}
             </div>
           </div>
@@ -182,7 +184,7 @@ export default function ImovelDetalhe() {
         <h2>Despesas do imóvel</h2>
         <form onSubmit={addDespesa} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
           <input placeholder="Descrição" required value={despesaForm.descricao} onChange={e => setDespesaForm({ ...despesaForm, descricao: e.target.value })} style={{ flex: 2, minWidth: 160 }} />
-          <input placeholder="Valor (R$)" type="number" step="any" required value={despesaForm.valor} onChange={e => setDespesaForm({ ...despesaForm, valor: e.target.value })} style={{ width: 140 }} />
+          <DinheiroInput aria-label="Valor da despesa" required value={despesaForm.valor} onChange={v => setDespesaForm({ ...despesaForm, valor: v })} style={{ width: 150 }} />
           <input type="date" value={despesaForm.data} onChange={e => setDespesaForm({ ...despesaForm, data: e.target.value })} />
           <button className="btn btn-ghost btn-sm" type="submit">Adicionar</button>
         </form>

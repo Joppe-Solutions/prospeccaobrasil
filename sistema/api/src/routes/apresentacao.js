@@ -4,6 +4,7 @@ const asyncHandler = require('../middleware/async');
 const { mapa } = require('../services/demografia');
 const { geocode, mapaEstatico, usaGoogle, coordenadasCadastradas } = require('../services/mapas');
 const censo2022 = require('../services/censo2022');
+const { PARCEIRO_PUBLICO } = require('../lib/parceiros');
 const { entorno } = require('../services/entorno');
 const { renderApresentacao, renderGaleria, locationUrl } = require('../templates/apresentacao');
 
@@ -16,7 +17,7 @@ module.exports = (prisma) => {
     if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send('Imóvel não encontrado');
     const imovel = await prisma.imovel.findUnique({
       where: { id },
-      include: { fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: true },
+      include: { fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: true, parceiro: { select: PARCEIRO_PUBLICO } },
     });
     if (!imovel || imovel.status === 'inativo') return res.status(404).send('Imóvel não encontrado');
     const qrData = await QRCode.toDataURL(locationUrl(imovel), {

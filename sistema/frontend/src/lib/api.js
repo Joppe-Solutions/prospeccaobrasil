@@ -70,3 +70,15 @@ export function lerCoordenadas(texto) {
 const LAT = '-?(?:90(?:\\.0+)?|[0-8]?\\d(?:\\.\\d+)?)';
 const LON = '-?(?:180(?:\\.0+)?|1[0-7]\\d(?:\\.\\d+)?|\\d{1,2}(?:\\.\\d+)?)';
 export const PADRAO_COORDENADAS = `\\s*${LAT}\\s*(?:[,;]\\s*|\\s+)${LON}\\s*`;
+
+export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
+
+export const TIPOS_PARCEIRO = { corretor: 'Corretor', imobiliaria: 'Imobiliária', advogado: 'Advogado', indicador: 'Indicador', outro: 'Outro' };
+
+// Registro profissional do parceiro, como aparece nas telas e na apresentação: "CRECI Físico RJ-12345", "OAB RJ-123456"
+export function registroProfissional(p) {
+  if (!p) return '';
+  if (['corretor', 'imobiliaria'].includes(p.tipo) && p.creci) return `CRECI ${p.tipoPessoa === 'pj' ? 'Jurídico' : 'Físico'} ${p.creciUf ? `${p.creciUf}-` : ''}${p.creci}`;
+  if (p.tipo === 'advogado' && p.oab) return `OAB ${p.oabUf ? `${p.oabUf}-` : ''}${p.oab}`;
+  return '';
+}

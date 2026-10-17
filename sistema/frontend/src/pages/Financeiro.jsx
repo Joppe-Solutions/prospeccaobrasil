@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Buildings, CurrencyDollar, Paperclip, PencilSimple, Plus, Receipt, TrendUp, Wallet, Warning } from '@phosphor-icons/react';
 import { api, fmtMoney, useArquivoToken } from '../lib/api';
+import { DinheiroInput } from '../components/NumberFields';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { PageHeader, StatusBadge } from '../components/UI';
@@ -331,7 +332,7 @@ export default function Financeiro() {
         <div className="field"><label htmlFor="l-tipo">Tipo</label><select id="l-tipo" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
         <div className="field"><label htmlFor="l-cat">Categoria</label><select id="l-cat" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>{Object.entries(CATEGORIAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
         <div className="field"><label htmlFor="l-desc">Descrição <span className="required">*</span></label><input id="l-desc" required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: Comissão locação PB-001" /></div>
-        <div className="field"><label htmlFor="l-valor">Valor (R$) <span className="required">*</span></label><input id="l-valor" required inputMode="decimal" value={form.valor} onChange={e => setForm({ ...form, valor: e.target.value })} placeholder="0,00" /></div>
+        <div className="field"><label htmlFor="l-valor">Valor (R$) <span className="required">*</span></label><DinheiroInput id="l-valor" required value={form.valor} onChange={v => setForm({ ...form, valor: v })} /></div>
         <div className="field"><label htmlFor="l-comp">Competência</label><input id="l-comp" type="date" value={form.competencia} onChange={e => setForm({ ...form, competencia: e.target.value })} /></div>
         <div className="field"><label htmlFor="l-venc">Vencimento</label><input id="l-venc" type="date" value={form.vencimento} onChange={e => setForm({ ...form, vencimento: e.target.value })} /></div>
         <div className="field"><label htmlFor="l-pagador">Pagador</label><input id="l-pagador" value={form.pagador} onChange={e => setForm({ ...form, pagador: e.target.value })} placeholder="Quem paga / é cobrado" /></div>
@@ -350,7 +351,7 @@ export default function Financeiro() {
       <form id="baixa-form" className="collection-modal-form" onSubmit={confirmarBaixa}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
         <div className="field"><label htmlFor="b-data">Data do pagamento</label><input id="b-data" type="date" value={baixaForm.pagoEm} onChange={e => setBaixaForm({ ...baixaForm, pagoEm: e.target.value })} /><small className="collection-optional">Em branco = hoje</small></div>
-        <div className="field"><label htmlFor="b-valor">Valor pago (R$)</label><input id="b-valor" inputMode="decimal" value={baixaForm.valorPago} onChange={e => setBaixaForm({ ...baixaForm, valorPago: e.target.value })} /></div>
+        <div className="field"><label htmlFor="b-valor">Valor pago (R$)</label><DinheiroInput id="b-valor" value={baixaForm.valorPago} onChange={v => setBaixaForm({ ...baixaForm, valorPago: v })} /></div>
         <div className="field"><label htmlFor="b-forma">Forma</label><select id="b-forma" value={baixaForm.formaPagamento} onChange={e => setBaixaForm({ ...baixaForm, formaPagamento: e.target.value })}>{Object.entries(FORMAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
       </form>
     </Modal>}

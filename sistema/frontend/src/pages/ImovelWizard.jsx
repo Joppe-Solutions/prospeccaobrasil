@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowSquareOut, Buildings, Plus, Trash } from '@phosphor-icons/react';
-import { api, enviarFotos, fmtNum, lerCoordenadas, mapsUrl, MAPS_AUTO, PADRAO_COORDENADAS, STATUS, TIPOS_IMOVEL } from '../lib/api';
+import { api, enviarFotos, fmtNum, lerCoordenadas, mapsUrl, MAPS_AUTO, PADRAO_COORDENADAS, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO } from '../lib/api';
 import FormWizard, { WizardReview } from '../components/FormWizard';
 import PhotoUploader from '../components/PhotoUploader';
+import { CampoNumerico, DecimalInput } from '../components/NumberFields';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -27,20 +28,20 @@ const STEPS = [
     ] },
   { id: 'dimensoes', title: 'Dimensões', subtitle: 'Áreas e medidas', heading: 'Dimensões', description: 'Áreas por pavimento ou ambiente e medidas exibidas no bloco "Dimensões" da apresentação.',
     fields: [
-      { k: 'areaUtil', l: 'Área útil (m²)', type: 'number' },
-      { k: 'peDireito', l: 'Pé direito (mts)', type: 'number' },
-      { k: 'frenteImovel', l: 'Frente do imóvel (mts)', type: 'number' },
-      { k: 'vagas', l: 'Vagas de estacionamento', type: 'number' },
+      { k: 'areaUtil', l: 'Área útil (m²)', fmt: 'decimal' },
+      { k: 'peDireito', l: 'Pé direito (m)', fmt: 'decimal' },
+      { k: 'frenteImovel', l: 'Frente do imóvel (m)', fmt: 'decimal' },
+      { k: 'vagas', l: 'Vagas de estacionamento', fmt: 'inteiro' },
       { k: 'acessibilidade', l: 'Acessibilidade', type: 'textarea', full: true },
       { k: 'infraestrutura', l: 'Infraestrutura e estado de conservação', type: 'textarea', full: true },
       { k: 'restricoesUso', l: 'Restrições de uso / atividades permitidas', type: 'textarea', full: true },
     ] },
   { id: 'termos', title: 'Termos', subtitle: 'Valores e contrato', heading: 'Termos comerciais', description: 'Valores mensais e condições que aparecem no bloco "Termos comerciais".',
     fields: [
-      { k: 'cdu', l: 'CDU — cessão de direito de uso (R$)', type: 'number' }, { k: 'aluguel', l: 'Aluguel (R$)', type: 'number' },
-      { k: 'iptu', l: 'IPTU (R$)', type: 'number' }, { k: 'condominio', l: 'Condomínio (R$)', type: 'number' },
-      { k: 'carenciaMeses', l: 'Carência (meses)', type: 'number' },
-      { k: 'precoVenda', l: 'Preço de venda (R$)', type: 'number' }, { k: 'periodoContrato', l: 'Período de contrato', ph: '5 anos' },
+      { k: 'cdu', l: 'CDU — cessão de direito de uso (R$)', fmt: 'dinheiro' }, { k: 'aluguel', l: 'Aluguel (R$)', fmt: 'dinheiro' },
+      { k: 'iptu', l: 'IPTU (R$)', fmt: 'dinheiro' }, { k: 'condominio', l: 'Condomínio (R$)', fmt: 'dinheiro' },
+      { k: 'carenciaMeses', l: 'Carência (meses)', fmt: 'inteiro' },
+      { k: 'precoVenda', l: 'Preço de venda (R$)', fmt: 'dinheiro' }, { k: 'periodoContrato', l: 'Período de contrato', ph: '5 anos' },
     ] },
   { id: 'vinculos', title: 'Vínculos', subtitle: 'Proprietário e parceiro', heading: 'Proprietário, parceiro e observações', description: 'Quem é o dono, quem trouxe o imóvel e o texto usado na apresentação.',
     fields: [
@@ -67,7 +68,7 @@ function Dimensoes({ form, setForm, ablAuto, setAblAuto }) {
       <ul className="wz-areas" aria-labelledby="wz-areas-label">
         {areas.map((a, index) => <li key={index}>
           <input aria-label={`Nome da área ${index + 1}`} list="wz-areas-sugestoes" placeholder="Ex.: 2º piso" maxLength={60} value={a.nome} onChange={e => editar(index, 'nome', e.target.value)} required={a.area !== '' && a.area != null} />
-          <input aria-label={`Metragem da área ${index + 1} (m²)`} type="number" step="any" min="0" placeholder="m²" value={a.area ?? ''} onChange={e => editar(index, 'area', e.target.value)} required={!!a.nome.trim()} />
+          <DecimalInput aria-label={`Metragem da área ${index + 1} (m²)`} placeholder="m²" value={a.area ?? ''} onChange={v => editar(index, 'area', v)} required={!!a.nome.trim()} />
           <button type="button" className="icon-button" aria-label={`Remover área ${index + 1}`} onClick={() => setAreas(areas.filter((_, n) => n !== index))}><Trash size={16} /></button>
         </li>)}
       </ul>
@@ -76,7 +77,7 @@ function Dimensoes({ form, setForm, ablAuto, setAblAuto }) {
     </div>
     <div className="wz-field">
       <label htmlFor="wz-areaTotal">Área Bruta Locável — ABL (m²)</label>
-      <input id="wz-areaTotal" type="number" step="any" min="0" value={form.areaTotal ?? ''} onChange={e => { setAblAuto(false); setForm(f => ({ ...f, areaTotal: e.target.value })); }} />
+      <DecimalInput id="wz-areaTotal" value={form.areaTotal ?? ''} onChange={v => { setAblAuto(false); setForm(f => ({ ...f, areaTotal: v })); }} />
       {ablAuto
         ? <small>Sugerida pela soma das áreas acima. Você pode alterar.</small>
         : soma > 0 && soma !== Number(form.areaTotal)
@@ -88,7 +89,7 @@ function Dimensoes({ form, setForm, ablAuto, setAblAuto }) {
 
 function Field({ def, value, onChange, options }) {
   const selectOptions = def.optionsKey
-    ? [['', 'Não vinculado'], ...(options[def.optionsKey] || []).map(o => [String(o.id), o.nome])]
+    ? [['', 'Não vinculado'], ...(options[def.optionsKey] || []).map(o => [String(o.id), def.optionsKey === 'parceiros' ? [o.nome, TIPOS_PARCEIRO[o.tipo], registroProfissional(o)].filter(Boolean).join(' · ') : o.nome])]
     : SELECTS[def.k];
   return <div className={`wz-field ${def.full ? 'wz-full' : ''}`}>
     <label htmlFor={`wz-${def.k}`}>{def.l}{def.req && <span className="wz-required">*</span>}</label>
@@ -96,7 +97,9 @@ function Field({ def, value, onChange, options }) {
       ? <select id={`wz-${def.k}`} value={value ?? ''} onChange={e => onChange(e.target.value)}>{selectOptions.map(([v, l]) => <option key={v || '_'} value={v}>{l}</option>)}</select>
       : def.type === 'textarea'
         ? <textarea id={`wz-${def.k}`} value={value || ''} onChange={e => onChange(e.target.value)} />
-        : <input id={`wz-${def.k}`} type={def.type || 'text'} step="any" placeholder={def.ph || ''} value={value ?? ''} onChange={e => onChange(e.target.value)} required={def.req} />}
+        : def.fmt
+          ? <CampoNumerico id={`wz-${def.k}`} formato={def.fmt} value={value ?? ''} onChange={onChange} required={def.req} />
+          : <input id={`wz-${def.k}`} type={def.type || 'text'} placeholder={def.ph || ''} value={value ?? ''} onChange={e => onChange(e.target.value)} required={def.req} />}
   </div>;
 }
 

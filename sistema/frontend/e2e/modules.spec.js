@@ -4,9 +4,6 @@ import { login, watchErrors, expectNoErrors } from './helpers.js';
 // label = título na barra superior; navLabel = nome do link na sidebar quando difere (itens com linha de apoio)
 const MODULES = [
   { path: '/', label: 'Visão geral', marker: 'BEM-VINDO' },
-  { path: '/institucional', label: 'Institucional', marker: 'Atuação e serviços' },
-  { path: '/diretrizes', label: 'Diretrizes', marker: 'Diretrizes de expansão' },
-  { path: '/propostas', label: 'Propostas Comerciais', navLabel: 'Carta modelo de Proposta Comercial', marker: null },
   { path: '/financeiro', label: 'Financeiro', marker: null },
   { path: '/imoveis', label: 'Imóveis', navLabel: /^Imóveis/, marker: 'PB-E2E' },
   { path: '/empresas', label: 'Clientes', navLabel: /^Clientes/, marker: 'Empresa E2E' },
@@ -82,5 +79,22 @@ test('modelos de contrato: admin cadastra e abre o link', async ({ page }) => {
   await page.getByRole('button', { name: 'Salvar' }).click();
   await expect(page.locator('#main-content')).toContainText('Contrato de locação E2E');
   await expect(page.locator('#main-content').getByRole('link', { name: 'Abrir' })).toHaveAttribute('href', 'https://example.com/locacao.docx');
+  await expectNoErrors(errors);
+});
+
+test('menu: Institucional é só um grupo (sem página própria) e módulos removidos redirecionam', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/imoveis');
+  const nav = page.locator('nav');
+  await expect(nav.getByRole('link', { name: 'Site institucional' })).toHaveAttribute('href', 'https://prospeccaobrasil.com.br');
+  await expect(nav.getByRole('link', { name: /^Institucional$/ })).toHaveCount(0); // o rótulo do grupo não é link
+  await nav.getByText('Institucional', { exact: true }).click();
+  await expect(page).toHaveURL(/\/imoveis$/);
+  for (const antigo of ['/institucional', '/diretrizes', '/propostas']) {
+    await page.goto(antigo);
+    await expect(page).toHaveURL(/\/$/);
+    await expect(page.locator('.topbar-path strong')).toHaveText('Visão geral');
+  }
+  await expect(nav.getByRole('link', { name: /Diretrizes|Carta modelo/ })).toHaveCount(0);
   await expectNoErrors(errors);
 });

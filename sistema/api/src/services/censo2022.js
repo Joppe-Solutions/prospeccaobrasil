@@ -12,10 +12,13 @@ function registro(r) {
   if (!r) return null;
   const [nome, areaKm2, populacao, domicilios, domiciliosOcupados, moradoresPorDomicilio, domiciliosVagos, usoOcasional, homens, mulheres, ...resto] = r;
   const faixas = resto.slice(0, FAIXAS.length);
-  const [responsaveis, rendaMedia, rendaMediana] = resto.slice(FAIXAS.length);
+  const [responsaveis, rendaMedia, rendaMediana, ...homensPorFaixa] = resto.slice(FAIXAS.length);
+  const homensFaixas = homensPorFaixa.length === FAIXAS.length ? homensPorFaixa : null;
   return {
     nome, areaKm2, populacao, domicilios, domiciliosOcupados, moradoresPorDomicilio, domiciliosVagos, usoOcasional,
-    homens, mulheres, faixas, responsaveis, rendaMedia, rendaMediana,
+    homens, mulheres, faixas, homensFaixas,
+    mulheresFaixas: homensFaixas ? faixas.map((total, n) => (total != null && homensFaixas[n] != null ? total - homensFaixas[n] : null)) : null,
+    responsaveis, rendaMedia, rendaMediana,
     densidade: populacao && areaKm2 ? populacao / areaKm2 : null,
   };
 }

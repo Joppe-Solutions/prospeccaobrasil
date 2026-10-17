@@ -31,7 +31,7 @@ test('wizard de imóvel cria registro completo e lista exibe o novo código', as
   await modal.getByRole('button', { name: 'Adicionar área' }).click();
   await modal.getByLabel('Nome da área 2').fill('2º piso');
   await modal.getByLabel('Metragem da área 2 (m²)').fill('45.5');
-  await expect(modal.locator('#wz-areaTotal')).toHaveValue('125.5');
+  await expect(modal.locator('#wz-areaTotal')).toHaveValue('125,5');
   await modal.locator('#wz-areaTotal').fill('120');
   await expect(modal.getByRole('button', { name: 'Usar a soma' })).toBeVisible();
   await modal.getByRole('button', { name: 'Próximo' }).click();

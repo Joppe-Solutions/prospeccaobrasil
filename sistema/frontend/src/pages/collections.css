@@ -21,3 +21,4 @@
 .match-criteria .is-sem_dado{background:#f5f1e4;color:#85703c}
 .proposta-legend{padding:0;margin-bottom:14px;font-size:13px;font-weight:650;color:var(--green)}
 .proposta-legend small{margin-left:8px;font-size:10px;font-weight:400;color:var(--muted)}
+.field-pair{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:12px}

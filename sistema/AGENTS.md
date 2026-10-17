@@ -55,7 +55,7 @@
 - Exclusões de cadastros e operações exigem `admin`; o sistema nunca fica sem admin ativo.
 - `/api/public/imoveis/:id` devolve só `CAMPOS_PUBLICOS` (campo novo não vaza por padrão).
 - Tipos de imóvel: `locacao`, `venda` (rótulo "Venda direta") e `passagem_ponto`.
-- Coluna "Diretrizes" em Imóveis: regra em `api/src/lib/compatibilidade.js`.
+- Coluna "Demandas" em Imóveis (demandas ativas compatíveis com o imóvel): regra em `api/src/lib/compatibilidade.js`.
 - Dimensões do imóvel: `imovel_areas` guarda a composição (térreo, 2º piso, jirau...);
   `areaTotal` é a ABL (sugerida pela soma, editável). As colunas `pisoAreaVenda`, `jirau`
   e `mezanino` são derivadas das linhas pela API e não aparecem mais no formulário.
@@ -70,12 +70,35 @@
   (`services/entorno.js`), com cache em disco em `api/cache/entorno/` (30 dias; o serviço
   público oscila, então a última consulta vale como reserva). Estimativas anuais e
   geocodificação continuam online (IBGE 6579 e Nominatim).
+- Relatório de inteligência (`templates/inteligencia.js`, gráficos SVG em `templates/graficos.js`): cada
+  folha mede exatamente A4 paisagem (297 × 210 mm, `@page` sem margem; 209,6 mm no papel para o
+  arredondamento não gerar página em branco). Folhas sem dados são omitidas (e registradas em
+  "Limitações"), nunca ficam vazias; listas de texto são truncadas para caber. O teste e2e
+  `inteligencia.spec.js` exige: páginas do PDF = folhas, A4 deitado, nenhum conteúdo passando da folha,
+  em 5 cenários de dados faltando. Ao mudar o layout, rode-o e confira as imagens (`pdftoppm`).
+- Domicílios por classe social (`services/classes.js`): o Censo 2022 não publica a distribuição por bairro;
+  é uma ESTIMATIVA lognormal calibrada com a média e a mediana do rendimento do responsável, com os limites
+  do Critério Brasil sobre o salário mínimo de 2022. Sempre rotulada como estimativa no documento.
+  A pirâmide etária usa os homens por faixa (último bloco de cada registro de `censo2022.json`; o script
+  `scripts/build-censo2022.py` gera o arquivo). O município vem do código local do Censo (sem rede).
+- Parceiros: tipos corretor, imobiliária, advogado, indicador, outro; `tipoPessoa` pf/pj (imobiliária é sempre
+  pj), `documento` (CPF/CNPJ com dígitos verificadores), CRECI (físico se pf, jurídico se pj) com UF para
+  corretor/imobiliária e OAB com UF para advogado. A apresentação mostra no rodapé da 2ª folha só tipo, nome
+  e registro profissional (`lib/parceiros.js`); contato do parceiro nunca vai para o documento público.
+- Máscaras numéricas (`components/NumberFields.jsx`, `lib/numeros.js`): `DinheiroInput` (R$ 1.234,56),
+  `DecimalInput` (áreas e medidas) e `InteiroInput`; o valor do estado é sempre canônico ("1234.5") e a API
+  não muda. Nunca use `type="number"` em formulários. Formatos nos formulários: `fmt: 'dinheiro'|'decimal'|'inteiro'`
+  (wizards) ou o tipo na lista de campos do `BusinessFields`.
 - Menu lateral segue o PDF "Espaço Work" do cliente (`NAV` em `components/Layout.jsx`):
-  `sub` = linha de apoio, `children` = subitens. Rotas mantidas: Clientes = `/empresas`,
-  Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários e
-  Documentação não estavam no PDF e foram mantidos em Cadastros.
+  `sub` = linha de apoio, `children` = subitens; item sem `to` é só um grupo (rótulo sem página, caso de
+  "Institucional", que contém apenas o link externo "Site institucional"). Rotas mantidas: Clientes = `/empresas`,
+  Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários e Documentação não
+  estavam no PDF e foram mantidos em Cadastros. Os módulos Diretrizes, Institucional e Propostas Comerciais
+  foram removidos da interface; `/diretrizes`, `/institucional` e `/propostas` redirecionam para o início.
+  A API de propostas (`/api/propostas`, `/proposta/:id`, `templates/proposta.js`) e a tabela
+  `propostas_servico` continuam no sistema, sem tela, para não perder dados.
 - Conhecimento: `/inteligencia` (um relatório por imóvel), `/benchmark` (rental rate),
-  `/modelos-contratos` (links; só admin mantém), `/diretrizes` (premissas das demandas ativas).
+  `/modelos-contratos` (links; só admin mantém).
 - Apresentação do imóvel (`templates/apresentacao.js`): 1ª folha com faixa verde no cabeçalho (QR
   code de localização à direita), mapa ao lado da foto e "Indicadores de Inteligência Territorial e
   Comercial" (4 cartões) no rodapé. 2ª folha ("complementos"): descrição, Infraestrutura Urbana e
@@ -100,7 +123,8 @@
   `convencao`, `regimento`, `iptu_doc`, `doc_locatario`, `outro`. Públicos (`lib/publicDocs.js`):
   planta, inteligência, RGI, AVCB, convenção, regimento, IPTU. DWG e documentação do locatário
   são internos. DWG só sobe como documento (não como foto).
-- Proposta comercial (`/propostas`): o formulário tem só os campos variáveis do modelo oficial e
+- Proposta comercial (SEM TELA desde que o módulo saiu do menu; API e documento seguem disponíveis): `/api/propostas`
+  guarda os campos variáveis do modelo oficial e
   `/proposta/:id` gera o documento (`templates/proposta.js`), réplica página a página do PDF
   modelo: fontes Gelasio e Carlito em `frontend/public/fonts`, capa e logo em
   `frontend/public/proposta`. Campo vazio sai destacado entre colchetes. Ao mudar o texto do

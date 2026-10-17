@@ -50,15 +50,15 @@ export default function DemandasCompativeis({ imovel, onClose, onChange }) {
   }
 
   const grupos = data ? [
-    ['Compatíveis', 'Atendem a todas as diretrizes avaliadas.', data.demandas.filter(d => d.nivel === 'compativel')],
+    ['Compatíveis', 'Atendem a todas as premissas avaliadas.', data.demandas.filter(d => d.nivel === 'compativel')],
     ['Quase compatíveis', 'Apenas um critério fora da diretriz.', data.demandas.filter(d => d.nivel === 'parcial')],
   ].filter(g => g[2].length) : [];
 
-  return <Modal wide closeOnOverlay onClose={onClose} title={`Diretrizes de expansão · ${imovel.codigo}`} description="Demandas ativas cujas premissas este imóvel atende.">
+  return <Modal wide closeOnOverlay onClose={onClose} title={`Demandas compatíveis · ${imovel.codigo}`} description="Demandas de expansão ativas cujas premissas este imóvel atende.">
     {error && <div className="alert error" role="alert">{error}</div>}
     {!data && !error && <LoadingState />}
     {data && !data.ofertavel && <div className="alert">Imóvel fora de oferta (status atual). As demandas abaixo são apenas referência.</div>}
-    {data && !grupos.length && <EmptyState title="Nenhuma demanda compatível" description="Nenhuma demanda ativa tem diretrizes que este imóvel atenda." />}
+    {data && !grupos.length && <EmptyState title="Nenhuma demanda compatível" description="Nenhuma demanda ativa tem premissas que este imóvel atenda." />}
     {grupos.map(([titulo, descricao, itens]) => <section key={titulo} className="match-group">
       <h3>{titulo} <span>{itens.length}</span></h3><p>{descricao}</p>
       <ul className="match-list">{itens.map(d => <Demanda key={d.id} demanda={d} ofertavel={data.ofertavel} enviando={enviando} onApresentar={apresentar} />)}</ul>

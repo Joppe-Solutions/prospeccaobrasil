@@ -19,7 +19,7 @@ export default function Imoveis() {
   const [status, setStatus] = useState(statusParam && STATUS[statusParam] ? statusParam : '');
   const [tipo, setTipo] = useState('');
   const [categoria, setCategoria] = useState('');
-  const [diretrizes, setDiretrizes] = useState(null);
+  const [demandasDe, setDemandasDe] = useState(null);
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try { setList(await api('/imoveis')); } catch (e) { setError(e.message); } finally { setLoading(false); }
@@ -51,10 +51,10 @@ export default function Imoveis() {
     { accessorKey: 'areaTotal', header: 'ABL', cell: ({ getValue }) => <span className="collection-nowrap">{fmtNum(getValue(), 'm²')}</span> },
     { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : 'Custo mensal total'}</small></span> },
     { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={STATUS[getValue()]} /> },
-    { id: 'diretrizes', header: 'Diretrizes', accessorFn: i => i.demandasCompativeis ?? -1, cell: ({ row, getValue }) => {
+    { id: 'demandas', header: 'Demandas', accessorFn: i => i.demandasCompativeis ?? -1, cell: ({ row, getValue }) => {
       const n = getValue();
       if (n < 0) return <span className="muted" title="Imóvel fora de oferta">—</span>;
-      return <button type="button" className={`match-button ${n ? '' : 'is-empty'}`} onClick={() => setDiretrizes(row.original)} aria-label={`Ver demandas compatíveis com o imóvel ${row.original.codigo}`}>
+      return <button type="button" className={`match-button ${n ? '' : 'is-empty'}`} onClick={() => setDemandasDe(row.original)} aria-label={`Ver demandas compatíveis com o imóvel ${row.original.codigo}`}>
         <Target size={13} />{n === 0 ? 'Nenhuma' : n === 1 ? '1 demanda' : `${n} demandas`}
       </button>;
     } },
@@ -85,6 +85,6 @@ export default function Imoveis() {
         {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
       </>} />
     </section>
-    {diretrizes && <DemandasCompativeis imovel={diretrizes} onClose={() => setDiretrizes(null)} onChange={load} />}
+    {demandasDe && <DemandasCompativeis imovel={demandasDe} onClose={() => setDemandasDe(null)} onChange={load} />}
   </div>;
 }

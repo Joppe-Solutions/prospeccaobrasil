@@ -7,8 +7,8 @@ import { PageHeader } from '../components/UI';
 import './collections.css';
 
 const TIPOS = {
-  planta: 'Planta', inteligencia: 'Inteligência de mercado', pre_analise: 'Pré-análise',
-  rgi: 'RGI / Habite-se', avcb: 'AVCB', convencao: 'Convenção Cond.', regimento: 'Regimento', dwg: 'DWG', iptu_doc: 'IPTU',
+  planta: 'Planta (PDF)', inteligencia: 'Inteligência de mercado', pre_analise: 'Pré-análise',
+  rgi: 'RGI / Habite-se', avcb: 'AVCB', convencao: 'Convenção Cond.', regimento: 'Regimento', dwg: 'Planta (DWG)', iptu_doc: 'IPTU',
   doc_locatario: 'Doc. locatário', contrato: 'Contrato', proposta: 'Proposta', certidao: 'Certidão', outro: 'Outro',
 };
 const fmtData = (v) => v ? String(v).slice(0, 10).split('-').reverse().join('/') : '—';

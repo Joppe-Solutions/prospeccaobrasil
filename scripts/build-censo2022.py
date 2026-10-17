@@ -36,6 +36,7 @@ def registros(nivel, chave):
             num(b['v0009']), num(b['v0008']), num(d.get('V01007')), num(d.get('V01008')),
             *[num(d.get(f'V010{n}')) for n in range(31, 42)],  # 0-4 ... 70+
             num(r.get('V06001')), num(r.get('V06004')), num(r.get('V06006')),
+            *[num(d.get(f'V010{n:02d}')) for n in range(9, 20)],  # homens por faixa (0-4 ... 70+): mulheres = total da faixa - homens
         ]
 
 municipios = {cd: [b['NM_MUN'], *v] for cd, b, v in registros('municipios', 'CD_MUN')}

@@ -14,11 +14,8 @@ const NAV = [
     caption: 'PRINCIPAL',
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
-      { to: '/institucional', label: 'Institucional', icon: Buildings, children: [
-        { to: '/diretrizes', label: 'Diretrizes' },
-        { to: '/propostas', label: 'Carta modelo de Proposta Comercial', title: 'Propostas Comerciais' },
-        { href: 'https://prospeccaobrasil.com.br', label: 'Site institucional' },
-      ] },
+      // Grupo sem página própria: só agrupa os links
+      { label: 'Institucional', icon: Buildings, children: [{ href: 'https://prospeccaobrasil.com.br', label: 'Site institucional' }] },
       { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar, admin: true },
     ],
   },
@@ -62,6 +59,7 @@ const NAV = [
 
 // Título da barra superior: o caminho mais específico vence (subitens antes do item pai)
 const ALL_ITEMS = NAV.flatMap(g => g.items.flatMap(i => [i, ...(i.children || []).filter(c => c.to && c.to !== i.to)]))
+  .filter(i => i.to)
   .sort((a, b) => b.to.length - a.to.length);
 
 export default function Layout() {
@@ -80,11 +78,13 @@ export default function Layout() {
   const title = atual?.title || atual?.label || 'Visão geral';
 
   const item = ({ to, label, sub, icon: Icon, children }) => (
-    <div key={to} className="nav-item">
-      <NavLink to={to} end={to === '/'}>
-        <Icon size={18} weight="duotone" />
-        <span className="nav-text"><span>{label}</span>{sub && <small>{sub}</small>}</span>
-      </NavLink>
+    <div key={to || label} className="nav-item">
+      {to
+        ? <NavLink to={to} end={to === '/'}>
+          <Icon size={18} weight="duotone" />
+          <span className="nav-text"><span>{label}</span>{sub && <small>{sub}</small>}</span>
+        </NavLink>
+        : <div className="nav-grupo"><Icon size={18} weight="duotone" /><span className="nav-text"><span>{label}</span></span></div>}
       {children && <div className="nav-children">{children.map(child => child.href
         ? <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer">{child.label} <ArrowSquareOut size={11} /></a>
         : <NavLink key={child.label} to={child.to}>{child.label}</NavLink>)}</div>}
