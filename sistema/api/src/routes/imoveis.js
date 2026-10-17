@@ -17,6 +17,7 @@ const ALLOWED_MIME = new Set([
   'application/pdf',
 ]);
 const ALLOWED_EXT = new Set(['.jpg', '.jpeg', '.png', '.webp', '.pdf']);
+const DWG_MIME = new Set(['application/acad', 'application/x-acad', 'application/x-dwg', 'application/dwg', 'image/vnd.dwg', 'image/x-dwg']);
 
 const IMOVEL_FIELDS = [
   'vagas', 'acessibilidade', 'infraestrutura', 'restricoesUso', 'luvas', 'valorPonto', 'carenciaMeses', 'codigo', 'titulo', 'tipo', 'categoria', 'status', 'endereco', 'numero', 'complemento',
@@ -42,7 +43,7 @@ const ENUMS = {
 const URL_FIELDS = new Set(['googleMapsUrl', 'googleDriveUrl']);
 const semAcento = (v) => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
 const OBRIGATORIOS = ['endereco', 'cidade'];
-const DOC_TIPOS = ['planta', 'inteligencia', 'pre_analise', 'rig', 'avcb', 'convencao', 'iptu_doc', 'outro'];
+const DOC_TIPOS = ['planta', 'dwg', 'inteligencia', 'pre_analise', 'rgi', 'avcb', 'convencao', 'regimento', 'iptu_doc', 'doc_locatario', 'outro'];
 
 module.exports = (prisma) => {
   const r = express.Router();
@@ -59,7 +60,9 @@ module.exports = (prisma) => {
     fileFilter: (req, file, cb) => {
       const ext = path.extname(file.originalname).toLowerCase();
       if (ALLOWED_MIME.has(file.mimetype) && ALLOWED_EXT.has(ext)) return cb(null, true);
-      cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WebP ou PDF.'));
+      // DWG: só como documento do imóvel. Navegadores o enviam como octet-stream ou com tipos próprios do AutoCAD.
+      if (ext === '.dwg' && req.path.endsWith('/documentos') && (!file.mimetype || file.mimetype === 'application/octet-stream' || DWG_MIME.has(file.mimetype))) return cb(null, true);
+      cb(new Error('Tipo de arquivo não permitido. Use JPEG, PNG, WebP ou PDF (DWG apenas em documentos).'));
     },
   });
 

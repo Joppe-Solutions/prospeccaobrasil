@@ -256,7 +256,7 @@ model ImovelFoto {
 model ImovelDocumento {
   id        Int      @id @default(autoincrement())
   imovelId  Int      @map("imovel_id")
-  tipo      String // planta | inteligencia | pre_analise | rig | avcb | convencao | iptu_doc | outro
+  tipo      String // planta | inteligencia | pre_analise | rgi | avcb | convencao | regimento | dwg | iptu_doc | outro
   nome      String
   url       String?
   arquivo   String?

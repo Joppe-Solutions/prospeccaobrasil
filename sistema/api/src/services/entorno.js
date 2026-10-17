@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Os servidores públicos do Overpass oscilam (504/500 em horários de pico). Por isso:
-// vários servidores, duas rodadas, e o resultado fica em disco — um entorno já consultado
+// vários servidores e o resultado fica em disco — um entorno já consultado
 // continua disponível mesmo com o serviço fora do ar.
 const ENDPOINTS = ['https://overpass-api.de/api/interpreter', 'https://overpass.private.coffee/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 const CACHE_DIR = process.env.ENTORNO_CACHE_DIR || path.join(__dirname, '..', '..', 'cache', 'entorno');
@@ -69,7 +69,7 @@ async function consultar(geo) {
   const p = `(around:${RAIO},${geo.lat},${geo.lon})`;
   const query = `[out:json][timeout:25];(nwr${p}[amenity];nwr${p}[shop];nwr${p}[railway~"^(station|tram_stop)$"];nwr${p}[highway=bus_stop];nwr${p}[leisure=fitness_centre];nwr${p}[tourism~"^(hotel|hostel)$"];way(around:40,${geo.lat},${geo.lon})[highway][name];);out center tags;`;
   let erro;
-  for (const url of [...ENDPOINTS, ...ENDPOINTS]) {
+  for (const url of ENDPOINTS) {
     try {
       const r = await fetch(url, {
         method: 'POST', signal: AbortSignal.timeout(20000),

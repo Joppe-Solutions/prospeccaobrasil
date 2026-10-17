@@ -76,8 +76,13 @@
   Documentação não estavam no PDF e foram mantidos em Cadastros.
 - Conhecimento: `/inteligencia` (um relatório por imóvel), `/benchmark` (rental rate),
   `/modelos-contratos` (links; só admin mantém), `/diretrizes` (premissas das demandas ativas).
-- Apresentação do imóvel: "Contexto do ponto" (Censo 2022 do bairro + entorno) na folha de
-  complementos; o entorno tem 4 s para responder e depois vem do cache.
+- Apresentação do imóvel: QR code de localização no cabeçalho da 1ª folha e "Indicadores de
+  Inteligência Territorial e Comercial" (4 cartões: Censo 2022 do bairro + entorno) no rodapé
+  dela; o entorno tem 4 s para responder e depois vem do cache.
+- Documentos do imóvel: tipos `planta`, `dwg`, `inteligencia`, `pre_analise`, `rgi`, `avcb`,
+  `convencao`, `regimento`, `iptu_doc`, `doc_locatario`, `outro`. Públicos (`lib/publicDocs.js`):
+  planta, inteligência, RGI, AVCB, convenção, regimento, IPTU. DWG e documentação do locatário
+  são internos. DWG só sobe como documento (não como foto).
 - Proposta comercial (`/propostas`): o formulário tem só os campos variáveis do modelo oficial e
   `/proposta/:id` gera o documento (`templates/proposta.js`), réplica página a página do PDF
   modelo: fontes Gelasio e Carlito em `frontend/public/fonts`, capa e logo em

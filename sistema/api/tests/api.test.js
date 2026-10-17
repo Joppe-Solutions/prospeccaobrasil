@@ -898,3 +898,54 @@ test('proposta comercial: campos do modelo, numeração, documento e regras', as
   assert.equal((await req('DELETE', `/api/empresas/${outra.id}`, { token })).status, 200);
   assert.equal((await req('DELETE', `/api/propostas/${segunda.body.id}`, { token })).status, 200);
 });
+
+test('documentos do imóvel: RGI, regimento e DWG; só os tipos públicos vão à apresentação', async () => {
+  const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua dos Docs', cidade: 'Rio de Janeiro' } })).body;
+  const enviar = (rota, arquivo, tipo, mime) => {
+    const fd = new FormData();
+    fd.append('tipo', tipo);
+    fd.append('nome', `Arq ${tipo}`);
+    fd.append(rota.endsWith('fotos') ? 'fotos' : 'arquivo', new Blob(['conteudo'], { type: mime }), arquivo);
+    return fetch(`${getBase()}/api/imoveis/${im.id}/${rota}`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: fd });
+  };
+  const link = (tipo) => req('POST', `/api/imoveis/${im.id}/documentos`, { token, body: { tipo, nome: `Link ${tipo}`, url: `https://exemplo.com/${tipo}` } });
+
+  // tipos novos aceitos; o antigo "rig" (erro de digitação) não existe mais
+  for (const tipo of ['rgi', 'regimento', 'dwg', 'convencao', 'doc_locatario']) assert.equal((await link(tipo)).status, 200, tipo);
+  assert.equal((await link('rig')).status, 400);
+
+  // DWG sobe como documento (octet-stream ou tipo do AutoCAD), mas não como foto, e outros executáveis não passam
+  assert.equal((await enviar('documentos', 'planta.dwg', 'dwg', 'application/octet-stream')).status, 200);
+  assert.equal((await enviar('documentos', 'planta2.DWG', 'dwg', 'image/vnd.dwg')).status, 200);
+  assert.equal((await enviar('fotos', 'planta.dwg', 'dwg', 'application/octet-stream')).status, 400);
+  assert.equal((await enviar('documentos', 'virus.exe', 'outro', 'application/octet-stream')).status, 400);
+
+  // público: RGI e regimento aparecem; DWG e documentação do locatário ficam internos
+  const publicos = (await req('GET', `/api/public/imoveis/${im.id}`)).body.documentos.map((d) => d.tipo).sort();
+  assert.deepEqual(publicos, ['convencao', 'regimento', 'rgi']);
+});
+
+test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalho', () => {
+  const { renderApresentacao } = require('../src/templates/apresentacao');
+  const imovel = { codigo: 'PB-IND', titulo: 'Loja teste', endereco: 'Rua A', numero: '1', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', aluguel: 10000, areaTotal: 100, criadoEm: '2026-10-01', fotos: [], documentos: [] };
+  const contexto = {
+    bairro: { nome: 'Centro', populacao: 23774, rendaMedia: 4195.82, domiciliosOcupados: 12996 },
+    entorno: { total500: 393, destaques: [{ rotulo: 'Banco', nome: 'Itaú', dist: 180 }] },
+  };
+  const html = renderApresentacao(imovel, 'data:image/png;base64,AAAA', { contexto });
+  const primeira = html.split('<article class="sheet details"')[0];
+  const cabecalho = primeira.match(/<header class="document-header">[\s\S]*?<\/header>/)[0];
+
+  assert.match(cabecalho, /class="qr"/);
+  assert.match(cabecalho, /QR code para abrir a localização/);
+  assert.doesNotMatch(primeira.replace(cabecalho, ''), /class="qr"/);
+  const rodape = primeira.match(/<div class="first-foot">([\s\S]*)<\/div>\s*<\/article>/)[1];
+  assert.match(rodape, /Indicadores de Inteligência Territorial e Comercial/);
+  assert.equal((rodape.match(/<div><span class="small-label">/g) || []).length, 4);
+  assert.match(rodape, /class="document-footer"/);
+  assert.doesNotMatch(html, /Contexto do ponto|class="nearby"|Fontes: IBGE/);
+  assert.doesNotMatch(html, /Itaú/);
+  // sem dados, não sobra bloco vazio
+  const semDados = renderApresentacao(imovel, 'data:image/png;base64,AAAA', {}).replace(/<style>[\s\S]*?<\/style>/, '');
+  assert.doesNotMatch(semDados, /first-foot|Indicadores de Inteligência/);
+});

@@ -116,7 +116,8 @@ async function demografia(imovel) {
     const [serieMun, serieUF, entornoRua] = await Promise.all([
       mun ? seriePopulacao('N6', mun.id).catch(() => null) : null,
       seriePopulacao('N3', UF_ID[uf]).catch(() => null),
-      entorno(geo, imovel),
+      // O serviço de mapas pode demorar: o relatório espera no máximo 12 s (a consulta segue e fica em cache)
+      Promise.race([entorno(geo, imovel).catch(() => null), new Promise((resolve) => setTimeout(resolve, 12000, null))]),
     ]);
     return {
       municipio: serieMun ? { nome: serieMun.nome, ...projetar(serieMun) } : null,

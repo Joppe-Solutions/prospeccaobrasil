@@ -8,7 +8,7 @@ import './collections.css';
 
 const TIPOS = {
   planta: 'Planta', inteligencia: 'Inteligência de mercado', pre_analise: 'Pré-análise',
-  rig: 'RIG / Habite-se', avcb: 'AVCB', convencao: 'Convenção', iptu_doc: 'IPTU',
+  rgi: 'RGI / Habite-se', avcb: 'AVCB', convencao: 'Convenção Cond.', regimento: 'Regimento', dwg: 'DWG', iptu_doc: 'IPTU',
   doc_locatario: 'Doc. locatário', contrato: 'Contrato', proposta: 'Proposta', certidao: 'Certidão', outro: 'Outro',
 };
 const fmtData = (v) => v ? String(v).slice(0, 10).split('-').reverse().join('/') : '—';
