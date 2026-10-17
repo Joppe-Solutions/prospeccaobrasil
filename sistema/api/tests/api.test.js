@@ -959,7 +959,7 @@ test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalh
   assert.doesNotMatch(semDados, /first-foot|Indicadores de Inteligência/);
 });
 
-test('apresentação: ABL só no destaque, galeria com até 4 fotos, documentos em grade e visita no fim da 2ª folha', () => {
+test('apresentação: ABL só no destaque, Flash de Mercado no lugar das fotos, documentos em grade e visita no fim da 2ª folha', () => {
   const { renderApresentacao } = require('../src/templates/apresentacao');
   const base = { id: 9, codigo: 'PB-LAY', titulo: 'Loja layout', endereco: 'Rua B', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', aluguel: 10000, areaTotal: 100, areaUtil: 90, peDireito: 4, criadoEm: '2026-10-01' };
   const fotos = Array.from({ length: 8 }, (_, n) => ({ arquivo: `f${n}.jpg`, legenda: `Foto ${n}` }));
@@ -973,14 +973,13 @@ test('apresentação: ABL só no destaque, galeria com até 4 fotos, documentos 
   assert.doesNotMatch(corpo(html), /Área bruta locável|Área Bruta Locável/);
   assert.doesNotMatch(primeira.match(/Características do imóvel[\s\S]*?<\/section>/)[0], /ABL/);
 
-  // galeria: nunca mais de 4 fotos, com acesso às demais
-  assert.equal((segunda.match(/<figure data-foto=/g) || []).length, 4);
-  assert.match(segunda, /Ver todas as fotos/);
-  // (o visualizador da página guarda todas as fotos; a seção da galeria só as 4 primeiras)
-  assert.doesNotMatch(segunda.match(/<div class="gallery">[\s\S]*?<\/div>/)[0], /f5\.jpg|f6\.jpg|f7\.jpg/);
-  const poucas = renderApresentacao({ ...base, fotos: fotos.slice(0, 3), documentos: [], descricao: 'x' }, 'data:image/png;base64,AAAA', { completa: true });
-  assert.equal((poucas.split('<article class="sheet details"')[1].match(/<figure data-foto=/g) || []).length, 2);
-  assert.doesNotMatch(poucas, /Ver todas as fotos/);
+  // 2ª folha sem fotos: no lugar, o "Flash de Mercado" (só quando já há análise)
+  assert.equal((segunda.match(/<figure data-foto=/g) || []).length, 0);
+  assert.doesNotMatch(segunda, /Ver todas as fotos|class="gallery"/);
+  assert.doesNotMatch(corpo(segunda), /Flash de Mercado/);
+  const analise = { score: 72, resumo: 'Ponto com bom fluxo.', modelo: 'regras', conteudoJson: JSON.stringify({ pontosFortes: ['Esquina'], pontosAtencao: ['Ruído'], segmentosRecomendados: ['Farmácia'], recomendacao: 'Priorizar.' }) };
+  const comFlash = renderApresentacao({ ...base, fotos, documentos: docs, descricao: 'Texto', analises: [analise] }, 'data:image/png;base64,AAAA', { completa: true }).split('<article class="sheet details"')[1];
+  assert.match(corpo(comFlash), /Flash de Mercado[\s\S]*72[\s\S]*Esquina[\s\S]*Ruído[\s\S]*Farmácia/);
 
   // documentos em grade; 6 no papel (resto só na versão digital)
   assert.match(segunda, /class="doc-grid"/);
@@ -1200,4 +1199,45 @@ test('apresentação: rodapé da 2ª folha traz o vínculo do parceiro com CRECI
   // sem parceiro, sem bloco de vínculo
   const sem = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Sem Vínculo', cidade: 'Rio de Janeiro', descricao: 'Texto' } })).body;
   assert.doesNotMatch(await (await fetch(`${getBase()}/apresentacao/${sem.id}`)).text(), /class="partner"/);
+});
+
+test('operador do ponto: mesmo cadastro dos proprietários, com papel, e vínculo próprio no imóvel', async () => {
+  const criar = (body) => req('POST', '/api/proprietarios', { token, body });
+  assert.equal((await criar({ nome: 'X', papel: 'inventado' })).status, 400);
+  assert.equal((await criar({ nome: 'X', tipoPessoa: 'pf', documento: '111.444.777-36' })).body.error, 'CPF inválido');
+  assert.equal((await criar({ nome: 'X', tipoPessoa: 'pj', documento: '11.222.333/0001-82' })).body.error, 'CNPJ inválido');
+
+  const dono = (await criar({ nome: ' Dona Maria ', documento: '111.444.777-35', marca: 'ignorada' })).body;
+  assert.deepEqual([dono.nome, dono.papel, dono.documento, dono.marca], ['Dona Maria', 'proprietario', '11144477735', null]);
+  const op = (await criar({ nome: 'Ponto Alfa Ltda', papel: 'operador', tipoPessoa: 'pj', documento: '11.222.333/0001-81', marca: 'Café Alfa' })).body;
+  assert.deepEqual([op.papel, op.marca, op.documento], ['operador', 'Café Alfa', '11222333000181']);
+
+  // filtro por papel
+  const operadores = (await req('GET', '/api/proprietarios?papel=operador', { token })).body;
+  assert.ok(operadores.length >= 1 && operadores.every((p) => p.papel === 'operador'));
+
+  // cada vínculo exige o papel certo
+  const novo = (corpo) => req('POST', '/api/imoveis', { token, body: { endereco: 'Rua do Operador', cidade: 'Rio de Janeiro', tipo: 'passagem_ponto', ...corpo } });
+  assert.match((await novo({ operadorId: dono.id })).body.error, /outro papel/);
+  assert.match((await novo({ proprietarioId: op.id })).body.error, /outro papel/);
+  assert.match((await novo({ operadorId: 999999 })).body.error, /não encontrado/);
+  const imovel = (await novo({ operadorId: op.id, proprietarioId: dono.id })).body;
+  assert.deepEqual([imovel.operadorId, imovel.proprietarioId], [op.id, dono.id]);
+  const detalhe = (await req('GET', `/api/imoveis/${imovel.id}`, { token })).body;
+  assert.equal(detalhe.operador.nome, 'Ponto Alfa Ltda');
+  assert.equal(detalhe.proprietarioRel.nome, 'Dona Maria');
+  assert.equal((await req('PUT', `/api/imoveis/${imovel.id}`, { token, body: { operadorId: dono.id } })).status, 400);
+  assert.equal((await req('PUT', `/api/imoveis/${imovel.id}`, { token, body: { operadorId: null } })).body.operadorId, null);
+
+  // contagens e proteção do papel
+  const lista = (await req('GET', '/api/proprietarios', { token })).body;
+  assert.equal(lista.find((p) => p.id === dono.id)._count.imoveis, 1);
+  assert.equal((await req('PUT', `/api/proprietarios/${dono.id}`, { token, body: { papel: 'operador' } })).status, 409);
+  const livre = (await criar({ nome: 'Sem vínculo' })).body;
+  assert.equal((await req('PUT', `/api/proprietarios/${livre.id}`, { token, body: { papel: 'operador', marca: 'Marca' } })).body.marca, 'Marca');
+  assert.equal((await req('PUT', '/api/proprietarios/999999', { token, body: { nome: 'x' } })).status, 404);
+
+  // o público nunca recebe os vínculos
+  const publico = (await req('GET', `/api/public/imoveis/${imovel.id}`)).body;
+  assert.equal('operadorId' in publico || 'operador' in publico || 'proprietarioId' in publico, false);
 });

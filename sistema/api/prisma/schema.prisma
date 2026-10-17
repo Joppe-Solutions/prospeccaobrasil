@@ -116,8 +116,10 @@ model Sequencia {
 
 model Proprietario {
   id           Int      @id @default(autoincrement())
+  papel        String   @default("proprietario") // proprietario | operador (quem explora o ponto numa passagem de ponto)
   tipoPessoa   String   @default("pf") @map("tipo_pessoa") // pf | pj
   nome         String
+  marca        String?  // operador: marca ou nome do negócio
   documento    String?
   telefone     String?
   email        String?
@@ -127,7 +129,8 @@ model Proprietario {
   status       String   @default("ativo") // ativo | inativo
   criadoEm     DateTime @default(now()) @map("criado_em")
   atualizadoEm DateTime @updatedAt @map("atualizado_em")
-  imoveis      Imovel[]
+  imoveis      Imovel[] @relation("ImovelProprietario")
+  imoveisOperados Imovel[] @relation("ImovelOperador")
 
   @@map("proprietarios")
 }
@@ -195,6 +198,7 @@ model Imovel {
   proprietario    String?
   telProprietario String?  @map("tel_proprietario")
   proprietarioId  Int?     @map("proprietario_id")
+  operadorId      Int?     @map("operador_id")
   parceiroId      Int?     @map("parceiro_id")
   googleMapsUrl   String?  @map("google_maps_url")
   googleDriveUrl  String?  @map("google_drive_url")
@@ -202,7 +206,8 @@ model Imovel {
   observacoes     String?
   criadoEm        DateTime @default(now()) @map("criado_em")
   atualizadoEm    DateTime @updatedAt @map("atualizado_em")
-  proprietarioRel Proprietario? @relation(fields: [proprietarioId], references: [id], onDelete: SetNull)
+  proprietarioRel Proprietario? @relation("ImovelProprietario", fields: [proprietarioId], references: [id], onDelete: SetNull)
+  operador        Proprietario? @relation("ImovelOperador", fields: [operadorId], references: [id], onDelete: SetNull)
   parceiro        Parceiro?     @relation(fields: [parceiroId], references: [id], onDelete: SetNull)
   fotos           ImovelFoto[]
   areas           ImovelArea[]
@@ -213,6 +218,7 @@ model Imovel {
   lancamentos     Lancamento[]
 
   @@index([proprietarioId])
+  @@index([operadorId])
   @@index([parceiroId])
   @@map("imoveis")
 }

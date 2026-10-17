@@ -7,7 +7,8 @@ import { Avatar, PageHeader, StatusBadge } from '../components/UI';
 import './collections.css';
 
 const TIPOS = { pf: 'Pessoa física', pj: 'Pessoa jurídica' };
-const EMPTY = { tipoPessoa: 'pf', nome: '', documento: '', telefone: '', email: '', cidade: '', uf: '', observacoes: '', status: 'ativo' };
+const PAPEIS = { proprietario: 'Proprietário', operador: 'Operador do ponto' };
+const EMPTY = { papel: 'proprietario', marca: '', tipoPessoa: 'pf', nome: '', documento: '', telefone: '', email: '', cidade: '', uf: '', observacoes: '', status: 'ativo' };
 
 export default function Proprietarios() {
   const [list, setList] = useState([]);
@@ -15,6 +16,7 @@ export default function Proprietarios() {
   const [error, setError] = useState('');
   const [notice, setNotice] = useState('');
   const [tipo, setTipo] = useState('');
+  const [papel, setPapel] = useState('');
   const [status, setStatus] = useState('');
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState(EMPTY);
@@ -33,7 +35,7 @@ export default function Proprietarios() {
   }
   function openEdit(p) {
     setForm({
-      tipoPessoa: p.tipoPessoa || 'pf', nome: p.nome || '', documento: p.documento || '',
+      papel: p.papel || 'proprietario', marca: p.marca || '', tipoPessoa: p.tipoPessoa || 'pf', nome: p.nome || '', documento: p.documento || '',
       telefone: p.telefone || '', email: p.email || '', cidade: p.cidade || '', uf: p.uf || '',
       observacoes: p.observacoes || '', status: p.status || 'ativo',
     });
@@ -59,16 +61,16 @@ export default function Proprietarios() {
   }
 
   const filtered = useMemo(() => list.filter(p =>
-    (!tipo || p.tipoPessoa === tipo) && (!status || p.status === status)
-  ), [list, tipo, status]);
+    (!papel || (p.papel || 'proprietario') === papel) && (!tipo || p.tipoPessoa === tipo) && (!status || p.status === status)
+  ), [list, papel, tipo, status]);
 
   const columns = [
-    { accessorKey: 'nome', header: 'Proprietário', cell: ({ row }) => (
+    { accessorKey: 'nome', header: 'Nome', cell: ({ row }) => (
       <div className="collection-identity">
         <Avatar name={row.original.nome} />
         <span className="collection-cell-stack">
           <strong>{row.original.nome}</strong>
-          <small>{TIPOS[row.original.tipoPessoa] || row.original.tipoPessoa}</small>
+          <small>{PAPEIS[row.original.papel] || 'Proprietário'} · {TIPOS[row.original.tipoPessoa] || row.original.tipoPessoa}{row.original.marca ? ` · ${row.original.marca}` : ''}</small>
         </span>
       </div>
     ) },
@@ -81,7 +83,7 @@ export default function Proprietarios() {
       </span>
     ) },
     { id: 'cidade', header: 'Cidade', accessorFn: p => `${p.cidade || ''} ${p.uf || ''}`, cell: ({ row }) => row.original.cidade ? <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf || ''}</small></span> : '—' },
-    { id: 'imoveis', header: 'Imóveis', accessorFn: p => p._count?.imoveis || 0, cell: ({ getValue }) => <span className="collection-nowrap">{getValue()}</span> },
+    { id: 'imoveis', header: 'Imóveis', accessorFn: p => (p._count?.imoveis || 0) + (p._count?.imoveisOperados || 0), cell: ({ getValue }) => <span className="collection-nowrap">{getValue()}</span> },
     { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={getValue() === 'ativo' ? 'Ativo' : 'Inativo'} /> },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => (
       <div className="collection-row-actions">
@@ -96,9 +98,9 @@ export default function Proprietarios() {
   return <div className="collection-page">
     <PageHeader
       eyebrow="RELACIONAMENTOS"
-      title="Proprietários"
-      description="Pessoas físicas e jurídicas donas dos imóveis do portfólio."
-      actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo proprietário</button>}
+      title="Proprietários e operadores"
+      description="Donos dos imóveis e operadores de pontos comerciais (passagem de ponto)."
+      actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo cadastro</button>}
     />
     {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
     <div className="collection-stats">
@@ -116,9 +118,10 @@ export default function Proprietarios() {
         searchPlaceholder="Buscar nome, documento ou cidade..." exportName="proprietarios.csv"
         emptyTitle="Nenhum proprietário encontrado" emptyDescription="Cadastre PF ou PJ donos dos imóveis."
         toolbar={<>
+          <label className="collection-select"><UsersThree size={16} /><select aria-label="Filtrar papel" value={papel} onChange={e => setPapel(e.target.value)}><option value="">Todos os papéis</option><option value="proprietario">Proprietários</option><option value="operador">Operadores</option></select></label>
           <label className="collection-select"><User size={16} /><select aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">PF e PJ</option><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></label>
           <label className="collection-select"><CheckCircle size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select></label>
-          {(tipo || status) && <button className="btn btn-ghost btn-sm" onClick={() => { setTipo(''); setStatus(''); }}>Limpar filtros</button>}
+          {(papel || tipo || status) && <button className="btn btn-ghost btn-sm" onClick={() => { setPapel(''); setTipo(''); setStatus(''); }}>Limpar filtros</button>}
           {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
         </>}
       />
@@ -132,6 +135,8 @@ export default function Proprietarios() {
     >
       <form id="prop-form" className="collection-modal-form" onSubmit={save}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
+        <div className="field"><label htmlFor="prop-papel">Papel</label><select id="prop-papel" value={form.papel} onChange={e => setForm({ ...form, papel: e.target.value })}><option value="proprietario">Proprietário</option><option value="operador">Operador do ponto</option></select></div>
+        {form.papel === 'operador' && <div className="field"><label htmlFor="prop-marca">Marca / bandeira</label><input id="prop-marca" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} /></div>}
         <div className="field"><label htmlFor="prop-tipo">Tipo de pessoa</label><select id="prop-tipo" value={form.tipoPessoa} onChange={e => setForm({ ...form, tipoPessoa: e.target.value })}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></div>
         <div className="field"><label htmlFor="prop-nome">Nome <span className="required">*</span></label><input id="prop-nome" required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={form.tipoPessoa === 'pj' ? 'Razão social' : 'Nome completo'} /></div>
         <div className="field"><label htmlFor="prop-doc">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="prop-doc" value={form.documento} onChange={e => setForm({ ...form, documento: e.target.value })} /></div>

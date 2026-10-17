@@ -5,6 +5,7 @@ import { api, enviarFotos, fmtNum, lerCoordenadas, mapsUrl, MAPS_AUTO, PADRAO_CO
 import FormWizard, { WizardReview } from '../components/FormWizard';
 import PhotoUploader from '../components/PhotoUploader';
 import { CampoNumerico, DecimalInput } from '../components/NumberFields';
+import { documentoValido, mascararDocumento } from '../lib/numeros';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -43,9 +44,8 @@ const STEPS = [
       { k: 'carenciaMeses', l: 'Carência (meses)', fmt: 'inteiro' },
       { k: 'precoVenda', l: 'Preço de venda (R$)', fmt: 'dinheiro' }, { k: 'periodoContrato', l: 'Período de contrato', ph: '5 anos' },
     ] },
-  { id: 'vinculos', title: 'Vínculos', subtitle: 'Proprietário e parceiro', heading: 'Proprietário, parceiro e observações', description: 'Quem é o dono, quem trouxe o imóvel e o texto usado na apresentação.',
+  { id: 'vinculos', title: 'Vínculos', subtitle: 'Responsável e parceiro', heading: 'Proprietário (ou operador), parceiro e observações', description: 'Quem é o dono (ou o operador do ponto), quem trouxe o imóvel e o texto usado na apresentação.',
     fields: [
-      { k: 'proprietarioId', l: 'Proprietário (cadastro)', type: 'select', optionsKey: 'proprietarios', full: true },
       { k: 'parceiroId', l: 'Parceiro (quem trouxe)', type: 'select', optionsKey: 'parceiros', full: true },
       { k: 'descricao', l: 'Descrição', type: 'textarea', full: true }, { k: 'observacoes', l: 'Observações internas', type: 'textarea', full: true },
     ] },
@@ -87,6 +87,50 @@ function Dimensoes({ form, setForm, ablAuto, setAblAuto }) {
   </>;
 }
 
+const PESSOA_VAZIA = { tipoPessoa: 'pf', nome: '', documento: '', telefone: '', email: '', marca: '' };
+
+// Seleciona um cadastro existente (proprietário ou operador do ponto) ou cria um novo ali mesmo.
+function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
+  const operador = papel === 'operador';
+  const rotulo = operador ? 'Operador do ponto comercial' : 'Proprietário';
+  const [criando, setCriando] = useState(false);
+  const [nova, setNova] = useState(PESSOA_VAZIA);
+  const [erro, setErro] = useState('');
+  const [busy, setBusy] = useState(false);
+  const set = (k, v) => setNova(n => ({ ...n, [k]: v }));
+  async function criar() {
+    setErro('');
+    if (!nova.nome.trim()) return setErro('Informe o nome.');
+    if (nova.documento && !documentoValido(nova.documento, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica')) return setErro(`${nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'} inválido.`);
+    setBusy(true);
+    try {
+      const p = await api('/proprietarios', { method: 'POST', body: JSON.stringify({ ...nova, nome: nova.nome.trim(), papel }) });
+      onCriado(p); onChange(String(p.id)); setCriando(false); setNova(PESSOA_VAZIA);
+    } catch (e) { setErro(e.message); } finally { setBusy(false); }
+  }
+  return <div className="wz-field wz-full">
+    <label htmlFor={`wz-vinc-${papel}`}>{rotulo} (cadastro)</label>
+    <select id={`wz-vinc-${papel}`} value={value ?? ''} onChange={e => onChange(e.target.value)}>
+      <option value="">Não vinculado</option>
+      {lista.map(o => <option key={o.id} value={String(o.id)}>{o.nome}{operador && o.marca ? ` · ${o.marca}` : ''}</option>)}
+    </select>
+    {!criando && <small><button type="button" className="wz-link" onClick={() => setCriando(true)}>+ Cadastrar {operador ? 'novo operador' : 'novo proprietário'}</button></small>}
+    {criando && <div className="wz-inline-create">
+      <strong>{operador ? 'Novo operador do ponto' : 'Novo proprietário'}</strong>
+      {erro && <div className="alert error" role="alert">{erro}</div>}
+      <div className="wz-grid">
+        <div className="wz-field"><label htmlFor="nv-tipo">Tipo de pessoa</label><select id="nv-tipo" value={nova.tipoPessoa} onChange={e => setNova(n => ({ ...n, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></div>
+        <div className="wz-field"><label htmlFor="nv-nome">{nova.tipoPessoa === 'pj' ? 'Razão social' : 'Nome'}</label><input id="nv-nome" value={nova.nome} onChange={e => set('nome', e.target.value)} /></div>
+        {operador && <div className="wz-field"><label htmlFor="nv-marca">Marca / bandeira</label><input id="nv-marca" value={nova.marca} onChange={e => set('marca', e.target.value)} placeholder="Ex.: Farmácia Exemplo" /></div>}
+        <div className="wz-field"><label htmlFor="nv-doc">{nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="nv-doc" inputMode="numeric" value={nova.documento} onChange={e => set('documento', mascararDocumento(e.target.value, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica'))} /></div>
+        <div className="wz-field"><label htmlFor="nv-tel">Telefone</label><input id="nv-tel" value={nova.telefone} onChange={e => set('telefone', e.target.value)} /></div>
+        <div className="wz-field"><label htmlFor="nv-email">E-mail</label><input id="nv-email" type="email" value={nova.email} onChange={e => set('email', e.target.value)} /></div>
+      </div>
+      <div className="wz-inline-actions"><button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setCriando(false); setErro(''); }}>Cancelar</button><button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={criar}>{busy ? 'Salvando...' : 'Cadastrar e selecionar'}</button></div>
+    </div>}
+  </div>;
+}
+
 function Field({ def, value, onChange, options }) {
   const selectOptions = def.optionsKey
     ? [['', 'Não vinculado'], ...(options[def.optionsKey] || []).map(o => [String(o.id), def.optionsKey === 'parceiros' ? [o.nome, TIPOS_PARCEIRO[o.tipo], registroProfissional(o)].filter(Boolean).join(' · ') : o.nome])]
@@ -106,9 +150,9 @@ function Field({ def, value, onChange, options }) {
 export default function ImovelWizard() {
   const { id } = useParams();
   const nav = useNavigate();
-  const [form, setForm] = useState({ tipo: 'locacao', status: 'disponivel', categoria: 'loja', uf: 'RJ', proprietarioId: '', parceiroId: '', areas: [{ nome: '', area: '' }] });
+  const [form, setForm] = useState({ tipo: 'locacao', status: 'disponivel', categoria: 'loja', uf: 'RJ', proprietarioId: '', operadorId: '', parceiroId: '', areas: [{ nome: '', area: '' }] });
   const [ablAuto, setAblAuto] = useState(true);
-  const [options, setOptions] = useState({ proprietarios: [], parceiros: [] });
+  const [options, setOptions] = useState({ proprietarios: [], operadores: [], parceiros: [] });
   // Fotos: tudo é aplicado ao salvar (cancelar o formulário descarta as mudanças)
   const [fotos, setFotos] = useState([]);
   const [pendentes, setPendentes] = useState([]);
@@ -124,7 +168,8 @@ export default function ImovelWizard() {
       api('/proprietarios').catch(() => []),
       api('/parceiros').catch(() => []),
     ]).then(([proprietarios, parceiros]) => setOptions({
-      proprietarios: (proprietarios || []).filter(p => p.status === 'ativo'),
+      proprietarios: (proprietarios || []).filter(p => p.status === 'ativo' && (p.papel || 'proprietario') === 'proprietario'),
+      operadores: (proprietarios || []).filter(p => p.status === 'ativo' && p.papel === 'operador'),
       parceiros: (parceiros || []).filter(p => p.status === 'ativo'),
     }));
   }, []);
@@ -136,6 +181,7 @@ export default function ImovelWizard() {
       setForm({
         ...data, areas,
         proprietarioId: data.proprietarioId ?? '',
+        operadorId: data.operadorId ?? '',
         parceiroId: data.parceiroId ?? '',
         categoria: data.categoria || 'loja',
         coordenadas: data.latitude != null && data.longitude != null ? `${data.latitude}, ${data.longitude}` : '',
@@ -151,8 +197,12 @@ export default function ImovelWizard() {
 
   const close = () => nav(-1);
 
+  const passagem = form.tipo === 'passagem_ponto';
   const propNome = options.proprietarios.find(p => String(p.id) === String(form.proprietarioId))?.nome
     || form.proprietarioRel?.nome;
+  const operNome = options.operadores.find(p => String(p.id) === String(form.operadorId))?.nome
+    || form.operador?.nome;
+  const criado = papel => p => setOptions(o => ({ ...o, [papel === 'operador' ? 'operadores' : 'proprietarios']: [...o[papel === 'operador' ? 'operadores' : 'proprietarios'], p] }));
   const parcNome = options.parceiros.find(p => String(p.id) === String(form.parceiroId))?.nome
     || form.parceiro?.nome;
 
@@ -175,6 +225,9 @@ export default function ImovelWizard() {
       ...step,
       content: <div className="wz-grid">
         {step.id === 'dimensoes' && <Dimensoes form={form} setForm={setForm} ablAuto={ablAuto} setAblAuto={setAblAuto} />}
+        {step.id === 'vinculos' && (passagem
+          ? <VinculoPessoa papel="operador" value={form.operadorId} lista={options.operadores} onCriado={criado('operador')} onChange={v => setForm(f => ({ ...f, operadorId: v }))} />
+          : <VinculoPessoa papel="proprietario" value={form.proprietarioId} lista={options.proprietarios} onCriado={criado('proprietario')} onChange={v => setForm(f => ({ ...f, proprietarioId: v }))} />)}
         {step.fields.map(def => (
           <Field key={def.k} def={def} value={form[def.k]} options={options}
             onChange={v => setForm(f => ({ ...f, [def.k]: v }))} />
@@ -209,7 +262,7 @@ export default function ImovelWizard() {
           { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep], ['Coordenadas', coord ? `${coord.lat}, ${coord.lon}` : '']] },
           { title: 'Dimensões', items: [['ABL', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Áreas', form.areas.filter(a => a.nome.trim() && a.area !== '').map(a => `${a.nome.trim()}: ${fmtNum(a.area)} m²`).join(' · ')], ['Pé direito', form.peDireito && `${fmtNum(form.peDireito)} m`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} m`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
           { title: 'Termos', items: [['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['Carência (meses)', form.carenciaMeses], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
-          { title: 'Vínculos', items: [['Proprietário', propNome], ['Parceiro', parcNome], ['Descrição', form.descricao], ['Observações internas', form.observacoes]] },
+          { title: 'Vínculos', items: [passagem ? ['Operador do ponto', operNome] : ['Proprietário', propNome], ['Parceiro', parcNome], ['Descrição', form.descricao], ['Observações internas', form.observacoes]] },
           { title: 'Fotos', items: [['Fotos', itensFoto.length ? `${itensFoto.length} ${itensFoto.length === 1 ? 'foto' : 'fotos'}${pendentes.length ? ` (${pendentes.length} a enviar)` : ''}` : '']] },
         ]} /> },
   ];
@@ -234,7 +287,8 @@ export default function ImovelWizard() {
         ...form,
         latitude: ponto ? ponto.lat : null,
         longitude: ponto ? ponto.lon : null,
-        proprietarioId: form.proprietarioId === '' ? null : form.proprietarioId,
+        proprietarioId: passagem || form.proprietarioId === '' ? null : form.proprietarioId,
+        operadorId: !passagem || form.operadorId === '' ? null : form.operadorId,
         parceiroId: form.parceiroId === '' ? null : form.parceiroId,
       };
       // Se as fotos falharem depois de criar o imóvel, tentar de novo atualiza em vez de duplicar

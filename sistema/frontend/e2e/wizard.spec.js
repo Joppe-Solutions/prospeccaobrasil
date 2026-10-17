@@ -94,3 +94,40 @@ test('wizard recusa coordenadas fora do formato ou do intervalo', async ({ page 
   await expect(modal).toContainText('Dimensões');
   await page.keyboard.press('Escape');
 });
+
+test('vínculos: cria proprietário na hora e, em passagem de ponto, pede o operador', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/imoveis/novo');
+  const modal = page.locator('.modal');
+  await expect(modal).toBeVisible();
+  await modal.locator('#wz-titulo').fill('Imóvel Vínculos E2E');
+  await modal.locator('#wz-tipo').selectOption('passagem_ponto');
+  const ate = async (n) => { for (let k = 0; k < n; k++) await modal.getByRole('button', { name: 'Próximo' }).click(); };
+  await ate(1);
+  await modal.locator('#wz-endereco').fill('Rua do Wizard, 100');
+  await modal.locator('#wz-cidade').fill('Rio de Janeiro');
+  await ate(3);
+  await expect(modal.locator('#wz-vinc-proprietario, #wz-vinc-operador')).toHaveCount(1);
+
+  // passagem de ponto: operador no lugar do proprietário
+  await expect(modal.locator('#wz-vinc-proprietario')).toHaveCount(0);
+  await modal.getByRole('button', { name: /novo operador/ }).click();
+  await modal.locator('#nv-nome').fill('Operador Inline E2E');
+  await modal.locator('#nv-marca').fill('Marca Inline');
+  await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).click();
+  await expect(modal.locator('#wz-vinc-operador')).toHaveValue(/\d+/);
+  await expect(modal.locator('#wz-vinc-operador option:checked')).toContainText('Operador Inline E2E');
+
+  // locação: proprietário, com cadastro novo direto no formulário
+  for (let k = 0; k < 4; k++) await modal.getByRole('button', { name: 'Voltar' }).click();
+  await modal.locator('#wz-tipo').selectOption('locacao');
+  await ate(4);
+  await expect(modal.locator('#wz-vinc-operador')).toHaveCount(0);
+  await modal.getByRole('button', { name: /novo proprietário/ }).click();
+  await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).click();
+  await expect(modal).toContainText('Informe o nome');
+  await modal.locator('#nv-nome').fill('Proprietário Inline E2E');
+  await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).click();
+  await expect(modal.locator('#wz-vinc-proprietario option:checked')).toContainText('Proprietário Inline E2E');
+  await expectNoErrors(errors);
+});

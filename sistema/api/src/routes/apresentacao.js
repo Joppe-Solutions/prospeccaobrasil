@@ -17,7 +17,10 @@ module.exports = (prisma) => {
     if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send('Imóvel não encontrado');
     const imovel = await prisma.imovel.findUnique({
       where: { id },
-      include: { fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: true, parceiro: { select: PARCEIRO_PUBLICO } },
+      include: {
+        fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: true, parceiro: { select: PARCEIRO_PUBLICO },
+        analises: { orderBy: { criadoEm: 'desc' }, take: 1 }, // base do "Flash de Mercado"
+      },
     });
     if (!imovel || imovel.status === 'inativo') return res.status(404).send('Imóvel não encontrado');
     const qrData = await QRCode.toDataURL(locationUrl(imovel), {

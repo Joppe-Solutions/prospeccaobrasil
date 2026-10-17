@@ -115,3 +115,7 @@
 .wz-link { display: inline-flex; align-items: center; gap: 5px; padding: 0; border: 0; background: none; color: #2f6e55; font: inherit; font-weight: 600; text-decoration: underline; cursor: pointer; }
 a.wz-link { font-size: 13px; }
 @media (max-width: 640px) { .wz-areas li { grid-template-columns: minmax(0, 1fr) 96px 46px; } }
+
+.wz-inline-create { display:flex; flex-direction:column; gap:12px; padding:16px; border:1px dashed #b9c7bd; border-radius:10px; background:#f7faf7; }
+.wz-inline-create > strong { font-size:12px; color:#153c34; }
+.wz-inline-actions { display:flex; justify-content:flex-end; gap:8px; }

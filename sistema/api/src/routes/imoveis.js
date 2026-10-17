@@ -25,7 +25,7 @@ const IMOVEL_FIELDS = [
   'bairro', 'cidade', 'uf', 'cep', 'latitude', 'longitude',
   'areaTotal', 'areaUtil', 'pisoAreaVenda', 'jirau', 'mezanino', 'peDireito',
   'frenteImovel', 'cdu', 'aluguel', 'condominio', 'iptu', 'precoVenda',
-  'periodoContrato', 'proprietario', 'telProprietario', 'proprietarioId', 'parceiroId',
+  'periodoContrato', 'proprietario', 'telProprietario', 'proprietarioId', 'operadorId', 'parceiroId',
   'googleMapsUrl', 'googleDriveUrl', 'descricao', 'observacoes',
 ];
 const NUM_FIELDS = new Set([
@@ -34,7 +34,7 @@ const NUM_FIELDS = new Set([
   'frenteImovel', 'cdu', 'aluguel', 'condominio', 'iptu', 'precoVenda',
   'latitude', 'longitude',
 ]);
-const ID_FIELDS = new Set(['proprietarioId', 'parceiroId']);
+const ID_FIELDS = new Set(['proprietarioId', 'operadorId', 'parceiroId']);
 const INT_FIELDS = new Set(['vagas', 'carenciaMeses']);
 const ENUMS = {
   tipo: ['locacao', 'venda', 'passagem_ponto'],
@@ -98,6 +98,15 @@ module.exports = (prisma) => {
     // Latitude e longitude andam juntas: uma sem a outra não localiza nada
     if (('latitude' in d || 'longitude' in d) && (d.latitude == null) !== (d.longitude == null)) fail('Informe latitude e longitude juntas');
     return d;
+  };
+  // Proprietário e operador vêm do mesmo cadastro, mas cada um precisa ter o papel certo
+  const validarVinculos = async (d) => {
+    for (const [campo, papel, rotulo] of [['proprietarioId', 'proprietario', 'Proprietário'], ['operadorId', 'operador', 'Operador do ponto']]) {
+      if (d[campo] == null) continue;
+      const p = await prisma.proprietario.findUnique({ where: { id: d[campo] }, select: { papel: true } });
+      if (!p) fail(`${rotulo} não encontrado`);
+      if (p.papel !== papel) fail(`${rotulo} inválido: o cadastro escolhido é de outro papel`);
+    }
   };
   // Composição de áreas: [{ nome, area }]. Linhas totalmente vazias são ignoradas.
   const pickAreas = (body = {}) => {
@@ -165,6 +174,7 @@ module.exports = (prisma) => {
       include: {
         fotos: { where: { principal: true }, take: 1 },
         proprietarioRel: { select: { id: true, nome: true } },
+        operador: { select: { id: true, nome: true } },
         parceiro: { select: { id: true, nome: true } },
         _count: { select: { fotos: true, documentos: true } },
       },
@@ -206,6 +216,7 @@ module.exports = (prisma) => {
         // despesas são financeiras: só admin recebe no payload
         ...(req.user.role === 'admin' ? { despesas: { orderBy: { criadoEm: 'desc' } } } : {}),
         proprietarioRel: true,
+        operador: true,
         parceiro: true,
       },
     });
@@ -240,6 +251,7 @@ module.exports = (prisma) => {
   r.post('/', asyncHandler(async (req, res) => {
     const areas = pickAreas(req.body);
     const d = comMapa({ ...pickImovel(req.body), ...(areas ? legadoDasAreas(areas) : {}) });
+    await validarVinculos(d);
     if (!d.endereco || !d.cidade) return res.status(400).json({ error: 'Endereço e cidade são obrigatórios' });
     if (areas?.length) d.areas = { create: areas };
 
@@ -283,6 +295,7 @@ module.exports = (prisma) => {
     if (!atual) return res.status(404).json({ error: 'Imóvel não encontrado' });
     const areas = pickAreas(req.body);
     const data = comMapa({ ...pickImovel(req.body), ...(areas ? legadoDasAreas(areas) : {}) }, atual);
+    await validarVinculos(data);
     if (areas) data.areas = { deleteMany: {}, create: areas };
     const atualizado = await prisma.imovel.update({ where: { id }, data, include: AREAS });
     aquecerLocalizacao(atualizado);

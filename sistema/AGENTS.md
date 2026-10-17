@@ -102,8 +102,8 @@
 - Apresentação do imóvel (`templates/apresentacao.js`): 1ª folha com faixa verde no cabeçalho (QR
   code de localização à direita), mapa ao lado da foto e "Indicadores de Inteligência Territorial e
   Comercial" (4 cartões) no rodapé. 2ª folha ("complementos"): descrição, Infraestrutura Urbana e
-  Equipamentos de Apoio no Entorno, galeria com no máximo 4 fotos (as demais abrem no visualizador e
-  na galeria pública), documentos técnicos em grade de 3 colunas, "Agende uma visita" e rodapé verde.
+  Equipamentos de Apoio no Entorno, "Flash de Mercado" (resumo da última análise de inteligência, fundo verde; só aparece se já houver
+  análise; sem fotos na 2ª folha — elas ficam no visualizador e na galeria pública), documentos técnicos em grade de 3 colunas, "Agende uma visita" e rodapé verde.
   O resumo impresso (1 folha) mantém uma faixa de visita na 1ª folha, pois não tem 2ª folha. O teste
   e2e `expansao.spec.js` exige 1 página (resumo) e 2 (completa) no PDF. O entorno tem 4 s para
   responder e depois vem do cache. Faixas verdes não "sangram" até a borda no papel (o Chrome não
@@ -141,3 +141,8 @@
   (checkpoint WAL + cópia do banco + tarball de uploads, retenção 30 dias,
   log em /var/log/pb-backup.log). SSH por chave ed25519 configurada
   (~/.ssh/id_ed25519 no Mac); senha segue aceita como fallback.
+
+- Operador do ponto: reaproveita `Proprietario` com `papel` (proprietario|operador) + `marca`; o imóvel tem
+  `proprietarioId` e `operadorId` (relações nomeadas). Imóvel de tipo `passagem_ponto` usa operador no lugar do
+  proprietário (a API valida o papel do cadastro; trocar o papel de quem já tem imóveis dá 409). No wizard,
+  `VinculoPessoa` seleciona ou cria o cadastro ali mesmo. Menu: "Proprietários e operadores".

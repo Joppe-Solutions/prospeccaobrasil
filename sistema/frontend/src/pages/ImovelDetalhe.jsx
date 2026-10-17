@@ -162,10 +162,11 @@ export default function ImovelDetalhe() {
         <h2>Vínculos</h2>
         <div className="form-grid">
           <div className="field">
-            <label>Proprietário</label>
+            <label>{i.tipo === 'passagem_ponto' ? 'Operador do ponto' : 'Proprietário'}</label>
             <div style={{ fontWeight: 700 }}>
-              {i.proprietarioRel?.nome || i.proprietario || '—'}
-              {i.proprietarioRel?.telefone || i.telProprietario ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.proprietarioRel?.telefone || i.telProprietario}</div> : null}
+              {i.tipo === 'passagem_ponto'
+                ? <>{i.operador?.nome || '—'}{i.operador ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{[i.operador.marca, i.operador.telefone].filter(Boolean).join(' · ')}</div> : null}</>
+                : <>{i.proprietarioRel?.nome || i.proprietario || '—'}{i.proprietarioRel?.telefone || i.telProprietario ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.proprietarioRel?.telefone || i.telProprietario}</div> : null}</>}
             </div>
           </div>
           <div className="field">

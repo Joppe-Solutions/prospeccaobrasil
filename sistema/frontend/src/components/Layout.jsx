@@ -28,7 +28,7 @@ const NAV = [
       { to: '/parceiros', label: 'Consultores', sub: 'Parceiros comerciais', icon: UsersThree },
       { to: '/leads', label: 'Leads', sub: 'Sites e portais', icon: UserFocus },
       // Fora da lista do cliente, mantidos por serem usados no cadastro de imóveis
-      { to: '/proprietarios', label: 'Proprietários', icon: IdentificationCard },
+      { to: '/proprietarios', label: 'Proprietários e operadores', icon: IdentificationCard },
       { to: '/documentos', label: 'Documentação', icon: FolderOpen },
     ],
   },
