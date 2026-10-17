@@ -79,6 +79,8 @@ module.exports = (prisma) => {
         v = num(v);
         const coordenada = k === 'latitude' || k === 'longitude';
         if (v !== null && (!Number.isFinite(v) || (!coordenada && v < 0) || (INT_FIELDS.has(k) && !Number.isSafeInteger(v)))) fail(`Valor inválido: ${k}`);
+        if (k === 'latitude' && v !== null && Math.abs(v) > 90) fail('Latitude inválida (use valores entre -90 e 90)');
+        if (k === 'longitude' && v !== null && Math.abs(v) > 180) fail('Longitude inválida (use valores entre -180 e 180)');
       } else {
         if (v !== null && typeof v !== 'string') fail(`Texto inválido: ${k}`);
         v = typeof v === 'string' ? v.trim() : v;
@@ -92,6 +94,8 @@ module.exports = (prisma) => {
       }
       d[k] = v;
     }
+    // Latitude e longitude andam juntas: uma sem a outra não localiza nada
+    if (('latitude' in d || 'longitude' in d) && (d.latitude == null) !== (d.longitude == null)) fail('Informe latitude e longitude juntas');
     return d;
   };
   // Composição de áreas: [{ nome, area }]. Linhas totalmente vazias são ignoradas.
@@ -119,6 +123,8 @@ module.exports = (prisma) => {
     const i = { ...atual, ...d };
     const link = i.googleMapsUrl;
     if (link && !link.startsWith(MAPS_AUTO)) return d;
+    // Coordenadas exatas (copiadas do Google Maps) valem mais que o endereço digitado
+    if (i.latitude != null && i.longitude != null) return { ...d, googleMapsUrl: MAPS_AUTO + encodeURIComponent(`${Number(i.latitude)},${Number(i.longitude)}`) };
     const logradouro = [i.endereco, i.numero].filter(Boolean).join(', ');
     const consulta = [logradouro, i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', ');
     return { ...d, googleMapsUrl: consulta ? MAPS_AUTO + encodeURIComponent(consulta) : null };

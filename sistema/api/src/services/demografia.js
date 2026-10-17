@@ -7,6 +7,7 @@
 
 const censo2022 = require('./censo2022');
 const { entorno } = require('./entorno');
+const { geocode } = require('./mapas');
 
 const CACHE = new Map();
 const TTL = 24 * 60 * 60 * 1000;
@@ -58,35 +59,6 @@ function projetar(serie) {
   proj[base + 2] = Math.round(serie.anos[base] * Math.pow(1 + tgca, 2));
   proj[base + 4] = Math.round(serie.anos[base] * Math.pow(1 + tgca, 4));
   return { anos: [base, base + 2, base + 4], serie: proj, tgca, anoBase: base };
-}
-
-// Coordenadas: usa cadastro ou geocodifica endereço via Nominatim (OSM)
-async function geocode(imovel) {
-  // Number(null) é 0: sem coordenada no cadastro não pode virar o ponto (0, 0)
-  const temCoord = imovel.latitude != null && imovel.longitude != null;
-  const lat = Number(imovel.latitude), lon = Number(imovel.longitude);
-  if (temCoord && Number.isFinite(lat) && Number.isFinite(lon)) return { lat, lon, fonte: 'cadastro' };
-  const q = [imovel.endereco && `${imovel.endereco}${imovel.numero ? `, ${imovel.numero}` : ''}`, imovel.bairro, imovel.cidade, imovel.uf, 'Brasil'].filter(Boolean).join(', ');
-  if (!imovel.cidade) return null;
-  try {
-    const r = await cached(`geo2:${norm(q)}`, () => fetchJson(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=br&q=${encodeURIComponent(q)}`,
-      'prospeccao-brasil-inteligencia/1.0'));
-    const g = escolherResultado(r || [], imovel);
-    return g ? { lat: Number(g.lat), lon: Number(g.lon), fonte: 'geocodificação do endereço (OSM)' } : null;
-  } catch { return null; }
-}
-
-// Ruas homônimas são comuns (há "Rua da Assembleia" em vários municípios e bairros): só vale
-// resultado na cidade do cadastro e, havendo bairro, no bairro — melhor sem mapa que mapa errado.
-function escolherResultado(resultados, imovel) {
-  const campos = (r, chaves) => chaves.map((k) => norm(r.address?.[k] || '')).filter(Boolean);
-  const naCidade = resultados.filter((r) => campos(r, ['city', 'town', 'municipality', 'village']).includes(norm(imovel.cidade)));
-  if (!imovel.bairro) return naCidade[0] || null;
-  const bairro = norm(imovel.bairro);
-  const noBairro = naCidade.find((r) => campos(r, ['suburb', 'neighbourhood', 'city_district', 'quarter', 'borough'])
-    .some((b) => b === bairro || b.includes(bairro) || bairro.includes(b)));
-  return noBairro || (naCidade.length === 1 ? naCidade[0] : null);
 }
 
 // Grade de tiles OSM ao redor do ponto + posição do ponto e dos raios 1km/2km em pixels

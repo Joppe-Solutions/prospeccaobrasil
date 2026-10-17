@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowSquareOut, Buildings, Plus, Trash } from '@phosphor-icons/react';
-import { api, enviarFotos, fmtNum, mapsUrl, MAPS_AUTO, STATUS, TIPOS_IMOVEL } from '../lib/api';
+import { api, enviarFotos, fmtNum, lerCoordenadas, mapsUrl, MAPS_AUTO, PADRAO_COORDENADAS, STATUS, TIPOS_IMOVEL } from '../lib/api';
 import FormWizard, { WizardReview } from '../components/FormWizard';
 import PhotoUploader from '../components/PhotoUploader';
 
@@ -135,6 +135,7 @@ export default function ImovelWizard() {
         proprietarioId: data.proprietarioId ?? '',
         parceiroId: data.parceiroId ?? '',
         categoria: data.categoria || 'loja',
+        coordenadas: data.latitude != null && data.longitude != null ? `${data.latitude}, ${data.longitude}` : '',
       });
       setAblAuto(data.areaTotal == null || (areas.length > 0 && Number(data.areaTotal) === somaAreas(areas)));
       setFotos(data.fotos || []);
@@ -152,7 +153,9 @@ export default function ImovelWizard() {
   const parcNome = options.parceiros.find(p => String(p.id) === String(form.parceiroId))?.nome
     || form.parceiro?.nome;
 
-  const mapa = mapsUrl(form);
+  const coord = lerCoordenadas(form.coordenadas);
+  const coordInvalida = !!String(form.coordenadas || '').trim() && !coord;
+  const mapa = mapsUrl({ ...form, latitude: coord?.lat ?? null, longitude: coord?.lon ?? null });
   const mapaManual = !!form.googleMapsUrl && !form.googleMapsUrl.startsWith(MAPS_AUTO);
   const itensFoto = [
     ...fotos.map(f => ({ key: `e:${f.id}`, src: `/uploads/${f.arquivo}`, principal: f.principal })),
@@ -174,13 +177,18 @@ export default function ImovelWizard() {
             onChange={v => setForm(f => ({ ...f, [def.k]: v }))} />
         ))}
         {step.id === 'endereco' && <div className="wz-field wz-full">
+          <label htmlFor="wz-coordenadas">Coordenadas do ponto (opcional, recomendado)</label>
+          <input id="wz-coordenadas" value={form.coordenadas ?? ''} onChange={e => setForm(f => ({ ...f, coordenadas: e.target.value }))} placeholder="Ex.: -22.90680, -43.17290" pattern={PADRAO_COORDENADAS} title="Cole as coordenadas como o Google Maps copia: -22.90680, -43.17290" inputMode="decimal" autoComplete="off" />
+          <small>{coordInvalida ? 'Formato inválido ou fora do intervalo. Use latitude e longitude, como: -22.90680, -43.17290.' : coord ? 'Mapa e QR code da apresentação usarão exatamente este ponto.' : 'No Google Maps, clique com o botão direito no ponto do imóvel e clique nos números que aparecem para copiá-los. Sem isso, o mapa usa o endereço e pode ficar aproximado.'}</small>
+        </div>}
+        {step.id === 'endereco' && <div className="wz-field wz-full">
           <label>Link do Google Maps</label>
           {mapa
             ? <a className="wz-link" href={mapa} target="_blank" rel="noopener noreferrer">Conferir a localização no Google Maps <ArrowSquareOut size={13} /></a>
             : <small>Preencha o endereço: o link é gerado automaticamente.</small>}
           <small>{mapaManual
             ? <>Este imóvel usa um link colado manualmente. <button type="button" className="wz-link" onClick={() => setForm(f => ({ ...f, googleMapsUrl: '' }))}>Gerar pelo endereço</button></>
-            : 'Gerado pelo endereço e salvo junto com o cadastro; acompanha as alterações.'}</small>
+            : `Gerado ${coord ? 'pelas coordenadas' : 'pelo endereço'} e salvo junto com o cadastro; acompanha as alterações.`}</small>
         </div>}
       </div>,
     })),
@@ -195,7 +203,7 @@ export default function ImovelWizard() {
         onEdit={goToStep}
         sections={[
           { title: 'Identificação', items: [['Código', form.codigo], ['Título', form.titulo], ['Tipo', TIPOS_IMOVEL[form.tipo]], ['Categoria', CATEGORIAS[form.categoria] || form.categoria], ['Status', STATUS[form.status] || form.status]] },
-          { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep]] },
+          { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep], ['Coordenadas', coord ? `${coord.lat}, ${coord.lon}` : '']] },
           { title: 'Dimensões', items: [['ABL', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Áreas', form.areas.filter(a => a.nome.trim() && a.area !== '').map(a => `${a.nome.trim()}: ${fmtNum(a.area)} m²`).join(' · ')], ['Pé direito', form.peDireito && `${fmtNum(form.peDireito)} m`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} m`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
           { title: 'Termos', items: [['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['Carência (meses)', form.carenciaMeses], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
           { title: 'Vínculos', items: [['Proprietário', propNome], ['Parceiro', parcNome], ['Descrição', form.descricao], ['Observações internas', form.observacoes]] },
@@ -218,8 +226,11 @@ export default function ImovelWizard() {
   async function submit() {
     setSaving(true); setErr('');
     try {
+      const ponto = lerCoordenadas(form.coordenadas);
       const payload = {
         ...form,
+        latitude: ponto ? ponto.lat : null,
+        longitude: ponto ? ponto.lon : null,
         proprietarioId: form.proprietarioId === '' ? null : form.proprietarioId,
         parceiroId: form.parceiroId === '' ? null : form.parceiroId,
       };

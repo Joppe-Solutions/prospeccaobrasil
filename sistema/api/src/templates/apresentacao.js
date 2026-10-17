@@ -20,8 +20,15 @@ function safeUrl(value) {
   } catch { return null; }
 }
 const address = i => [i.endereco, i.numero].filter(Boolean).join(', ') + (i.complemento ? ` - ${i.complemento}` : '');
+const MAPS_AUTO = 'https://www.google.com/maps/search/?api=1&query=';
+// Link manual (colado no cadastro) vence; depois as coordenadas exatas; por fim o endereço.
 function locationUrl(i) {
-  return safeUrl(i.googleMapsUrl) || `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent([address(i), i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', '))}`;
+  const manual = safeUrl(i.googleMapsUrl);
+  if (manual && !manual.startsWith(MAPS_AUTO)) return manual;
+  if (i.latitude != null && i.longitude != null && Number.isFinite(Number(i.latitude)) && Number.isFinite(Number(i.longitude))) {
+    return MAPS_AUTO + encodeURIComponent(`${Number(i.latitude)},${Number(i.longitude)}`);
+  }
+  return MAPS_AUTO + encodeURIComponent([address(i), i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', '));
 }
 const labels = {
   planta: 'Planta do imóvel', inteligencia: 'Inteligência de mercado', rgi: 'RGI / Habite-se',
@@ -30,13 +37,16 @@ const labels = {
 const statuses = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido' };
 const categories = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Imóvel comercial' };
 
-// Mapa do endereço: tiles OSM centralizados no ponto do imóvel, com marcador.
+// Mapa do endereço, centralizado no ponto do imóvel, com marcador. `m` é a imagem do Google
+// ({ imagem }) ou a grade de tiles do OpenStreetMap ({ tiles }). Posição só por rua = aproximada.
 function mapFigure(i, m) {
-  const tiles = m.tiles.map(t => `<img src="https://tile.openstreetmap.org/${m.z}/${t.x}/${t.y}.png" alt="" width="256" height="256" style="left:${t.left}px;top:${t.top}px" crossorigin="anonymous">`).join('');
-  return `<figure class="hero-map"><a class="map" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer" aria-label="Abrir a localização do imóvel no mapa">
-<span class="map-tiles" style="width:${m.w}px;height:${m.h}px;transform:translate(${-m.px.toFixed(1)}px,${-m.py.toFixed(1)}px)">${tiles}</span>
+  const aproximada = m.precisao === 'rua';
+  const corpo = m.imagem
+    ? `<img class="map-img" src="${esc(m.imagem)}" alt="Mapa com a localização do imóvel ${esc(i.codigo)}" loading="eager">`
+    : `<span class="map-tiles" style="width:${m.w}px;height:${m.h}px;transform:translate(${-m.px.toFixed(1)}px,${-m.py.toFixed(1)}px)">${m.tiles.map(t => `<img src="https://tile.openstreetmap.org/${m.z}/${t.x}/${t.y}.png" alt="" width="256" height="256" style="left:${t.left}px;top:${t.top}px" crossorigin="anonymous">`).join('')}</span>
 <svg class="map-pin" width="30" height="40" viewBox="0 0 30 40" aria-hidden="true"><path d="M15 39C15 39 28 23.5 28 14A13 13 0 0 0 2 14C2 23.5 15 39 15 39Z" fill="#153c34" stroke="#fff" stroke-width="2"/><circle cx="15" cy="14" r="5" fill="#d5ad62"/></svg>
-<span class="map-attr">© OpenStreetMap</span></a><figcaption>Localização aproximada<span>${esc([i.bairro, i.cidade].filter(Boolean).join(' · '))}</span></figcaption></figure>`;
+<span class="map-attr">© OpenStreetMap</span>`;
+  return `<figure class="hero-map"><a class="map" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer" aria-label="Abrir a localização do imóvel no Google Maps">${corpo}</a><figcaption>${aproximada ? 'Localização aproximada' : 'Localização'}<span>${esc([i.bairro, i.cidade].filter(Boolean).join(' · '))}</span></figcaption></figure>`;
 }
 
 // Indicadores de inteligência territorial e comercial: bairro (Censo 2022) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
@@ -53,6 +63,15 @@ function contextSection(i, contexto) {
   return `<section class="context"><h3>Indicadores de Inteligência Territorial e Comercial</h3>
 ${tiles.length ? `<div class="context-grid">${tiles.map(([label, value, note]) => `<div><span class="small-label">${label}</span><strong>${value}</strong><small>${note}</small></div>`).join('')}</div>` : ''}
 </section>`;
+}
+
+// Equipamentos de apoio mais próximos (OpenStreetMap), na folha de complementos.
+function infraSection(contexto) {
+  const itens = (contexto?.entorno?.destaques || []).slice(0, 6);
+  if (!itens.length) return '';
+  return `<section class="infra"><h3>Infraestrutura Urbana e Equipamentos de Apoio no Entorno</h3>
+<ul class="nearby">${itens.map(p => `<li><span>${esc(p.rotulo)}</span><strong>${esc(p.nome)}</strong><em>${Number(p.dist).toLocaleString('pt-BR')} m</em></li>`).join('')}</ul>
+<p class="fine-print">Fonte: OpenStreetMap · distâncias em linha reta a partir do imóvel; mapeamento colaborativo.</p></section>`;
 }
 
 function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto = null } = {}) {
@@ -75,35 +94,40 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
     ...(present(i.valorPonto) ? [['Passagem de ponto', money(i.valorPonto)]] : []),
   ];
   const areas = (i.areas || []).map(a => [a.nome, measure(a.area)]);
-  const dimensions = [['Área bruta locável (ABL)', measure(i.areaTotal)], ['Área útil', measure(i.areaUtil)],
+  const dimensions = [['Área útil', measure(i.areaUtil)],
     ...(areas.length ? areas : [['Piso / área de venda', measure(i.pisoAreaVenda)], ['Jirau', measure(i.jirau)], ['Mezanino', measure(i.mezanino)]]),
     ['Frente', measure(i.frenteImovel, 'm')], ['Pé-direito', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['Vagas', String(i.vagas)]] : [])]
-    // Medida não cadastrada não vira linha vazia (a ABL fica sempre, é o dado principal)
-    .filter(([label, value], index) => index === 0 || value !== 'Não informada');
+    // Medida não cadastrada não vira linha vazia (a ABL aparece só no destaque da primeira folha)
+    .filter(([, value]) => value !== 'Não informada');
   const base = sale ? i.precoVenda : i.aluguel;
   const porM2 = present(base) && Number(i.areaTotal) > 0 ? money(Number(base) / Number(i.areaTotal)) : null;
   const context = contextSection(i, contexto);
+  const infra = infraSection(contexto);
   const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
-  const headerFirst = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
+  const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
   const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
+  const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>`;
+  const footerBand = footer.replace('class="document-footer"', 'class="document-footer band"');
   const title = i.titulo || address(i);
-  const hasDetails = Boolean(i.descricao?.trim() || docs.length || photos.length > 1);
+  const hasDetails = Boolean(i.descricao?.trim() || docs.length || photos.length > 1 || infra);
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(i.codigo)} - Apresentação comercial</title><style>${styles}</style></head><body class="${completa ? 'complete' : 'compact'}">
 <nav class="toolbar" aria-label="Ações da apresentação"><div><strong>Apresentação do imóvel</strong><span>Documento A4 · pronto para compartilhar</span></div><a href="?formato=${completa ? 'resumo' : 'completa'}">${completa ? 'Resumo · 1 folha' : 'Complementos · até 2 folhas'}</a><button type="button" onclick="window.print()">Imprimir / Salvar PDF</button></nav>
 <main><article class="sheet" aria-label="Ficha comercial">${headerFirst}
 <section class="intro"><div class="eyebrow">${esc(categories[i.categoria] || 'Imóvel comercial')} <span>/</span> ${deal} <span class="status">${esc(statuses[i.status] || 'Status sob consulta')}</span></div><h1 class="digital-only">${esc(title)}</h1><h1 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h1>${i.titulo ? `<p class="street">${esc(address(i))}</p>` : ''}<p class="location">${esc(subtitle)}</p></section>
 <div class="hero-row${mapa ? ' has-map' : ''}"><figure class="hero">${photos[0] ? `${photos.length > 1 ? `<button type="button" class="hero-open" data-foto="0" aria-label="Ver as ${photos.length} fotos do imóvel">` : ''}<img src="${esc(uploadUrl(photos[0].arquivo))}" alt="${esc(photos[0].legenda || `Foto do imóvel ${i.codigo}`)}" loading="eager">${photos.length > 1 ? `<span class="hero-count digital-only">1 / ${photos.length} · ver fotos</span></button>` : ''}` : '<div class="no-photo"><span>PROSPECÇÃO BRASIL</span><strong>Fotografia não cadastrada</strong><p>Solicite imagens à nossa equipe comercial.</p></div>'}<figcaption>${photos[0] ? '01 / Imagem cadastrada do imóvel' : 'Imagens sob consulta'}<span>${esc(i.codigo)}</span></figcaption></figure>${mapa ? mapFigure(i, mapa) : ''}</div>
-<section class="highlights${porM2 ? ' three' : ''}" aria-label="Informações principais"><div><span class="small-label">${sale ? 'Valor de venda' : 'Custo mensal de ocupação'}</span><strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div><div><span class="small-label">Área bruta locável (ABL)</span><strong>${measure(i.areaTotal)}</strong><small>${present(i.areaUtil) ? `Área útil: ${measure(i.areaUtil)}` : 'Conforme cadastro do imóvel'}</small></div>${porM2 ? `<div><span class="small-label">${sale ? 'Valor por m²' : 'Aluguel por m²'}</span><strong>${porM2}</strong><small>${sale ? 'Valor de venda ÷ ABL' : 'Aluguel ÷ ABL, sem encargos'}</small></div>` : ''}</section>
+<section class="highlights${porM2 ? ' three' : ''}" aria-label="Informações principais"><div><span class="small-label">${sale ? 'Valor de venda' : 'Custo mensal de ocupação'}</span><strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div><div><span class="small-label">ABL</span><strong>${measure(i.areaTotal)}</strong><small>${present(i.areaUtil) ? `Área útil: ${measure(i.areaUtil)}` : 'Conforme cadastro do imóvel'}</small></div>${porM2 ? `<div><span class="small-label">${sale ? 'Valor por m²' : 'Aluguel por m²'}</span><strong>${porM2}</strong><small>${sale ? 'Valor de venda ÷ ABL' : 'Aluguel ÷ ABL, sem encargos'}</small></div>` : ''}</section>
 <div class="facts-grid"><section><h2><span>01</span> Condições comerciais</h2><dl class="facts">${rows.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${i.periodoContrato ? `<p class="contract">Prazo de contrato: ${esc(i.periodoContrato)}</p>` : ''}<p class="fine-print">${sale ? 'Encargos apresentados conforme cadastro.' : '* Composição conforme valores cadastrados. Confirmar a periodicidade da cota de IPTU.'} CDU não integra o total mensal. Valores ausentes permanecem sob consulta.</p></section><section><h2><span>02</span> Características do imóvel</h2><dl class="facts dimensions">${dimensions.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl></section></div>
-<section class="contact"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>
+${visita(hasDetails ? 'visit-resumo' : '')}
 <p class="disclaimer">Disponibilidade e condições sujeitas a confirmação. Esta apresentação não substitui a documentação técnica do imóvel.</p>
 ${context ? `<div class="first-foot">${context}${footer}</div>` : footer}</article>
 ${hasDetails ? `<article class="sheet details" aria-label="Informações complementares">${header}<div class="section-intro"><span class="eyebrow">Informações complementares</span><h2 class="digital-only">${esc(title)}</h2><h2 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h2><p>${esc(subtitle)}</p></div>
 ${i.descricao?.trim() ? `<section class="description"><h3>Sobre o imóvel</h3><p class="digital-only">${esc(i.descricao)}</p><p class="print-only">${esc(i.descricao.slice(0, 600))}${i.descricao.length > 600 ? '… Descrição completa na versão digital.' : ''}</p></section>` : ''}
-${photos.length > 1 ? `<section class="gallery-section"><h3>Galeria do imóvel</h3><div class="gallery">${photos.slice(1).map((photo,index) => `<figure class="${index > 1 ? 'digital-only' : ''}" data-foto="${index + 1}"><img src="${esc(uploadUrl(photo.arquivo))}" alt="${esc(photo.legenda || `Foto ${index + 2} do imóvel`)}" loading="eager"><figcaption><span>${String(index + 2).padStart(2,'0')}</span> <span class="digital-only">${esc(photo.legenda || 'Imagem cadastrada do imóvel')}</span><span class="print-only">${esc((photo.legenda || 'Imagem cadastrada do imóvel').slice(0,100))}</span></figcaption></figure>`).join('')}</div></section>` : ''}
-${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul>${docs.map(d => `<li class="${docs.indexOf(d) > 3 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer"><span><strong class="digital-only">${esc(d.nome || labels[d.tipo])}</strong><strong class="print-only">${esc((d.nome || labels[d.tipo]).slice(0,100))}</strong><small>${esc(labels[d.tipo])}</small></span><span aria-hidden="true">↗</span></a></li>`).join('')}</ul></section>` : ''}
-<p class="print-only fine-print">Seleção de imagens e documentos. Consulte a versão digital para ver todos os complementos.</p>${footer}</article>` : ''}
+${infra}
+${photos.length > 1 ? `<section class="gallery-section"><h3>Galeria do imóvel</h3><div class="gallery">${photos.slice(1, 5).map((photo,index) => `<figure data-foto="${index + 1}"><img src="${esc(uploadUrl(photo.arquivo))}" alt="${esc(photo.legenda || `Foto ${index + 2} do imóvel`)}" loading="eager"><figcaption><span>${String(index + 2).padStart(2,'0')}</span> <span class="digital-only">${esc(photo.legenda || 'Imagem cadastrada do imóvel')}</span><span class="print-only">${esc((photo.legenda || 'Imagem do imóvel').slice(0,34))}</span></figcaption></figure>`).join('')}</div>${photos.length > 5 ? `<p class="fine-print all-photos">Esta seleção mostra 4 de ${photos.length - 1} fotos adicionais. <a class="digital-only" href="/apresentacao/${i.id}/fotos">Ver todas as fotos ↗</a><span class="print-only">Veja todas na versão digital.</span></p>` : ''}</section>` : ''}
+${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul class="doc-grid">${docs.map((d, n) => `<li class="${n > 5 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer"><span><strong>${esc(d.nome || labels[d.tipo])}</strong><small>${esc(labels[d.tipo])}</small></span><span aria-hidden="true">↗</span></a></li>`).join('')}</ul>${docs.length > 6 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
+${visita()}
+${footerBand}</article>` : ''}
 </main>${photos.length > 1 ? `<div class="viewer" hidden role="dialog" aria-modal="true" aria-label="Fotos do imóvel"><button type="button" class="viewer-close" aria-label="Fechar">×</button><button type="button" class="viewer-nav prev" aria-label="Foto anterior">‹</button><figure><img alt=""><figcaption></figcaption></figure><button type="button" class="viewer-nav next" aria-label="Próxima foto">›</button></div>
 <script>(function(){var fotos=${JSON.stringify(photos.map((f, n) => ({ src: uploadUrl(f.arquivo), legenda: f.legenda || `Foto ${n + 1}` }))).replace(/</g, '\\u003c')};var v=document.querySelector('.viewer'),img=v.querySelector('img'),cap=v.querySelector('figcaption'),atual=0,antes;
 function mostrar(n){atual=(n+fotos.length)%fotos.length;img.src=fotos[atual].src;img.alt=fotos[atual].legenda;cap.textContent=(atual+1)+' / '+fotos.length+' · '+fotos[atual].legenda;}

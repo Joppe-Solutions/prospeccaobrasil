@@ -76,9 +76,23 @@
   Documentação não estavam no PDF e foram mantidos em Cadastros.
 - Conhecimento: `/inteligencia` (um relatório por imóvel), `/benchmark` (rental rate),
   `/modelos-contratos` (links; só admin mantém), `/diretrizes` (premissas das demandas ativas).
-- Apresentação do imóvel: QR code de localização no cabeçalho da 1ª folha e "Indicadores de
-  Inteligência Territorial e Comercial" (4 cartões: Censo 2022 do bairro + entorno) no rodapé
-  dela; o entorno tem 4 s para responder e depois vem do cache.
+- Apresentação do imóvel (`templates/apresentacao.js`): 1ª folha com faixa verde no cabeçalho (QR
+  code de localização à direita), mapa ao lado da foto e "Indicadores de Inteligência Territorial e
+  Comercial" (4 cartões) no rodapé. 2ª folha ("complementos"): descrição, Infraestrutura Urbana e
+  Equipamentos de Apoio no Entorno, galeria com no máximo 4 fotos (as demais abrem no visualizador e
+  na galeria pública), documentos técnicos em grade de 3 colunas, "Agende uma visita" e rodapé verde.
+  O resumo impresso (1 folha) mantém uma faixa de visita na 1ª folha, pois não tem 2ª folha. O teste
+  e2e `expansao.spec.js` exige 1 página (resumo) e 2 (completa) no PDF. O entorno tem 4 s para
+  responder e depois vem do cache. Faixas verdes não "sangram" até a borda no papel (o Chrome não
+  pinta a margem de página): ficam dentro dela.
+- Localização e mapa (`services/mapas.js`): coordenadas cadastradas no imóvel (campo "Coordenadas",
+  coladas do Google Maps) vencem sempre. Com `GOOGLE_MAPS_API_KEY` no `.env` da VPS (APIs Geocoding e
+  Maps Static, chave restrita ao IP do servidor) o endereço é geocodificado pelo Google e o mapa da
+  apresentação é a imagem do Google, servida do cache em disco por `/apresentacao/:id/mapa.png` (a
+  chave nunca vai para a página). Sem chave: Nominatim + tiles do OpenStreetMap, que muitas vezes só
+  acha o meio da rua; nesse caso o documento diz "Localização aproximada". Cache em `api/cache/mapas`
+  (90 dias; `MAPAS_CACHE_DIR` muda o local). O relatório de inteligência usa a mesma geocodificação,
+  mas seu desenho do mapa (com os raios) segue em tiles do OpenStreetMap.
 - Documentos do imóvel: tipos `planta`, `dwg`, `inteligencia`, `pre_analise`, `rgi`, `avcb`,
   `convencao`, `regimento`, `iptu_doc`, `doc_locatario`, `outro`. Públicos (`lib/publicDocs.js`):
   planta, inteligência, RGI, AVCB, convenção, regimento, IPTU. DWG e documentação do locatário

@@ -39,9 +39,11 @@ export function useArquivoToken() {
 }
 
 export const MAPS_AUTO = 'https://www.google.com/maps/search/?api=1&query=';
-// Mesmo link que a API grava ao salvar: busca do Google Maps pelo endereço do imóvel.
+// Mesmo link que a API grava ao salvar: Google Maps pelas coordenadas do imóvel ou, sem elas, pelo endereço.
 export function mapsUrl(i) {
   if (i.googleMapsUrl && !i.googleMapsUrl.startsWith(MAPS_AUTO)) return i.googleMapsUrl;
+  // Coordenadas exatas (copiadas do Google Maps) valem mais que o endereço digitado
+  if (i.latitude != null && i.longitude != null && i.latitude !== '' && i.longitude !== '' && Number.isFinite(Number(i.latitude)) && Number.isFinite(Number(i.longitude))) return MAPS_AUTO + encodeURIComponent(`${Number(i.latitude)},${Number(i.longitude)}`);
   const consulta = [[i.endereco, i.numero].filter(Boolean).join(', '), i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', ');
   return consulta ? MAPS_AUTO + encodeURIComponent(consulta) : '';
 }
@@ -56,3 +58,15 @@ export async function enviarFotos(imovelId, files) {
   }
   return criadas;
 }
+
+// "-22.9068, -43.1729" (o que o Google Maps copia ao clicar no ponto) → { lat, lon } ou null
+export function lerCoordenadas(texto) {
+  const m = /^\s*(-?\d{1,2}(?:\.\d+)?)\s*(?:[,;]\s*|\s+)(-?\d{1,3}(?:\.\d+)?)\s*$/.exec(String(texto ?? ''));
+  if (!m) return null;
+  const lat = Number(m[1]), lon = Number(m[2]);
+  return Math.abs(lat) <= 90 && Math.abs(lon) <= 180 ? { lat, lon } : null;
+}
+// Mesmo formato, com os limites (latitude ±90, longitude ±180), para o atributo `pattern` do campo
+const LAT = '-?(?:90(?:\\.0+)?|[0-8]?\\d(?:\\.\\d+)?)';
+const LON = '-?(?:180(?:\\.0+)?|1[0-7]\\d(?:\\.\\d+)?|\\d{1,2}(?:\\.\\d+)?)';
+export const PADRAO_COORDENADAS = `\\s*${LAT}\\s*(?:[,;]\\s*|\\s+)${LON}\\s*`;

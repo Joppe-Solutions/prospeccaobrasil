@@ -20,6 +20,9 @@ test('wizard de imóvel cria registro completo e lista exibe o novo código', as
   // Etapa 2: endereço (obrigatórios)
   await modal.locator('#wz-endereco').fill('Rua do Wizard, 100');
   await modal.locator('#wz-cidade').fill('Rio de Janeiro');
+  // coordenadas copiadas do Google Maps: mapa e QR code usam exatamente este ponto
+  await modal.locator('#wz-coordenadas').fill('-22.90680, -43.17290');
+  await expect(modal).toContainText('Mapa e QR code da apresentação usarão exatamente este ponto');
   await modal.getByRole('button', { name: 'Próximo' }).click();
 
   // Etapa 3: dimensões — áreas dinâmicas somam na ABL, que segue editável
@@ -57,7 +60,7 @@ test('wizard de imóvel cria registro completo e lista exibe o novo código', as
   await expect(main).toContainText('2º piso');
   await expect(main).toContainText('Área Bruta Locável (ABL)');
   await expect(main.locator('.photo-grid li')).toHaveCount(2);
-  await expect(main.getByRole('link', { name: /Ver no Google Maps/ })).toHaveAttribute('href', /google\.com\/maps\/search/);
+  await expect(main.getByRole('link', { name: /Ver no Google Maps/ })).toHaveAttribute('href', /query=-22\.9068%2C-43\.1729/);
   await expectNoErrors(errors);
 });
 
@@ -70,5 +73,24 @@ test('wizard bloqueia avanço sem campos obrigatórios', async ({ page }) => {
   await modal.getByRole('button', { name: 'Próximo' }).click();
   // Continua na etapa de endereço (obrigatórios faltando)
   await expect(modal).toContainText('Onde fica o imóvel');
+  await page.keyboard.press('Escape');
+});
+
+test('wizard recusa coordenadas fora do formato ou do intervalo', async ({ page }) => {
+  await page.goto('/imoveis');
+  await page.getByRole('link', { name: 'Novo imóvel' }).click();
+  const modal = page.locator('.modal');
+  await modal.getByRole('button', { name: 'Próximo' }).click();
+  await modal.locator('#wz-endereco').fill('Rua das Coordenadas, 1');
+  await modal.locator('#wz-cidade').fill('Rio de Janeiro');
+  for (const invalida of ['95, -43', '-22,9068, -43,17', 'abc']) {
+    await modal.locator('#wz-coordenadas').fill(invalida);
+    await expect(modal).toContainText('Formato inválido ou fora do intervalo');
+    await modal.getByRole('button', { name: 'Próximo' }).click();
+    await expect(modal).toContainText('Onde fica o imóvel'); // continua na etapa de endereço
+  }
+  await modal.locator('#wz-coordenadas').fill('');
+  await modal.getByRole('button', { name: 'Próximo' }).click();
+  await expect(modal).toContainText('Dimensões');
   await page.keyboard.press('Escape');
 });

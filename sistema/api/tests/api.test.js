@@ -934,7 +934,7 @@ test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalh
   };
   const html = renderApresentacao(imovel, 'data:image/png;base64,AAAA', { contexto });
   const primeira = html.split('<article class="sheet details"')[0];
-  const cabecalho = primeira.match(/<header class="document-header">[\s\S]*?<\/header>/)[0];
+  const cabecalho = primeira.match(/<header class="document-header banner">[\s\S]*?<\/header>/)[0];
 
   assert.match(cabecalho, /class="qr"/);
   assert.match(cabecalho, /QR code para abrir a localização/);
@@ -943,9 +943,140 @@ test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalh
   assert.match(rodape, /Indicadores de Inteligência Territorial e Comercial/);
   assert.equal((rodape.match(/<div><span class="small-label">/g) || []).length, 4);
   assert.match(rodape, /class="document-footer"/);
-  assert.doesNotMatch(html, /Contexto do ponto|class="nearby"|Fontes: IBGE/);
-  assert.doesNotMatch(html, /Itaú/);
+  assert.doesNotMatch(html, /Contexto do ponto|Fontes: IBGE/);
+  // a lista de equipamentos não fica sob os cartões: vai para a seção de infraestrutura da 2ª folha
+  assert.doesNotMatch(rodape, /Itaú|class="nearby"/);
+  assert.match(html.split('<article class="sheet details"')[1], /Infraestrutura Urbana e Equipamentos de Apoio no Entorno[\s\S]*Itaú/);
   // sem dados, não sobra bloco vazio
   const semDados = renderApresentacao(imovel, 'data:image/png;base64,AAAA', {}).replace(/<style>[\s\S]*?<\/style>/, '');
   assert.doesNotMatch(semDados, /first-foot|Indicadores de Inteligência/);
+});
+
+test('apresentação: ABL só no destaque, galeria com até 4 fotos, documentos em grade e visita no fim da 2ª folha', () => {
+  const { renderApresentacao } = require('../src/templates/apresentacao');
+  const base = { id: 9, codigo: 'PB-LAY', titulo: 'Loja layout', endereco: 'Rua B', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', aluguel: 10000, areaTotal: 100, areaUtil: 90, peDireito: 4, criadoEm: '2026-10-01' };
+  const fotos = Array.from({ length: 8 }, (_, n) => ({ arquivo: `f${n}.jpg`, legenda: `Foto ${n}` }));
+  const docs = Array.from({ length: 5 }, (_, n) => ({ tipo: 'planta', nome: `Planta ${n}`, url: `https://x.com/p${n}` }));
+  const html = renderApresentacao({ ...base, fotos, documentos: docs, descricao: 'Texto' }, 'data:image/png;base64,AAAA', { completa: true });
+  const [primeira, segunda] = html.split('<article class="sheet details"');
+  const corpo = (t) => t.replace(/<style>[\s\S]*?<\/style>/, '');
+
+  // ABL: nome curto, só no destaque; fora de "Características do imóvel"
+  assert.match(primeira, /<span class="small-label">ABL<\/span>/);
+  assert.doesNotMatch(corpo(html), /Área bruta locável|Área Bruta Locável/);
+  assert.doesNotMatch(primeira.match(/Características do imóvel[\s\S]*?<\/section>/)[0], /ABL/);
+
+  // galeria: nunca mais de 4 fotos, com acesso às demais
+  assert.equal((segunda.match(/<figure data-foto=/g) || []).length, 4);
+  assert.match(segunda, /Ver todas as fotos/);
+  // (o visualizador da página guarda todas as fotos; a seção da galeria só as 4 primeiras)
+  assert.doesNotMatch(segunda.match(/<div class="gallery">[\s\S]*?<\/div>/)[0], /f5\.jpg|f6\.jpg|f7\.jpg/);
+  const poucas = renderApresentacao({ ...base, fotos: fotos.slice(0, 3), documentos: [], descricao: 'x' }, 'data:image/png;base64,AAAA', { completa: true });
+  assert.equal((poucas.split('<article class="sheet details"')[1].match(/<figure data-foto=/g) || []).length, 2);
+  assert.doesNotMatch(poucas, /Ver todas as fotos/);
+
+  // documentos em grade; 6 no papel (resto só na versão digital)
+  assert.match(segunda, /class="doc-grid"/);
+  assert.equal((segunda.match(/<li class="">/g) || []).length, 5);
+
+  // visita: no fim da 2ª folha; na 1ª só como faixa do resumo impresso; rodapé verde só na 2ª folha
+  assert.match(primeira, /class="contact visit-resumo"/);
+  assert.match(segunda, /<section class="contact ">/);
+  assert.ok(segunda.indexOf('class="contact ') > segunda.indexOf('Documentos técnicos para consulta'));
+  assert.ok(segunda.indexOf('class="contact ') < segunda.indexOf('document-footer band'));
+  assert.doesNotMatch(primeira, /document-footer band/);
+  assert.match(primeira, /class="document-header banner"/);
+  assert.doesNotMatch(segunda.match(/<header[\s\S]*?<\/header>/)[0], /banner/);
+
+  // sem 2ª folha, a visita fica na 1ª folha como sempre
+  const semSegunda = renderApresentacao({ ...base, fotos: [], documentos: [] }, 'data:image/png;base64,AAAA', {});
+  assert.doesNotMatch(semSegunda, /class="sheet details"/);
+  assert.match(semSegunda, /<section class="contact ">/);
+  assert.doesNotMatch(semSegunda, /visit-resumo"/);
+});
+
+test('imóvel: coordenadas exatas validadas e usadas no link do Google Maps', async () => {
+  const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua das Coordenadas', numero: '7', cidade: 'Rio de Janeiro', bairro: 'Centro' } })).body;
+  assert.match(im.googleMapsUrl, /query=Rua%20das%20Coordenadas/);
+  const put = (body) => req('PUT', `/api/imoveis/${im.id}`, { token, body });
+  assert.equal((await put({ latitude: 95, longitude: -43 })).status, 400);
+  assert.equal((await put({ latitude: -22.9, longitude: 181 })).status, 400);
+  assert.equal((await put({ latitude: -22.9068 })).status, 400);
+  const ok = await put({ latitude: -22.9068, longitude: -43.1729 });
+  assert.equal(ok.status, 200);
+  assert.equal(ok.body.googleMapsUrl, 'https://www.google.com/maps/search/?api=1&query=-22.9068%2C-43.1729');
+  // a apresentação (QR code e mapa) usa o mesmo ponto
+  const html = await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text();
+  assert.match(html, /query=-22\.9068%2C-43\.1729/);
+  assert.match(html, /<figcaption>Localização<span>/);
+  // limpar as coordenadas volta ao endereço
+  const limpo = await put({ latitude: null, longitude: null });
+  assert.match(limpo.body.googleMapsUrl, /query=Rua%20das%20Coordenadas/);
+});
+
+test('mapas: Google Geocoding e Static Maps com cache; sem chave cai no OpenStreetMap', async () => {
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const mapas = require('../src/services/mapas');
+  const original = { fetch: global.fetch, chave: process.env.GOOGLE_MAPS_API_KEY, cache: process.env.MAPAS_CACHE_DIR };
+  process.env.MAPAS_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'pb-mapas-'));
+  const chamadas = [];
+  let respostaGeocode = { status: 'OK', results: [{ geometry: { location: { lat: -22.9036, lng: -43.1739 }, location_type: 'ROOFTOP' } }] };
+  let tipoImagem = 'image/png';
+  global.fetch = async (url, opts) => {
+    const u = String(url);
+    if (u.includes('maps.googleapis.com/maps/api/geocode')) { chamadas.push('geocode'); return new Response(JSON.stringify(respostaGeocode), { headers: { 'content-type': 'application/json' } }); }
+    if (u.includes('maps.googleapis.com/maps/api/staticmap')) { chamadas.push('static'); assert.match(u, /markers=color%3A0x153c34/); return new Response(Buffer.from('PNGFAKE'), { headers: { 'content-type': tipoImagem } }); }
+    if (u.includes('nominatim.openstreetmap.org')) { chamadas.push('osm'); return new Response('[]', { headers: { 'content-type': 'application/json' } }); }
+    return original.fetch(url, opts);
+  };
+  try {
+    const imovel = { endereco: 'Rua da Assembleia', numero: '58', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ' };
+
+    // coordenadas cadastradas vencem tudo e não chamam serviço nenhum
+    assert.deepEqual(await mapas.geocode({ ...imovel, latitude: -22.1, longitude: -43.2 }), { lat: -22.1, lon: -43.2, fonte: 'cadastro', precisao: 'exata' });
+    assert.equal(chamadas.length, 0);
+
+    // com chave: Google, no nível do número, e a segunda busca vem do cache em disco
+    process.env.GOOGLE_MAPS_API_KEY = 'chave-de-teste';
+    const g = await mapas.geocode(imovel);
+    assert.deepEqual([g.lat, g.lon, g.fonte, g.precisao], [-22.9036, -43.1739, 'Google Maps', 'endereco']);
+    await mapas.geocode(imovel);
+    assert.deepEqual(chamadas, ['geocode']);
+
+    // resultado só de rua/bairro é marcado como aproximado
+    respostaGeocode = { status: 'OK', results: [{ geometry: { location: { lat: -22.9, lng: -43.1 }, location_type: 'GEOMETRIC_CENTER' } }] };
+    assert.equal((await mapas.geocode({ ...imovel, numero: '999' })).precisao, 'rua');
+
+    // imagem do mapa: uma chamada, depois cache; resposta que não é imagem vira null
+    const img = await mapas.mapaEstatico(g);
+    assert.equal(img.toString(), 'PNGFAKE');
+    await mapas.mapaEstatico(g);
+    assert.equal(chamadas.filter((c) => c === 'static').length, 1);
+    tipoImagem = 'application/json';
+    assert.equal(await mapas.mapaEstatico({ ...g, lat: -20 }), null);
+    tipoImagem = 'image/png';
+
+    // rota pública do mapa e documento apontando para ela (imóvel com coordenadas cadastradas)
+    const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua do Mapa Google', cidade: 'Rio de Janeiro', latitude: -22.95, longitude: -43.2 } })).body;
+    const rota = await fetch(`${getBase()}/apresentacao/${im.id}/mapa.png`);
+    assert.equal(rota.status, 200);
+    assert.equal(rota.headers.get('content-type'), 'image/png');
+    assert.equal(await rota.text(), 'PNGFAKE');
+    const html = await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text();
+    assert.match(html, new RegExp(`src="/apresentacao/${im.id}/mapa\\.png"`));
+    assert.doesNotMatch(html, /tile\.openstreetmap/);
+
+    // sem chave: mapa de tiles do OpenStreetMap e rota da imagem indisponível
+    delete process.env.GOOGLE_MAPS_API_KEY;
+    assert.equal(await mapas.mapaEstatico(g), null);
+    assert.equal((await fetch(`${getBase()}/apresentacao/${im.id}/mapa.png`)).status, 404);
+    assert.match(await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text(), /tile\.openstreetmap\.org/);
+    assert.equal(await mapas.geocode(imovel), null); // OSM simulado sem resultados
+  } finally {
+    global.fetch = original.fetch;
+    if (original.chave === undefined) delete process.env.GOOGLE_MAPS_API_KEY; else process.env.GOOGLE_MAPS_API_KEY = original.chave;
+    if (original.cache === undefined) delete process.env.MAPAS_CACHE_DIR; else process.env.MAPAS_CACHE_DIR = original.cache;
+  }
 });
