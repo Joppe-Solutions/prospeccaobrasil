@@ -8,6 +8,7 @@ const asyncHandler = require('../middleware/async');
 const paginate = require('../lib/paginate');
 const { gerarAnalise } = require('../services/inteligencia');
 const { fail, urlHttp } = require('../lib/validar');
+const { aquecerLocalizacao } = require('../services/aquecer');
 const { avaliar, DEMANDA_ATIVA, IMOVEL_OFERTAVEL } = require('../lib/compatibilidade');
 
 const ALLOWED_MIME = new Set([
@@ -254,6 +255,7 @@ module.exports = (prisma) => {
             data: { valor: +mm[1] },
           });
         }
+        aquecerLocalizacao(criado);
         return res.json(criado);
       } catch (e) {
         if (e.code === 'P2002') return res.status(409).json({ error: `Código ${d.codigo} já existe` });
@@ -264,7 +266,9 @@ module.exports = (prisma) => {
     for (let tentativa = 0; tentativa < 5; tentativa++) {
       d.codigo = await proximoCodigo();
       try {
-        return res.json(await prisma.imovel.create({ data: d, include: AREAS }));
+        const novo = await prisma.imovel.create({ data: d, include: AREAS });
+        aquecerLocalizacao(novo);
+        return res.json(novo);
       } catch (e) {
         if (e.code === 'P2002' && tentativa < 4) continue; // código manual à frente da sequência
         if (e.code === 'P2002') return res.status(409).json({ error: 'Conflito ao gerar código. Tente novamente.' });
@@ -280,7 +284,9 @@ module.exports = (prisma) => {
     const areas = pickAreas(req.body);
     const data = comMapa({ ...pickImovel(req.body), ...(areas ? legadoDasAreas(areas) : {}) }, atual);
     if (areas) data.areas = { deleteMany: {}, create: areas };
-    res.json(await prisma.imovel.update({ where: { id }, data, include: AREAS }));
+    const atualizado = await prisma.imovel.update({ where: { id }, data, include: AREAS });
+    aquecerLocalizacao(atualizado);
+    res.json(atualizado);
   }));
 
   r.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {

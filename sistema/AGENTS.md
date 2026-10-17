@@ -91,7 +91,10 @@
   apresentação é a imagem do Google, servida do cache em disco por `/apresentacao/:id/mapa.png` (a
   chave nunca vai para a página). Sem chave: Nominatim + tiles do OpenStreetMap, que muitas vezes só
   acha o meio da rua; nesse caso o documento diz "Localização aproximada". Cache em `api/cache/mapas`
-  (90 dias; `MAPAS_CACHE_DIR` muda o local). O relatório de inteligência usa a mesma geocodificação,
+  (90 dias; `MAPAS_CACHE_DIR` muda o local). A busca no OpenStreetMap tenta o endereço como digitado,
+  depois com abreviações expandidas ("Av. Min." → "Avenida Ministro") e por fim só a rua; sem resultado,
+  não repete por 1 dia. Ao salvar um imóvel, `services/aquecer.js` pré-carrega em segundo plano
+  coordenadas, mapa e entorno, para a 1ª abertura da apresentação já sair completa. O relatório de inteligência usa a mesma geocodificação,
   mas seu desenho do mapa (com os raios) segue em tiles do OpenStreetMap.
 - Documentos do imóvel: tipos `planta`, `dwg`, `inteligencia`, `pre_analise`, `rgi`, `avcb`,
   `convencao`, `regimento`, `iptu_doc`, `doc_locatario`, `outro`. Públicos (`lib/publicDocs.js`):

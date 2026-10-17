@@ -1080,3 +1080,52 @@ test('mapas: Google Geocoding e Static Maps com cache; sem chave cai no OpenStre
     if (original.cache === undefined) delete process.env.MAPAS_CACHE_DIR; else process.env.MAPAS_CACHE_DIR = original.cache;
   }
 });
+
+test('geocodificação: abreviações do endereço são expandidas antes de buscar no OpenStreetMap', async () => {
+  const { expandirAbreviacoes } = require('../src/services/mapas');
+  assert.equal(expandirAbreviacoes('Av. Min. Edgard Romero'), 'Avenida Ministro Edgard Romero');
+  assert.equal(expandirAbreviacoes('R. Dr. Pereira'), 'Rua Doutor Pereira');
+  assert.equal(expandirAbreviacoes('Av Brasil'), 'Avenida Brasil');
+  assert.equal(expandirAbreviacoes('Estr. do Pau Ferro'), 'Estrada do Pau Ferro');
+  // sem ponto, só o tipo de logradouro no início é expandido; nomes próprios ficam como estão
+  assert.equal(expandirAbreviacoes('Rua Min Guimarães'), 'Rua Min Guimarães');
+  assert.equal(expandirAbreviacoes('Avenida das Américas'), 'Avenida das Américas');
+
+  // tentativas em ordem: original → abreviações expandidas → só a rua (marcada como aproximada)
+  const fs = require('fs');
+  const os = require('os');
+  const path = require('path');
+  const mapas = require('../src/services/mapas');
+  const original = { fetch: global.fetch, cache: process.env.MAPAS_CACHE_DIR, chave: process.env.GOOGLE_MAPS_API_KEY };
+  process.env.MAPAS_CACHE_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'pb-osm-'));
+  delete process.env.GOOGLE_MAPS_API_KEY;
+  const consultas = [];
+  global.fetch = async (url, opts) => {
+    const u = String(url);
+    if (!u.includes('nominatim.openstreetmap.org')) return original.fetch(url, opts);
+    const q = decodeURIComponent(new URL(u).searchParams.get('q'));
+    consultas.push(q);
+    // só a forma por extenso, sem número, existe no mapa
+    const achou = q.startsWith('Avenida Ministro Edgard Romero, Madureira');
+    return new Response(JSON.stringify(achou ? [{ lat: '-22.86', lon: '-43.33', type: 'residential', address: { city: 'Rio de Janeiro', suburb: 'Madureira', road: 'Avenida Ministro Edgard Romero' } }] : []), { headers: { 'content-type': 'application/json' } });
+  };
+  try {
+    const imovel = { endereco: 'Av. Min. Edgard Romero', numero: '36', bairro: 'Madureira', cidade: 'Rio de Janeiro', uf: 'RJ' };
+    const geo = await mapas.geocode(imovel);
+    assert.deepEqual([geo.lat, geo.precisao], [-22.86, 'rua']);
+    assert.deepEqual(consultas, ['Av. Min. Edgard Romero, 36, Madureira, Rio de Janeiro, RJ, Brasil', 'Avenida Ministro Edgard Romero, 36, Madureira, Rio de Janeiro, RJ, Brasil', 'Avenida Ministro Edgard Romero, Madureira, Rio de Janeiro, RJ, Brasil']);
+    // resultado guardado: nenhuma consulta nova
+    await mapas.geocode(imovel);
+    assert.equal(consultas.length, 3);
+    // endereço que não existe: não repete a busca a cada visita
+    const fantasma = { endereco: 'Rua Que Nao Existe', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ' };
+    assert.equal(await mapas.geocode(fantasma), null);
+    const antes = consultas.length;
+    assert.equal(await mapas.geocode(fantasma), null);
+    assert.equal(consultas.length, antes);
+  } finally {
+    global.fetch = original.fetch;
+    if (original.cache === undefined) delete process.env.MAPAS_CACHE_DIR; else process.env.MAPAS_CACHE_DIR = original.cache;
+    if (original.chave !== undefined) process.env.GOOGLE_MAPS_API_KEY = original.chave;
+  }
+});

@@ -73,20 +73,54 @@ function escolherResultado(resultados, imovel) {
   return noBairro || (naCidade.length === 1 ? naCidade[0] : null);
 }
 
+// Endereços digitados com abreviação ("Av. Min. Edgard Romero") não existem assim no OpenStreetMap.
+const ABREVIACOES = {
+  av: 'Avenida', 'r': 'Rua', 'pça': 'Praça', 'pca': 'Praça', tv: 'Travessa', trav: 'Travessa', estr: 'Estrada', rod: 'Rodovia',
+  al: 'Alameda', lgo: 'Largo', lad: 'Ladeira', min: 'Ministro', dr: 'Doutor', dra: 'Doutora', prof: 'Professor', profa: 'Professora',
+  cel: 'Coronel', gen: 'General', mal: 'Marechal', eng: 'Engenheiro', pres: 'Presidente', vis: 'Visconde', alm: 'Almirante',
+  cap: 'Capitão', dep: 'Deputado', ver: 'Vereador', sen: 'Senador', des: 'Desembargador', pe: 'Padre', fr: 'Frei', sta: 'Santa', sto: 'Santo',
+  cons: 'Conselheiro', cmte: 'Comandante', ten: 'Tenente', sgt: 'Sargento', brig: 'Brigadeiro', bar: 'Barão',
+};
+// Só expande com ponto ("Min.") ou, para tipo de logradouro, quando é a primeira palavra ("Av ...")
+function expandirAbreviacoes(texto) {
+  return String(texto || '').split(/\s+/).map((palavra, n) => {
+    const m = /^([A-Za-zÀ-ú]+)(\.?)([,;]?)$/.exec(palavra);
+    if (!m) return palavra;
+    const chave = norm(m[1]);
+    const tipoLogradouro = ['av', 'r', 'pça', 'pca', 'tv', 'trav', 'estr', 'rod', 'al', 'lgo', 'lad'].includes(chave);
+    return ABREVIACOES[chave] && (m[2] || (tipoLogradouro && n === 0)) ? `${ABREVIACOES[chave]}${m[3]}` : palavra;
+  }).join(' ');
+}
+
+const SEM_RESULTADO_TTL = 24 * 60 * 60 * 1000;
+
 async function geocodeNominatim(imovel) {
   if (!imovel.cidade) return null;
   const consulta = [imovel.endereco && `${imovel.endereco}${imovel.numero ? `, ${imovel.numero}` : ''}`, imovel.bairro, imovel.cidade, imovel.uf, 'Brasil'].filter(Boolean).join(', ');
   const arquivo = path.join(CACHE_DIR(), 'geo', `osm-${hash(norm(consulta))}.json`);
   const salvo = lerCache(arquivo);
-  if (salvo) return salvo;
-  const r = await buscarJson(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=br&q=${encodeURIComponent(consulta)}`, 'prospeccao-brasil-inteligencia/1.0');
-  const g = escolherResultado(r || [], imovel);
-  if (!g) return null;
-  // Resultado de via (sem número no OSM) é o meio da rua: aproximado
-  const noNumero = Boolean(g.address?.house_number) || ['house', 'building', 'apartments', 'yes'].includes(g.type);
-  const geo = { lat: Number(g.lat), lon: Number(g.lon), fonte: 'OpenStreetMap', precisao: noNumero ? 'endereco' : 'rua' };
-  gravarCache(arquivo, JSON.stringify(geo));
-  return geo;
+  if (salvo?.semResultado) { if (Date.now() - salvo.t < SEM_RESULTADO_TTL) return null; }
+  else if (salvo) return salvo;
+
+  // Tentativas, da mais fiel à mais genérica; o Nominatim pede no máximo 1 consulta por segundo
+  const expandido = (imovel.endereco ? { ...imovel, endereco: expandirAbreviacoes(imovel.endereco) } : imovel);
+  const montar = (i, comNumero) => [i.endereco && `${i.endereco}${comNumero && i.numero ? `, ${i.numero}` : ''}`, i.bairro, i.cidade, i.uf, 'Brasil'].filter(Boolean).join(', ');
+  const tentativas = [[consulta, false]];
+  if (montar(expandido, true) !== consulta) tentativas.push([montar(expandido, true), false]);
+  if (imovel.numero) tentativas.push([montar(expandido, false), true]); // sem o número: resultado é só a rua
+  for (const [n, [q, soRua]] of tentativas.entries()) {
+    if (n) await new Promise((resolve) => setTimeout(resolve, 1100));
+    const r = await buscarJson(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=br&q=${encodeURIComponent(q)}`, 'prospeccao-brasil-inteligencia/1.0');
+    const g = escolherResultado(r || [], imovel);
+    if (!g) continue;
+    // Resultado de via (sem número no OSM) é o meio da rua: aproximado
+    const noNumero = !soRua && (Boolean(g.address?.house_number) || ['house', 'building', 'apartments', 'yes'].includes(g.type));
+    const geo = { lat: Number(g.lat), lon: Number(g.lon), fonte: 'OpenStreetMap', precisao: noNumero ? 'endereco' : 'rua' };
+    gravarCache(arquivo, JSON.stringify(geo));
+    return geo;
+  }
+  gravarCache(arquivo, JSON.stringify({ semResultado: true, t: Date.now() }));
+  return null;
 }
 
 /** { lat, lon, fonte, precisao: 'exata' | 'endereco' | 'rua' } ou null */
@@ -122,4 +156,4 @@ async function mapaEstatico(geo, { largura = 640, altura = 490, zoom } = {}) {
   } catch (e) { console.error('Mapa estático (Google) indisponível:', e.message); return null; }
 }
 
-module.exports = { geocode, mapaEstatico, usaGoogle, coordenadasCadastradas, escolherResultado };
+module.exports = { geocode, mapaEstatico, usaGoogle, coordenadasCadastradas, escolherResultado, expandirAbreviacoes };
