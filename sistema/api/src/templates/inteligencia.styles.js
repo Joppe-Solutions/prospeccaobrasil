@@ -32,6 +32,7 @@ h2.sec span { display:block; font-family:Arial,sans-serif; font-size:9px; letter
 .texto p { margin:0 0 12px; } .texto ul { margin:0 0 12px; padding-left:20px; } .texto li { margin-bottom:11px; }
 .texto li.alerta { color:#8a5a14; }
 .intro { margin:0; font-size:11px; color:var(--muted); flex:none; }
+.cols2.metodo { flex:none; }
 .cartoes { margin-top:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
 .cartoes>div { background:var(--soft); border-left:3px solid var(--gold); padding:20px 18px; }
 .cartoes span { display:block; font-size:8px; letter-spacing:1.6px; color:var(--gold); font-weight:700; }

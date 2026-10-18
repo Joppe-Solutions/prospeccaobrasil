@@ -50,6 +50,9 @@ for (const [nome, demo] of Object.entries(CENARIOS)) {
         larguraMm: (r.width * 25.4) / 96, alturaMm: (r.height * 25.4) / 96,
         estouroV: inner.scrollHeight - inner.clientHeight, estouroH: inner.scrollWidth - inner.clientWidth,
         passouDoRodape: filhos.some((f) => f.getBoundingClientRect().bottom > limite + 1),
+        // blocos do corpo empilhados sem sobreposição e sem texto vazando para fora do próprio bloco
+        sobrepostos: (() => { const b = [...(s.querySelector('.page-body')?.children || [])].map((e) => e.getBoundingClientRect()).filter((x) => x.height); return b.some((x, k) => k && b[k - 1].bottom > x.top + 1); })(),
+        vazando: [...s.querySelectorAll('.page-body > *, .page-body .col, .page-body .cols2')].filter((e) => getComputedStyle(e).overflowY === 'visible' && e.scrollHeight > e.clientHeight + 2).map((e) => e.className).join(', '),
         vazia: !s.classList.contains('cover') && (s.querySelector('.page-body')?.innerText || '').trim().length < 20,
       };
     }));
@@ -61,6 +64,8 @@ for (const [nome, demo] of Object.entries(CENARIOS)) {
       expect(f.estouroH, `${f.titulo}: conteúdo passa da largura`).toBeLessThanOrEqual(1);
       expect(f.passouDoRodape, `${f.titulo}: bloco ultrapassa o rodapé`).toBe(false);
       expect(f.vazia, `${f.titulo}: folha vazia`).toBe(false);
+      expect(f.sobrepostos, `${f.titulo}: blocos sobrepostos`).toBe(false);
+      expect(f.vazando, `${f.titulo}: texto vazando do bloco`).toBe('');
     }
 
     const pdf = await page.pdf({ preferCSSPageSize: true, printBackground: true });

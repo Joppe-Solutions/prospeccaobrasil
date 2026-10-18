@@ -6,6 +6,7 @@ const { geocode, mapaEstatico, usaGoogle, coordenadasCadastradas } = require('..
 const censo2022 = require('../services/censo2022');
 const { PARCEIRO_PUBLICO } = require('../lib/parceiros');
 const { entorno } = require('../services/entorno');
+const { gerarPdf } = require('../services/pdf');
 const { renderApresentacao, renderGaleria, locationUrl } = require('../templates/apresentacao');
 
 const limite = (promessa, ms) => Promise.race([promessa.catch(() => null), new Promise((resolve) => setTimeout(resolve, ms, null))]);
@@ -48,6 +49,22 @@ module.exports = (prisma) => {
       mapa: mapaDoc,
       contexto,
     }));
+  }));
+  // PDF em A4 exato gerado no servidor (Chromium): imprimir pelo navegador pode partir as folhas
+  r.get('/:id/pdf', asyncHandler(async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isSafeInteger(id) || id < 1) return res.status(404).send('Imóvel não encontrado');
+    const imovel = await prisma.imovel.findUnique({ where: { id }, select: { codigo: true, status: true } });
+    if (!imovel || imovel.status === 'inativo') return res.status(404).send('Imóvel não encontrado');
+    const resumo = req.query.formato === 'resumo';
+    try {
+      const pdf = await gerarPdf(`http://127.0.0.1:${req.socket.localPort}/apresentacao/${id}${resumo ? '?formato=resumo' : ''}`);
+      const nome = `Apresentacao-${String(imovel.codigo || id).replace(/[^\w.-]+/g, '-')}${resumo ? '-resumo' : ''}.pdf`;
+      res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${nome}"`, 'Cache-Control': 'no-store' }).send(pdf);
+    } catch (e) {
+      console.error('PDF da apresentação falhou:', e.message);
+      res.status(503).send('Não foi possível gerar o PDF agora. Tente novamente em instantes ou use a impressão do navegador (Chrome).');
+    }
   }));
   // Imagem do mapa (cache em disco): evita expor a chave do Google e cobrar uma chamada por visualização
   r.get('/:id/mapa.png', asyncHandler(async (req, res) => {

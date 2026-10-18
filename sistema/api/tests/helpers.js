@@ -41,6 +41,7 @@ async function start() {
 }
 
 async function stop() {
+  await require('../src/services/pdf').fechar();
   if (server) await new Promise((resolve) => server.close(resolve));
   await prisma.$disconnect();
   for (const suffix of ['', '-wal', '-shm', '-journal']) {

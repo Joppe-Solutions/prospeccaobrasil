@@ -1244,3 +1244,24 @@ test('ações das operações: acompanhamento da proposta (situação, envio, va
   assert.equal(contra.propostaEnviadaEm, enviada.propostaEnviadaEm);
   assert.equal((await put({ propostaStatus: 'recusada' })).body.etapa, 'perdido');
 });
+
+test('apresentação em PDF gerado no servidor: A4 exato, 2 folhas (completa) e 1 (resumo)', async (t) => {
+  try { await require('playwright-core').chromium.launch().then((b) => b.close()); } catch { return t.skip('Chromium do Playwright não instalado'); }
+  const imovel = (await req('POST', '/api/imoveis', { token, body: { codigo: 'PB-PDF', endereco: 'Rua PDF', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', aluguel: 9000, areaTotal: 120, descricao: 'Loja ampla. '.repeat(80), latitude: -22.9035, longitude: -43.1775 } })).body;
+  const baixar = async (q = '') => {
+    const r = await fetch(`${getBase()}/apresentacao/${imovel.id}/pdf${q}`);
+    return { status: r.status, tipo: r.headers.get('content-type'), nome: r.headers.get('content-disposition'), pdf: Buffer.from(await r.arrayBuffer()).toString('latin1') };
+  };
+  const paginas = (pdf) => (pdf.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  const completa = await baixar();
+  assert.equal(completa.status, 200);
+  assert.equal(completa.tipo, 'application/pdf');
+  assert.match(completa.nome, /Apresentacao-PB-PDF\.pdf/);
+  assert.equal(paginas(completa.pdf), 2);
+  for (const m of completa.pdf.match(/\/MediaBox\s*\[[^\]]+\]/g)) {
+    const [, , w, h] = m.match(/[\d.]+/g).map(Number);
+    assert.ok(Math.abs(w - 595.28) < 1 && Math.abs(h - 841.89) < 1, `A4: ${m}`);
+  }
+  assert.equal(paginas((await baixar('?formato=resumo')).pdf), 1);
+  assert.equal((await fetch(`${getBase()}/apresentacao/999999/pdf`)).status, 404);
+});

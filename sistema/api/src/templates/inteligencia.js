@@ -122,20 +122,19 @@ function renderInteligencia(imovel, analise, demo) {
 
   // Metodologia
   folha('METODOLOGIA', 'Metodologia e premissas', () => `
-    <div class="cols2">
+    <div class="cols2 metodo">
       <div class="col texto">
-        <p><strong>Geographic Information Systems (GIS).</strong> Consiste no tratamento e mapeamento de informações mercadológicas em plataformas cartográficas digitalizadas da região em estudo, contemplando:</p>
-        <ul><li>Pesquisa e organização de dados secundários oficiais.</li><li>Trabalhos de campo na região de influência direta do site.</li><li>Cadastramento e mapeamento dos atributos geo-mercadológicos pertinentes.</li><li>Análise das potencialidades e diagnóstico mercadológico.</li></ul>
-        <p>Utiliza-se a combinação de duas fontes de dados: dados obtidos junto a órgãos e entidades geradoras de informações oficiais e dados complementares obtidos em pesquisas pela internet.</p>
+        <p><strong>Geomarketing.</strong> Dados oficiais e mapeamento colaborativo organizados no mapa, a partir do ponto do imóvel, para descrever quem mora e consome no entorno e o que existe ao redor.</p>
+        <ul>
+          <li><strong>Moradores:</strong> Censo 2022 (IBGE), somando os setores censitários a até 500 m do ponto. Sem coordenadas, usa-se o bairro.</li>
+          <li><strong>Entorno:</strong> estabelecimentos, transporte e via no OpenStreetMap, até 500 m.</li>
+        </ul>
       </div>
       <div class="col texto">
-        <p><strong>Premissas deste documento.</strong></p>
         <ul>
-          <li>A projeção da população do município e do estado usa a TGCA — Taxa Geométrica de Crescimento Anual — sobre as estimativas oficiais do IBGE.</li>
-          <li><strong>Raio de 500 m:</strong> população, domicílios, faixa etária e rendimento vêm do Censo Demográfico 2022 (IBGE), somando os setores censitários a até 500 m do ponto, para retratar quem mora e consome no entorno imediato. Sem coordenadas do imóvel, usa-se o bairro. Sempre comparado ao município.</li>
-          <li><strong>Rua:</strong> o entorno imediato (estabelecimentos, transporte e a própria via) vem do OpenStreetMap, no raio de 500 m a partir do ponto.</li>
-          <li>O rendimento é o da pessoa responsável pelo domicílio (média e mediana), o indicador de renda que o Censo 2022 divulga por setor censitário e por bairro.</li>
-          <li>Os domicílios por classe social são <strong>estimados</strong> a partir desse rendimento (ver a página própria).</li>
+          <li><strong>Renda:</strong> rendimento do responsável pelo domicílio (média e mediana).</li>
+          <li><strong>Classes sociais:</strong> estimadas a partir desse rendimento.</li>
+          <li><strong>População:</strong> projeção do município e do estado pela taxa de crescimento anual (TGCA) sobre as estimativas do IBGE.</li>
         </ul>
       </div>
     </div>
@@ -183,7 +182,7 @@ function renderInteligencia(imovel, analise, demo) {
         ${demo?.entorno ? `<table class="demo compact no-raio"><thead><tr><th>No entorno do ponto</th><th>Até 500 m</th></tr></thead><tbody>
           ${raio ? `<tr class="hl"><td>Moradores (Censo 2022)</td><td>${num(raio.populacao)}</td></tr>` : ''}
           <tr class="hl"><td>Estabelecimentos mapeados</td><td>${num(demo.entorno.total500)}</td></tr>
-          ${demo.entorno.linhas.filter((l) => l.r500 > 0).sort((a, c) => c.r500 - a.r500).slice(0, 4).map((l) => `<tr><td>${esc(l.rotulo.replace(/ \(.*\)/, ''))}</td><td>${num(l.r500)}</td></tr>`).join('')}
+          ${demo.entorno.linhas.filter((l) => l.r500 > 0).sort((a, c) => c.r500 - a.r500).slice(0, raio ? 3 : 4).map((l) => `<tr><td>${esc(l.rotulo.replace(/ \(.*\)/, ''))}</td><td>${num(l.r500)}</td></tr>`).join('')}
           ${demo.entorno.transporte.filter((l) => l.r500 > 0).slice(0, 2).map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r500)}</td></tr>`).join('')}
         </tbody></table>` : ''}
         <div class="raios"><span><i></i>Raio de 500 m</span><span><b></b>${esc(imovel.codigo)}</span></div>
@@ -319,12 +318,12 @@ function renderInteligencia(imovel, analise, demo) {
       ${ai.recomendacao ? `<div class="recommend"><strong>Recomendação</strong><p>${esc(trunc(ai.recomendacao, 260))}</p></div>` : ''}
     </div>
     <div class="cols2 fill">
-      <section><h3 class="sub"><span>01</span>Pontos fortes</h3><ul class="findings fortes grande">${L(ai.pontosFortes, 6, 150)}</ul></section>
-      <section><h3 class="sub"><span>02</span>Pontos de atenção</h3><ul class="findings atencao grande">${L(ai.pontosAtencao, 6, 150)}</ul></section>
+      <section><h3 class="sub"><span>01</span>Pontos fortes</h3><ul class="findings fortes grande">${L(ai.pontosFortes, 4, 130)}</ul></section>
+      <section><h3 class="sub"><span>02</span>Pontos de atenção</h3><ul class="findings atencao grande">${L(ai.pontosAtencao, 4, 130)}</ul></section>
     </div>
     <div class="rodape-triagem">
       ${(ai.segmentosRecomendados || []).length ? `<div><h3 class="sub"><span>03</span>Segmentos recomendados</h3><div class="tags">${ai.segmentosRecomendados.slice(0, 8).map((x) => `<span class="tag">${esc(trunc(x, 40))}</span>`).join('')}</div></div>` : ''}
-      ${ai.aviso ? `<p class="aviso"><strong>Importante:</strong> ${esc(trunc(ai.aviso, 330))}</p>` : ''}
+      ${ai.aviso ? `<p class="aviso"><strong>Importante:</strong> ${esc(trunc(ai.aviso, 220))}</p>` : ''}
     </div>`, `Modelo: ${analise?.modelo || 'triagem-interna'} · Prospecção Brasil`);
 
   // Encerramento

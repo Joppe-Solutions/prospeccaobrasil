@@ -48,6 +48,7 @@ jobs:
             --exclude .env \
             --exclude 'prisma/*.db*' \
             --exclude 'uploads/*' \
+            --exclude .browsers \
             sistema/api/ /opt/prospeccao-sistema/
           cd /opt/prospeccao-sistema
           # Snapshot do banco antes da migration — rollback: parar serviço, restaurar cp, restart
@@ -56,6 +57,9 @@ jobs:
           sudo cp prisma/prospeccao.db backups/prospeccao-$(date +%Y%m%d%H%M%S).db
           sudo bash -c 'ls -t backups/*.db | tail -n +16 | xargs -r rm --'
           sudo npm install --omit=dev
+          # Chromium para o PDF da apresentação (A4 exato); as dependências do sistema já vêm do gate de e2e
+          sudo PLAYWRIGHT_BROWSERS_PATH=/opt/prospeccao-sistema/.browsers npx playwright-core install chromium
+          sudo chmod -R a+rX /opt/prospeccao-sistema/.browsers
           sudo npx prisma generate
           sudo npx prisma migrate deploy
           sudo systemctl restart prospeccao-sistema

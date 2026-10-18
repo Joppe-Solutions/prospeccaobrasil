@@ -164,3 +164,6 @@
 - Ações das operações: proposta com situação (sem proposta → em elaboração → enviada → em análise → contraproposta →
   aceita/recusada), valor, data de envio, retorno previsto e observação. Enviada/em análise movem a etapa para
   Proposta; contraproposta → Negociação; recusada → Perdido.
+- PDF da apresentação no servidor: `GET /apresentacao/:id/pdf[?formato=resumo]` (`services/pdf.js`, playwright-core +
+  Chromium, uma geração por vez). O botão da página aponta para ele: imprimir pelo navegador quebra folhas no
+  Safari/Firefox (ignoram `@page size`). O deploy instala o Chromium em `/opt/prospeccao-sistema/.browsers`.
