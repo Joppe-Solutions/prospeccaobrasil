@@ -35,3 +35,6 @@
 .testimonial-side span{font-size:9px;color:#74817d;margin-top:5px}
 
 @media(max-width:900px){.nav-wrap>.brand{height:44px}.nav-wrap>.brand img{height:100%;width:auto}.legacy-metrics{grid-template-columns:1fr 1fr;padding:0 24px}.legacy-metrics>div{min-height:120px;padding:25px 18px;border-bottom:1px solid rgba(255,255,255,.12)}.legacy-metrics strong{font-size:29px}.social-heading,.testimonial-grid{grid-template-columns:1fr;gap:38px}.testimonial-main,.testimonial-side{padding:30px}.testimonial-main blockquote{font-size:28px}.footer-brand{width:155px;height:112px}.footer-brand img{width:155px}}
+
+/* Foto do fundador com fundo (escritório): sem a faixa superior do recorte antigo */
+.photo-frame{padding-top:0}.photo-frame img{width:100%;aspect-ratio:1;object-fit:cover;object-position:center 30%;display:block}

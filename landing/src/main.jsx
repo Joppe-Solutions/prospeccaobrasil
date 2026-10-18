@@ -238,7 +238,7 @@ function AboutPage() {
       </div>
       <div className="about-grid">
         <div className="about-photo" data-reveal>
-          <div className="photo-frame"><img src="/images/luiz-claudio.png" alt="Luiz Cláudio P. André, fundador da Prospecção Brasil" /></div>
+          <div className="photo-frame"><img src="/images/luiz-claudio.jpg" alt="Luiz Cláudio P. André, fundador da Prospecção Brasil" /></div>
           <em className="founder-quote">“Qualidade, compromisso de todos.”</em>
         </div>
         <div className="about-copy" data-reveal>
@@ -404,7 +404,7 @@ function HomePage() {
           <p>À frente da expansão e da prospecção de lojas comerciais para redes próprias e franquias, Luiz Cláudio P. André reúne sólida experiência executiva e ampla atuação nesses segmentos. Além das operações de locação, também conduz a comercialização de ativos imobiliários para venda.</p>
           <div className="founder-name"><strong>Luiz Cláudio P. André</strong><span>CEO e fundador · CRECI-RJ · CJ-8762/RJ</span></div>
         </div>
-        <div className="founder-photo" data-reveal><div className="photo-frame"><img src="/images/luiz-claudio.png" alt="Luiz Cláudio Poeta André" /></div><div className="founder-badge glass-card"><i className="ph ph-seal-check" /><span><strong>Atuação especializada</strong>Retail &amp; Real Estate</span></div><em className="founder-quote">“Qualidade, compromisso de todos.”</em></div>
+        <div className="founder-photo" data-reveal><div className="photo-frame"><img src="/images/luiz-claudio.jpg" alt="Luiz Cláudio Poeta André" /></div><div className="founder-badge glass-card"><i className="ph ph-seal-check" /><span><strong>Atuação especializada</strong>Retail &amp; Real Estate</span></div><em className="founder-quote">“Qualidade, compromisso de todos.”</em></div>
       </section>
 
       <section className="social-proof section">
