@@ -59,7 +59,7 @@ module.exports = (prisma) => {
     const id = +req.params.id;
     const vinculos = await prisma.oportunidade.count({ where: { empresaId: id } });
     if (vinculos > 0 || await prisma.demanda.count({ where: { empresaId: id } })) {
-      return res.status(409).json({ error: 'Empresa possui demandas ou oportunidades vinculadas. Inative o cadastro para preservar o histórico.' });
+      return res.status(409).json({ error: 'Cliente possui ações das operações vinculadas. Marque o cadastro como inativo para preservar o histórico.' });
     }
     await prisma.empresa.delete({ where: { id } });
     res.json({ ok: true });

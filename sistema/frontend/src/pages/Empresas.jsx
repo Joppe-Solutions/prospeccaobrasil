@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Buildings, MapPin, PencilSimple, Plus, Storefront, UsersThree } from '@phosphor-icons/react';
-import { api, fmtNum } from '../lib/api';
+import { Buildings, MapPin, PencilSimple, Plus, Storefront, Trash, UsersThree } from '@phosphor-icons/react';
+import { api, fmtNum, getUser } from '../lib/api';
+import Modal from '../components/Modal';
 import { listaBairros } from '../lib/bairros';
 import DataTable from '../components/DataTable';
 import { Avatar, PageHeader, StatusBadge } from '../components/UI';
@@ -13,6 +14,10 @@ export default function Empresas() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [segmento, setSegmento] = useState('');
+  const [excluindo, setExcluindo] = useState(null);
+  const [erroExclusao, setErroExclusao] = useState('');
+  const [ocupado, setOcupado] = useState(false);
+  const isAdmin = getUser()?.role === 'admin';
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try { setList(await api('/empresas')); } catch (e) { setError(e.message); } finally { setLoading(false); }
@@ -28,8 +33,13 @@ export default function Empresas() {
     { accessorKey: 'regioesInteresse', header: 'Bairros de interesse', cell: ({ getValue }) => { const b = listaBairros(getValue()); return b.length ? <span className="collection-bairros" title={b.join(', ')}>{b.slice(0, 3).map(n => <span key={n} className="collection-tag">{n}</span>)}{b.length > 3 && <small>+{b.length - 3}</small>}</span> : <span className="muted">—</span>; } },
     { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={getValue() === 'ativo' ? 'Ativa' : getValue() === 'inativo' ? 'Inativa' : getValue()} /> },
     { id: 'operacoes', header: 'Ações das operações', accessorFn: e => e._count?.oportunidades || 0, cell: ({ row, getValue }) => <Link className="collection-title-link" to={`/oportunidades?empresaId=${row.original.id}`}>{getValue() === 0 ? 'Nenhuma' : getValue() === 1 ? '1 ação' : `${getValue()} ações`}</Link> },
-    { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <Link className="icon-button" to={`/empresas/${row.original.id}/editar`} state={{ backgroundLocation: location }} aria-label={`Editar ${row.original.nome}`}><PencilSimple size={18} /></Link> },
-  ], [location]);
+    { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <div className="collection-row-actions"><Link className="icon-button" to={`/empresas/${row.original.id}/editar`} state={{ backgroundLocation: location }} aria-label={`Editar ${row.original.nome}`}><PencilSimple size={18} /></Link>{isAdmin && <button className="icon-button collection-delete" aria-label={`Excluir ${row.original.nome}`} onClick={() => { setErroExclusao(''); setExcluindo(row.original); }}><Trash size={18} /></button>}</div> },
+  ], [location, isAdmin]);
+  async function excluir() {
+    setOcupado(true); setErroExclusao('');
+    try { await api(`/empresas/${excluindo.id}`, { method: 'DELETE' }); setExcluindo(null); await load(); }
+    catch (e) { setErroExclusao(e.message); } finally { setOcupado(false); }
+  }
   const count = value => loading || error ? '—' : value;
   return <div className="collection-page">
     <PageHeader eyebrow="CADASTROS" title="Clientes" description="Redes e operadoras, empresas, investidores e demais interessados." actions={<Link className="btn btn-gold" to="/empresas/nova" state={{ backgroundLocation: location }}><Plus size={18} weight="bold" /> Nova empresa</Link>} />
@@ -37,5 +47,8 @@ export default function Empresas() {
     <section className="panel collection-panel"><div className="collection-section-head"><div><h2>Sua rede de negócios</h2><p>Perfis de expansão e contatos em um só lugar.</p></div><span className="collection-section-symbol"><MapPin size={20} /></span></div>
       <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar empresa, segmento ou contato..." exportName="empresas.csv" emptyTitle="Nenhuma empresa encontrada" emptyDescription="Cadastre uma empresa com as premissas (área e bairros) para cruzar com o portfólio." toolbar={<><label className="collection-select"><Storefront size={16} /><select aria-label="Filtrar segmento" value={segmento} onChange={e => setSegmento(e.target.value)}><option value="">Todos os segmentos</option>{segmentos.map(s => <option key={s}>{s}</option>)}</select></label>{segmento && <button className="btn btn-ghost btn-sm" onClick={() => setSegmento('')}>Limpar filtro</button>}{error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}</>} />
     </section>
+    {excluindo && <Modal title="Excluir cliente?" description={excluindo.nome} onClose={() => !ocupado && setExcluindo(null)} footer={<><button className="btn btn-ghost" disabled={ocupado} onClick={() => setExcluindo(null)}>Cancelar</button>{!erroExclusao && <button className="btn btn-danger" disabled={ocupado} onClick={excluir}>{ocupado ? 'Excluindo...' : 'Excluir'}</button>}</>}>
+      <div className="collection-modal-form">{erroExclusao ? <div className="alert error" role="alert">{erroExclusao}</div> : <p>O cadastro será apagado. Clientes com ações das operações não podem ser excluídos: edite e marque como inativo para preservar o histórico.</p>}</div>
+    </Modal>}
   </div>;
 }

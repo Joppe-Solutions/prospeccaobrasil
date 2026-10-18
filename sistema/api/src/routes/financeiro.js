@@ -223,6 +223,16 @@ module.exports = (prisma) => {
     }));
   }));
 
+  // Exclusão só de lançamento previsto (lançado por engano); pago ou estornado fica no histórico
+  r.delete('/lancamentos/:id', asyncHandler(async (req, res) => {
+    const l = await prisma.lancamento.findUnique({ where: { id: +req.params.id } });
+    if (!l) return res.status(404).json({ error: 'Lançamento não encontrado' });
+    if (l.status !== 'previsto') return res.status(409).json({ error: 'Só lançamentos previstos podem ser excluídos. Para pagos, use o estorno.' });
+    await prisma.lancamento.delete({ where: { id: l.id } });
+    if (l.comprovante) { try { fs.unlinkSync(path.join(uploadDir, l.comprovante)); } catch {} }
+    res.json({ ok: true });
+  }));
+
   // Estorno: preserva o lançamento original (histórico financeiro)
   r.post('/lancamentos/:id/estornar', asyncHandler(async (req, res) => {
     const l = await prisma.lancamento.findUnique({ where: { id: +req.params.id } });

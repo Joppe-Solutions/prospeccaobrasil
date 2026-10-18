@@ -167,3 +167,10 @@
 - PDF da apresentação no servidor: `GET /apresentacao/:id/pdf[?formato=resumo]` (`services/pdf.js`, playwright-core +
   Chromium, uma geração por vez). O botão da página aponta para ele: imprimir pelo navegador quebra folhas no
   Safari/Firefox (ignoram `@page size`). O deploy instala o Chromium em `/opt/prospeccao-sistema/.browsers`.
+- Exclusões: imóvel (detalhe, admin; 409 com ações/despesas → oferece "Marcar como inativo"), cliente (lista, admin;
+  409 com ações das operações), termo do glossário (admin) e lançamento financeiro só "previsto" (pago/estornado
+  ficam no histórico; usa-se estorno). Benchmark não tem exclusão (tabela fixa de referências).
+- PDF da inteligência: `GET /inteligencia/:id/pdf` (mesma sessão/?token= do documento), A4 paisagem pelo Chromium.
+- Apresentação: indicadores do rodapé da 1ª folha usam o raio de 500 m (setores) quando há coordenadas; senão o bairro.
+- Backup diário: `api/scripts/backup.sh` via /etc/cron.d/prospeccao-backup (03:15, 30 cópias .db.gz em backups/).
+  Com `BACKUP_REMOTE=<remoto rclone>` no .env e o rclone configurado na VPS, envia a cópia para fora.

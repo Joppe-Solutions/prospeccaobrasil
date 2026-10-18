@@ -131,3 +131,22 @@ test('ações das operações: acompanhamento da proposta', async ({ page }) => 
   await expect(page.getByRole('row', { name: /Empresa E2E/ })).toBeVisible();
   await expectNoErrors(errors);
 });
+
+test('exclusões pela tela: imóvel no detalhe e cliente na lista (admin)', async ({ page }) => {
+  const errors = watchErrors(page);
+  const api = (method, url, body) => page.evaluate(async ([m, u, b]) => (await fetch(u, { method: m, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('pb_token')}` }, body: b ? JSON.stringify(b) : undefined })).json(), [method, url, body]);
+  const imovel = await api('POST', '/api/imoveis', { codigo: 'PB-DEL', endereco: 'Rua Excluir E2E', cidade: 'Rio de Janeiro' });
+  await page.goto(`/imoveis/${imovel.id}`);
+  await page.getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(page.locator('.modal')).toContainText('não podem ser recuperados');
+  await page.getByRole('button', { name: 'Excluir definitivamente' }).click();
+  await expect(page).toHaveURL(/\/imoveis$/);
+  await expect(page.getByText('PB-DEL')).toHaveCount(0);
+
+  await api('POST', '/api/empresas', { nome: 'Cliente Excluir E2E' });
+  await page.goto('/empresas');
+  await page.getByRole('button', { name: 'Excluir Cliente Excluir E2E' }).click();
+  await page.locator('.modal').getByRole('button', { name: 'Excluir', exact: true }).click();
+  await expect(page.getByRole('row', { name: /Cliente Excluir E2E/ })).toHaveCount(0);
+  await expectNoErrors(errors);
+});

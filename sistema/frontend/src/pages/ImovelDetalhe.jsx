@@ -1,8 +1,9 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
-import { useParams, Link, useLocation } from 'react-router-dom';
+import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { listaBairros, premissasDoCliente } from '../lib/bairros';
 import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO, getToken, getUser, useArquivoToken } from '../lib/api';
 import PhotoUploader from '../components/PhotoUploader';
+import Modal from '../components/Modal';
 import { DinheiroInput } from '../components/NumberFields';
 
 const DOC_TIPOS = [['planta', 'Planta (PDF)'], ['dwg', 'Planta (DWG)'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
@@ -36,10 +37,22 @@ export default function ImovelDetalhe() {
     api('/empresas').then(setEmpresas).catch(() => setEmpresas([]));
   }, [id]);
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
+  const nav = useNavigate();
+  const [excluir, setExcluir] = useState(null); // null | { erro, ocupado }
 
   if (loadError) return <div className="empty">Erro ao carregar: {loadError}</div>;
   if (!i) return <div className="empty">Carregando…</div>;
   const isAdmin = getUser()?.role === 'admin';
+  async function confirmarExclusao() {
+    setExcluir({ ocupado: true });
+    try { await api(`/imoveis/${id}`, { method: 'DELETE' }); nav('/imoveis', { replace: true }); }
+    catch (e) { setExcluir({ erro: e.message }); }
+  }
+  async function arquivar() {
+    setExcluir({ ocupado: true });
+    try { await api(`/imoveis/${id}`, { method: 'PUT', body: JSON.stringify({ status: 'inativo' }) }); setExcluir(null); await load(); flash('Imóvel marcado como inativo'); }
+    catch (e) { setExcluir({ erro: e.message }); }
+  }
   const custo = [i.aluguel, i.condominio, i.iptu].map(Number).filter(Boolean).reduce((a, b) => a + b, 0);
   const foto = i.fotos.find(f => f.principal) || i.fotos[0];
   const analise = i.analises[0];
@@ -119,12 +132,23 @@ export default function ImovelDetalhe() {
   return (
     <>
       {toast && <div className="toast">{toast}</div>}
+      {excluir && <Modal title="Excluir imóvel?" description={`${i.codigo} — ${i.endereco}${i.numero ? `, ${i.numero}` : ''}`} onClose={() => !excluir.ocupado && setExcluir(null)}
+        footer={<><button className="btn btn-ghost" disabled={excluir.ocupado} onClick={() => setExcluir(null)}>Cancelar</button>
+          {excluir.erro && i.status !== 'inativo' && <button className="btn btn-outline" disabled={excluir.ocupado} onClick={arquivar}>Marcar como inativo</button>}
+          {!excluir.erro && <button className="btn btn-danger" disabled={excluir.ocupado} onClick={confirmarExclusao}>{excluir.ocupado ? 'Excluindo...' : 'Excluir definitivamente'}</button>}</>}>
+        <div className="collection-modal-form">
+          {excluir.erro ? <div className="alert error" role="alert">{excluir.erro}</div>
+            : <p>O imóvel, as fotos, os documentos e as análises serão apagados e não podem ser recuperados. Se ele já teve negociação, prefira marcá-lo como inativo.</p>}
+        </div>
+      </Modal>}
       <div className="page-head">
         <h1>{i.codigo} — {i.endereco}{i.numero ? `, ${i.numero}` : ''}</h1>
         <div style={{ display: 'flex', gap: 8 }}>
-          <a className="btn btn-gold" href={`/apresentacao/${i.id}`} target="_blank">Apresentação (PDF)</a>
+          <a className="btn btn-gold" href={`/apresentacao/${i.id}`} target="_blank" rel="noopener">Apresentação</a>
+          <a className="btn btn-ghost" href={`/apresentacao/${i.id}/pdf`} target="_blank" rel="noopener">PDF</a>
           <button className="btn btn-ghost" onClick={() => copiarLink()}>Copiar link</button>
           <Link className="btn btn-ghost" to={`/imoveis/${i.id}/editar`} state={{ backgroundLocation: location }}>Editar</Link>
+          {isAdmin && <button className="btn btn-ghost collection-delete" onClick={() => setExcluir({})}>Excluir</button>}
         </div>
       </div>
 

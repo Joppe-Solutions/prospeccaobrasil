@@ -50,14 +50,15 @@ function mapFigure(i, m) {
   return `<figure class="hero-map"><a class="map" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer" aria-label="Abrir a localização do imóvel no Google Maps">${corpo}</a><figcaption>${aproximada ? 'Localização aproximada' : 'Localização'}<span>${esc([i.bairro, i.cidade].filter(Boolean).join(' · '))}</span></figcaption></figure>`;
 }
 
-// Indicadores de inteligência territorial e comercial: bairro (Censo 2022) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
+// Indicadores de inteligência territorial e comercial: moradores no raio de 500 m (setores do Censo 2022; sem eles, o bairro) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
 function contextSection(i, contexto) {
-  const b = contexto?.bairro, e = contexto?.entorno;
+  const raio = contexto?.raio || null;
+  const b = raio || contexto?.bairro, e = contexto?.entorno;
   const int = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
   const tiles = [
-    b && present(b.populacao) && ['Moradores no bairro', int(b.populacao), `${esc(b.nome)} · Censo 2022`],
+    b && present(b.populacao) && [raio ? 'Moradores em 500 m' : 'Moradores no bairro', int(b.populacao), raio ? 'raio do ponto · Censo 2022' : `${esc(b.nome)} · Censo 2022`],
     b && present(b.rendaMedia) && ['Renda média', `R$ ${int(b.rendaMedia)}`, 'do responsável pelo domicílio'],
-    b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), 'no bairro · Censo 2022'],
+    b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), `${raio ? 'em 500 m' : 'no bairro'} · Censo 2022`],
     e && ['Comércio e serviços', int(e.total500), 'mapeados a até 500 m'],
   ].filter(Boolean);
   if (!tiles.length) return '';

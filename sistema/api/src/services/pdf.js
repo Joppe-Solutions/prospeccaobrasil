@@ -20,9 +20,9 @@ async function abrir() {
 }
 
 /** Renderiza a URL (servida por este mesmo processo) em PDF. Um por vez, para não sobrecarregar a VPS. */
-function gerarPdf(url, { timeout = 30000 } = {}) {
+function gerarPdf(url, { timeout = 30000, headers } = {}) {
   const tarefa = fila.then(async () => {
-    const contexto = await (await abrir()).newContext();
+    const contexto = await (await abrir()).newContext(headers ? { extraHTTPHeaders: headers } : {});
     try {
       const pagina = await contexto.newPage();
       await pagina.goto(url, { waitUntil: 'networkidle', timeout });

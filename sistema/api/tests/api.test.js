@@ -1265,3 +1265,71 @@ test('apresentação em PDF gerado no servidor: A4 exato, 2 folhas (completa) e 
   assert.equal(paginas((await baixar('?formato=resumo')).pdf), 1);
   assert.equal((await fetch(`${getBase()}/apresentacao/999999/pdf`)).status, 404);
 });
+
+test('exclusões: imóvel, cliente, termo do glossário e lançamento previsto; restrições preservam o histórico', async () => {
+  await req('POST', '/api/usuarios', { token, body: { nome: 'Comercial Excl', email: 'excl@teste.dev', senha: 'senha12345', role: 'comercial' } });
+  const comercial = (await login('excl@teste.dev', 'senha12345')).body.token;
+
+  // imóvel: só admin; com ação da operação é bloqueado (arquivar como inativo)
+  const livre = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Excluir', cidade: 'Rio de Janeiro' } })).body;
+  assert.equal((await req('DELETE', `/api/imoveis/${livre.id}`, { token: comercial })).status, 403);
+  assert.equal((await req('DELETE', `/api/imoveis/${livre.id}`, { token })).status, 200);
+  assert.equal((await req('GET', `/api/imoveis/${livre.id}`, { token })).status, 404);
+  const usado = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Histórico', cidade: 'Rio de Janeiro' } })).body;
+  const cliente = (await req('POST', '/api/empresas', { token, body: { nome: 'Cliente com histórico' } })).body;
+  await req('POST', '/api/oportunidades', { token, body: { imovelId: usado.id, empresaId: cliente.id } });
+  assert.equal((await req('DELETE', `/api/imoveis/${usado.id}`, { token })).status, 409);
+  assert.equal((await req('PUT', `/api/imoveis/${usado.id}`, { token, body: { status: 'inativo' } })).body.status, 'inativo');
+
+  // cliente: com ação das operações não sai; sem vínculo, sai
+  const bloqueio = await req('DELETE', `/api/empresas/${cliente.id}`, { token });
+  assert.equal(bloqueio.status, 409);
+  assert.match(bloqueio.body.error, /ações das operações/);
+  const avulso = (await req('POST', '/api/empresas', { token, body: { nome: 'Cliente avulso' } })).body;
+  assert.equal((await req('DELETE', `/api/empresas/${avulso.id}`, { token })).status, 200);
+
+  // glossário: só admin
+  const termo = (await req('POST', '/api/glossario', { token, body: { termo: 'TESTE-EXCL', categoria: 'Teste', significado: 'Para excluir' } })).body;
+  assert.equal((await req('DELETE', `/api/glossario/${termo.id}`, { token: comercial })).status, 403);
+  assert.equal((await req('DELETE', `/api/glossario/${termo.id}`, { token })).status, 200);
+  assert.equal((await req('DELETE', `/api/glossario/${termo.id}`, { token })).status, 404);
+
+  // financeiro: previsto pode ser excluído; pago só estorna
+  const lanc = async () => (await req('POST', '/api/financeiro/lancamentos', { token, body: { tipo: 'despesa', categoria: 'taxa', descricao: 'Lançado por engano', valor: 10, vencimento: '2026-11-10' } })).body;
+  const previsto = await lanc();
+  assert.equal((await req('DELETE', `/api/financeiro/lancamentos/${previsto.id}`, { token })).status, 200);
+  const pago = await lanc();
+  await req('POST', `/api/financeiro/lancamentos/${pago.id}/baixar`, { token, body: { pagoEm: '2026-11-10', valorPago: 10, formaPagamento: 'pix' } });
+  assert.equal((await req('DELETE', `/api/financeiro/lancamentos/${pago.id}`, { token })).status, 409);
+});
+
+test('inteligência em PDF gerado no servidor: exige sessão e sai em A4 paisagem', async (t) => {
+  try { await require('playwright-core').chromium.launch().then((b) => b.close()); } catch { return t.skip('Chromium do Playwright não instalado'); }
+  const im = (await req('POST', '/api/imoveis', { token, body: { codigo: 'PB-IPDF', endereco: 'Rua PDF', cidade: 'Cidade Sem Censo', uf: 'XX' } })).body;
+  const analise = (await req('POST', `/api/imoveis/${im.id}/analise`, { token })).body;
+  assert.equal((await fetch(`${getBase()}/inteligencia/${analise.id}/pdf`)).status, 401);
+  const arquivoToken = (await req('GET', '/api/auth/token-arquivo', { token })).body.token;
+  const r = await fetch(`${getBase()}/inteligencia/${analise.id}/pdf?token=${arquivoToken}`);
+  assert.equal(r.status, 200);
+  assert.equal(r.headers.get('content-type'), 'application/pdf');
+  assert.match(r.headers.get('content-disposition'), /Inteligencia-PB-IPDF\.pdf/);
+  const pdf = Buffer.from(await r.arrayBuffer()).toString('latin1');
+  const paginas = (pdf.match(/\/Type\s*\/Page[^s]/g) || []).length;
+  assert.ok(paginas >= 4, `páginas: ${paginas}`);
+  for (const m of pdf.match(/\/MediaBox\s*\[[^\]]+\]/g)) {
+    const [, , w, h] = m.match(/[\d.]+/g).map(Number);
+    assert.ok(Math.abs(w - 841.89) < 1 && Math.abs(h - 595.28) < 1, `A4 paisagem: ${m}`);
+  }
+});
+
+test('apresentação: indicadores do rodapé usam o raio de 500 m quando há setores censitários', () => {
+  const { renderApresentacao } = require('../src/templates/apresentacao');
+  const setores = require('../src/services/setores');
+  const raio = setores.raio(-22.9025, -43.2795, 500);
+  const base = { id: 7, codigo: 'PB-R5', endereco: 'Rua', bairro: 'Méier', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', criadoEm: '2026-10-01' };
+  const html = renderApresentacao(base, 'data:image/png;base64,AAAA', { contexto: { raio, bairro: { nome: 'Méier', populacao: 49828, rendaMedia: 5210, domiciliosOcupados: 20311 } } });
+  assert.match(html, /Moradores em 500 m/);
+  assert.match(html, new RegExp(raio.populacao.toLocaleString('pt-BR').replace('.', '\\.')));
+  assert.doesNotMatch(html, /Moradores no bairro/);
+  assert.match(renderApresentacao(base, 'data:image/png;base64,AAAA', { contexto: { bairro: { nome: 'Méier', populacao: 49828 } } }), /Moradores no bairro/);
+});

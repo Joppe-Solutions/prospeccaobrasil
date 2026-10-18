@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowUpRight, Buildings, CurrencyDollar, Paperclip, PencilSimple, Plus, Receipt, TrendUp, Wallet, Warning } from '@phosphor-icons/react';
+import { ArrowRight, ArrowUpRight, Buildings, CurrencyDollar, Paperclip, PencilSimple, Plus, Receipt, Trash, TrendUp, Wallet, Warning } from '@phosphor-icons/react';
 import { api, fmtMoney, useArquivoToken } from '../lib/api';
 import { DinheiroInput } from '../components/NumberFields';
 import DataTable from '../components/DataTable';
@@ -117,6 +117,12 @@ export default function Financeiro() {
       setBaixa(null); setNotice('Baixa registrada.'); await load();
     } catch (e2) { setFormError(e2.message); } finally { setBusy(false); }
   };
+  const excluirLancamento = async (l) => {
+    if (!window.confirm(`Excluir o lançamento previsto "${l.descricao}"? Esta ação não pode ser desfeita.`)) return;
+    setBusy(true); setFormError('');
+    try { await api(`/financeiro/lancamentos/${l.id}`, { method: 'DELETE' }); setNotice('Lançamento excluído.'); await load(); }
+    catch (e2) { setFormError(e2.message); setNotice(''); } finally { setBusy(false); }
+  };
   const estornar = async (l) => {
     const motivo = window.prompt('Motivo do estorno (opcional):');
     if (motivo === null) return;
@@ -191,6 +197,7 @@ export default function Financeiro() {
           </label>
           <button className="icon-button" title="Duplicar" aria-label={`Duplicar ${l.descricao}`} onClick={() => duplicar(l)}>⧉</button>
           <button className="icon-button collection-delete" title="Estornar" aria-label={`Estornar ${l.descricao}`} onClick={() => estornar(l)}>↩</button>
+          {l.status === 'previsto' && <button className="icon-button collection-delete" title="Excluir (lançado por engano)" aria-label={`Excluir ${l.descricao}`} onClick={() => excluirLancamento(l)}><Trash size={16} /></button>}
         </>}
       </div>;
     } },

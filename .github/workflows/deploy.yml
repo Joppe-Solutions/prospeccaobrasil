@@ -62,6 +62,9 @@ jobs:
           sudo chmod -R a+rX /opt/prospeccao-sistema/.browsers
           sudo npx prisma generate
           sudo npx prisma migrate deploy
+          # Backup diário do banco (30 cópias; envia para fora da VPS se BACKUP_REMOTE estiver no .env)
+          echo '15 3 * * * root /opt/prospeccao-sistema/scripts/backup.sh >> /var/log/prospeccao-backup.log 2>&1' | sudo tee /etc/cron.d/prospeccao-backup >/dev/null
+          sudo chmod 644 /etc/cron.d/prospeccao-backup
           sudo systemctl restart prospeccao-sistema
           sleep 2
           curl -sf http://127.0.0.1:8090/api/healthz

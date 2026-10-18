@@ -12,5 +12,7 @@ module.exports=prisma=>{
   if(merged.revisadoEm && (!/^\d{4}-\d{2}-\d{2}$/.test(merged.revisadoEm)||!Number.isFinite(Date.parse(merged.revisadoEm))||new Date(merged.revisadoEm).toISOString().slice(0,10)!==merged.revisadoEm))return res.status(400).json({error:'Data de revisão inválida'});
   try{res.json(editing?await prisma.glossarioTermo.update({where:{id:existing.id},data}):await prisma.glossarioTermo.create({data}));}catch(e){if(e.code==='P2002')return res.status(409).json({error:'Termo já cadastrado'});throw e;}
  }
- r.post('/',ah((req,res)=>save(req,res,false)));r.put('/:id',ah((req,res)=>save(req,res,true)));return r;
+ r.post('/',ah((req,res)=>save(req,res,false)));r.put('/:id',ah((req,res)=>save(req,res,true)));
+ r.delete('/:id',auth.requireRole('admin'),ah(async(req,res)=>{const t=await prisma.glossarioTermo.findUnique({where:{id:+req.params.id}});if(!t)return res.status(404).json({error:'Termo não encontrado'});await prisma.glossarioTermo.delete({where:{id:t.id}});res.json({ok:true});}));
+ return r;
 };

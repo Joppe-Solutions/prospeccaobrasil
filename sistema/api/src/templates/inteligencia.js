@@ -371,7 +371,7 @@ function renderInteligencia(imovel, analise, demo) {
 
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(imovel.codigo)} - Inteligência de mercado</title><style>${styles}</style></head><body>
-<nav class="toolbar"><div><strong>Inteligência de mercado</strong><span>Documento geomarketing · A4 paisagem · ${total} folhas · ${esc(imovel.codigo)}</span></div><button type="button" onclick="window.print()">Imprimir / Salvar PDF</button></nav>
+<nav class="toolbar"><div><strong>Inteligência de mercado</strong><span>Documento geomarketing · A4 paisagem · ${total} folhas · ${esc(imovel.codigo)}</span></div><a class="toolbar-pdf" href="#" onclick="this.href=location.pathname.replace(/\/$/,'')+'/pdf'+location.search" target="_blank" rel="noopener">Imprimir / Baixar PDF</a></nav>
 <main>${capa}${folhas.map((f, n) => f(n + 2, total)).join('\n')}</main>
 <p class="print-help">Documento em A4 paisagem — ao salvar em PDF, escolha papel A4, orientação "Paisagem", margens "Nenhuma" e ative "Gráficos de plano de fundo".</p>
 </body></html>`;

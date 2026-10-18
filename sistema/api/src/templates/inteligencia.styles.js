@@ -10,7 +10,7 @@ a:focus-visible,button:focus-visible { outline:3px solid var(--gold); outline-of
 button { font:inherit; cursor:pointer; }
 .toolbar { width:297mm; max-width:100%; margin:18px auto 14px; display:flex; justify-content:space-between; align-items:center; gap:16px; padding:0 4px; }
 .toolbar strong,.toolbar span { display:block; }.toolbar strong { font-size:14px; }.toolbar span { font-size:11px; color:var(--muted); }
-.toolbar button { background:var(--ink); color:white; border:0; border-radius:6px; padding:12px 18px; font-weight:700; }
+.toolbar button,.toolbar-pdf { background:var(--ink); color:white; border:0; border-radius:6px; padding:12px 18px; font-weight:700; text-decoration:none; }
 main { display:flex; flex-direction:column; align-items:center; gap:18px; padding-bottom:12px; }
 
 /* Folha A4 paisagem exata */

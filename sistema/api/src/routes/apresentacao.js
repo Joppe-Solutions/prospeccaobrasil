@@ -4,6 +4,7 @@ const asyncHandler = require('../middleware/async');
 const { mapa } = require('../services/demografia');
 const { geocode, mapaEstatico, usaGoogle, coordenadasCadastradas } = require('../services/mapas');
 const censo2022 = require('../services/censo2022');
+const setores = require('../services/setores');
 const { PARCEIRO_PUBLICO } = require('../lib/parceiros');
 const { entorno } = require('../services/entorno');
 const { gerarPdf } = require('../services/pdf');
@@ -41,6 +42,7 @@ module.exports = (prisma) => {
     const vizinhanca = entorno(geo, imovel).catch(() => null);
     const contexto = {
       bairro: municipio ? censo2022.bairro(municipio, imovel.bairro) : null,
+      raio: geo ? setores.raio(geo.lat, geo.lon, 500) : null,
       entorno: await Promise.race([vizinhanca, new Promise((resolve) => setTimeout(resolve, 4000, null))]),
     };
     res.type('html').send(renderApresentacao(imovel, qrData, {
