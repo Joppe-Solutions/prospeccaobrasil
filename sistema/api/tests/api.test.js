@@ -657,42 +657,19 @@ test('glossário e benchmark: conteúdo dos PDFs, edição persistente e valida�
   assert.equal((await req('PUT',`/api/benchmarks/${bench.body[0].id}`,{token,body:{fonte:'Revisão local de teste'}})).body.fonte,'Revisão local de teste');
 });
 
-test('diretrizes: imóvel lista demandas compatíveis, quase compatíveis e ignora as inativas', async () => {
-  const empresa = (await req('POST', '/api/empresas', { token, body: { nome: 'Rede diretrizes' } })).body;
-  const demanda = async (body) => (await req('POST', '/api/demandas', { token, body: { empresaId: empresa.id, tipo: 'locacao', ...body } })).body;
-  const ok = await demanda({ titulo: 'Diretriz ok', regioesInteresse: 'Zona Sul, Tijúca', areaMinima: 100, areaMaxima: 300, frenteMinima: 6, aluguelMaximo: 20000, vagasMinimas: 2 });
-  const quase = await demanda({ titulo: 'Diretriz quase', regioesInteresse: 'Tijuca', areaMinima: 400 });
-  await demanda({ titulo: 'Diretriz outra região', regioesInteresse: 'Niterói', areaMinima: 500 });
-  await demanda({ titulo: 'Diretriz compra', tipo: 'aquisicao', regioesInteresse: 'Tijuca' });
-  await demanda({ titulo: 'Diretriz cancelada', regioesInteresse: 'Tijuca', status: 'cancelada' });
-  await demanda({ titulo: 'Diretriz sem premissas' });
-
-  // vagas não informadas: critério fica "sem dado" e não reprova
-  const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua diretriz', bairro: 'Tijuca', cidade: 'Rio de Janeiro', tipo: 'locacao', areaTotal: 200, frenteImovel: 8, aluguel: 15000 } })).body;
-  const res = await req('GET', `/api/imoveis/${imovel.id}/demandas-compativeis`, { token });
-  assert.equal(res.status, 200);
-  const doTeste = res.body.demandas.filter((d) => d.empresa.id === empresa.id);
-  assert.deepEqual(doTeste.map((d) => [d.titulo, d.nivel]), [['Diretriz ok', 'compativel'], ['Diretriz quase', 'parcial']]);
-  assert.equal(doTeste[0].criterios.find((c) => c.chave === 'vagas').status, 'sem_dado');
-  assert.equal(doTeste[1].criterios.find((c) => c.chave === 'area').status, 'nao_atende');
-  assert.equal(doTeste[0].oportunidade, null);
-
-  const listado = async () => (await req('GET', '/api/imoveis', { token })).body.find((i) => i.id === imovel.id);
-  const antes = (await listado()).demandasCompativeis;
-  assert.ok(antes >= 1);
-  const paginado = await req('GET', '/api/imoveis?pagina=1&porPagina=200', { token });
-  assert.equal(paginado.body.items.find((i) => i.id === imovel.id).demandasCompativeis, antes);
-
-  await req('POST', '/api/oportunidades', { token, body: { imovelId: imovel.id, empresaId: empresa.id, demandaId: ok.id } });
-  const depois = await req('GET', `/api/imoveis/${imovel.id}/demandas-compativeis`, { token });
-  assert.equal(depois.body.demandas.find((d) => d.id === ok.id).oportunidade.etapa, 'apresentado');
-
-  // imóvel fora de oferta não conta na coluna
-  await req('PUT', `/api/imoveis/${imovel.id}`, { token, body: { status: 'locado' } });
-  assert.equal((await listado()).demandasCompativeis, null);
-  assert.equal((await req('GET', '/api/imoveis/999999/demandas-compativeis', { token })).status, 404);
-  assert.equal((await req('GET', `/api/imoveis/${imovel.id}/demandas-compativeis`)).status, 401);
-  assert.ok(quase.id);
+test('clientes: bairros de interesse em lista e contagem de ações das operações', async () => {
+  const empresa = (await req('POST', '/api/empresas', { token, body: { nome: 'Rede bairros', areaMinima: 80, areaMaxima: 200, regioesInteresse: 'Méier; Tijuca' } })).body;
+  const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua bairros', bairro: 'Méier', cidade: 'Rio de Janeiro', areaTotal: 120 } })).body;
+  assert.equal((await req('POST', '/api/oportunidades', { token, body: { imovelId: imovel.id, empresaId: empresa.id, modalidade: 'locacao_direta' } })).status, 200);
+  // a mesma empresa não é apresentada duas vezes ao mesmo imóvel
+  assert.equal((await req('POST', '/api/oportunidades', { token, body: { imovelId: imovel.id, empresaId: empresa.id } })).status, 409);
+  const lista = (await req('GET', '/api/empresas', { token })).body;
+  const e = lista.find((x) => x.id === empresa.id);
+  assert.equal(e.regioesInteresse, 'Méier; Tijuca');
+  assert.equal(e._count.oportunidades, 1);
+  // a lista de imóveis não calcula mais demandas compatíveis
+  const imoveis = (await req('GET', '/api/imoveis', { token })).body;
+  assert.equal(Object.hasOwn(imoveis.find((i) => i.id === imovel.id), 'demandasCompativeis'), false);
 });
 
 test('auditoria 3: permissões, validação, API pública e sessão', async () => {

@@ -7,7 +7,7 @@ const PARAMS = [
   { group: 'Imóveis', items: ['Status: disponível, em negociação, locado, vendido, inativo', 'Categorias: loja, prédio, terreno, outro', 'Código automático na sequência PB-xxx'] },
   { group: 'Financeiro', items: ['Categorias: aluguel, comissão, repasse, imposto, condomínio, IPTU, taxa, deslocamento, documentação, anúncio, planta', 'Status: previsto, pago, estornado', 'Comissão líquida = receita bruta − despesas − impostos − repasses'] },
   { group: 'Relacionamentos comerciais', items: ['Modalidades: expansão de redes, locação direta, passagem de ponto, ativos à venda', 'Etapas: apresentado, visita, proposta, negociação, fechado, perdido'] },
-  { group: 'Demandas', items: ['Uma empresa pode ter várias demandas independentes', 'Status: aberta, contratada, em andamento, concluída, cancelada', 'Diretrizes técnicas, condições comerciais e acompanhamento por demanda'] },
+  { group: 'Clientes', items: ['Premissas do cliente: faixa de área e bairros de interesse', 'O detalhe do imóvel indica os clientes compatíveis e registra a apresentação como ação da operação'] },
   { group: 'Conhecimento', items: ['Glossário com busca, categorias e cadastro de novos termos', 'Benchmark de locação parametrizável por administradores na Inteligência de Mercado Imobiliário'] },
   { group: 'Acesso', items: ['Perfis: administrador e equipe comercial', 'Financeiro e usuários restritos a administradores', 'Documentos internos exigem sessão ativa'] },
 ];

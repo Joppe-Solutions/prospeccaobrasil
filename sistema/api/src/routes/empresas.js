@@ -33,7 +33,7 @@ module.exports = (prisma) => {
       { nome: { contains: q } }, { segmento: { contains: q } },
       { contatoNome: { contains: q } }, { cidade: { contains: q } },
     ];
-    await paginate(req, res, prisma.empresa, { where, orderBy: { nome: 'asc' } });
+    await paginate(req, res, prisma.empresa, { where, orderBy: { nome: 'asc' }, include: { _count: { select: { oportunidades: true } } } });
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {

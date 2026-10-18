@@ -9,7 +9,6 @@ const paginate = require('../lib/paginate');
 const { gerarAnalise } = require('../services/inteligencia');
 const { fail, urlHttp } = require('../lib/validar');
 const { aquecerLocalizacao } = require('../services/aquecer');
-const { avaliar, DEMANDA_ATIVA, IMOVEL_OFERTAVEL } = require('../lib/compatibilidade');
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -145,11 +144,6 @@ module.exports = (prisma) => {
 
   r.use(auth);
 
-  const demandasAtivas = (include) => prisma.demanda.findMany({
-    where: { status: { in: DEMANDA_ATIVA } },
-    ...(include ? { include } : {}),
-  });
-
   r.get('/', asyncHandler(async (req, res) => {
     const { q, status, tipo, cidade, categoria } = req.query;
     const where = {};
@@ -161,14 +155,6 @@ module.exports = (prisma) => {
       { codigo: { contains: q } }, { endereco: { contains: q } },
       { bairro: { contains: q } }, { titulo: { contains: q } }, { cidade: { contains: q } },
     ];
-    // Coluna "Diretrizes" da listagem: quantas demandas ativas cada imóvel atende
-    const demandas = await demandasAtivas();
-    const comDiretrizes = (i) => ({
-      ...i,
-      demandasCompativeis: IMOVEL_OFERTAVEL.includes(i.status)
-        ? demandas.filter((d) => avaliar(i, d).nivel === 'compativel').length
-        : null,
-    });
     await paginate(req, res, prisma.imovel, {
       where, orderBy: { criadoEm: 'desc' },
       include: {
@@ -178,29 +164,6 @@ module.exports = (prisma) => {
         parceiro: { select: { id: true, nome: true } },
         _count: { select: { fotos: true, documentos: true } },
       },
-    }, comDiretrizes);
-  }));
-
-  // Demandas cujas diretrizes o imóvel atende (ou quase), com o detalhe por critério
-  r.get('/:id/demandas-compativeis', asyncHandler(async (req, res) => {
-    const imovel = await prisma.imovel.findUnique({
-      where: { id: +req.params.id },
-      include: { oportunidades: { select: { id: true, demandaId: true, empresaId: true, etapa: true } } },
-    });
-    if (!imovel) return res.status(404).json({ error: 'Não encontrado' });
-    const ordem = { compativel: 0, parcial: 1 };
-    const itens = (await demandasAtivas({ empresa: { select: { id: true, nome: true } } }))
-      .map((d) => {
-        const a = avaliar(imovel, d);
-        const oportunidade = imovel.oportunidades.find((o) => o.demandaId === d.id) || null;
-        return { id: d.id, titulo: d.titulo, tipo: d.tipo, status: d.status, empresa: d.empresa, oportunidade, ...a };
-      })
-      .filter((d) => d.nivel !== 'incompativel')
-      .sort((a, b) => ordem[a.nivel] - ordem[b.nivel] || b.atende - a.atende);
-    res.json({
-      imovel: { id: imovel.id, codigo: imovel.codigo, status: imovel.status },
-      ofertavel: IMOVEL_OFERTAVEL.includes(imovel.status),
-      demandas: itens,
     });
   }));
 
@@ -212,7 +175,7 @@ module.exports = (prisma) => {
         ...AREAS,
         documentos: { orderBy: { criadoEm: 'desc' } },
         analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
-        oportunidades: { include: { empresa: true, demanda: true }, orderBy: { criadoEm: 'desc' } },
+        oportunidades: { include: { empresa: true }, orderBy: { criadoEm: 'desc' } },
         // despesas são financeiras: só admin recebe no payload
         ...(req.user.role === 'admin' ? { despesas: { orderBy: { criadoEm: 'desc' } } } : {}),
         proprietarioRel: true,

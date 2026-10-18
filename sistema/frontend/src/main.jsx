@@ -31,9 +31,6 @@ import Configuracoes from './pages/Configuracoes';
 import Perfil from './pages/Perfil';
 import Usuarios from './pages/Usuarios';
 
-import Demandas from './pages/Demandas';
-import DemandaWizard from './pages/DemandaWizard';
-import DemandaDetalhe from './pages/DemandaDetalhe';
 import Glossario from './pages/Glossario';
 import Benchmark from './pages/Benchmark';
 import ModelosContrato from './pages/ModelosContrato';
@@ -52,14 +49,11 @@ function App() {
         <Route path="imoveis/novo" element={<ImovelWizard />} />
         <Route path="imoveis/:id" element={<ImovelDetalhe />} />
         <Route path="imoveis/:id/editar" element={<ImovelWizard />} />
-        <Route path="demandas" element={<Demandas />} />
+        <Route path="demandas/*" element={<Navigate to="/" replace />} />
         {/* Módulos removidos: links antigos voltam ao início */}
         <Route path="diretrizes" element={<Navigate to="/" replace />} />
         <Route path="benchmark" element={<Benchmark />} />
         <Route path="modelos-contratos" element={<ModelosContrato />} />
-        <Route path="demandas/nova" element={<DemandaWizard />} />
-        <Route path="demandas/:id" element={<DemandaDetalhe />} />
-        <Route path="demandas/:id/editar" element={<DemandaWizard />} />
         <Route path="glossario" element={<Glossario />} />
         <Route path="propostas" element={<Navigate to="/" replace />} />
         <Route path="institucional" element={<Navigate to="/" replace />} />

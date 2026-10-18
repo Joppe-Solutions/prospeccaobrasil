@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Storefront } from '@phosphor-icons/react';
+import { Plus, Storefront, X } from '@phosphor-icons/react';
 import { api, fmtNum } from '../lib/api';
 import FormWizard, { WizardReview } from '../components/FormWizard';
 import { CampoNumerico } from '../components/NumberFields';
+import { juntarBairros, listaBairros } from '../lib/bairros';
 
 const STEPS = [
   { id: 'empresa', title: 'Empresa', subtitle: 'Identidade e segmento', heading: 'Quem é a empresa', description: 'Dados institucionais usados nas listagens e no match com imóveis.',
@@ -19,16 +20,35 @@ const STEPS = [
       { k: 'contatoNome', l: 'Nome do contato' }, { k: 'contatoCargo', l: 'Cargo' },
       { k: 'telefone', l: 'Telefone' }, { k: 'email', l: 'E-mail', type: 'email' },
     ] },
-  { id: 'perfil', title: 'Perfil buscado', subtitle: 'Demanda de expansão', heading: 'O que a empresa procura', description: 'Esses dados alimentam o match inteligente com os imóveis disponíveis.',
+  { id: 'perfil', title: 'Perfil buscado', subtitle: 'Premissas do cliente', heading: 'O que a empresa procura', description: 'Faixa de área e bairros de interesse: o detalhe de cada imóvel mostra os clientes compatíveis.',
     fields: [
       { k: 'areaMinima', l: 'Área mínima (m²)', fmt: 'decimal' }, { k: 'areaMaxima', l: 'Área máxima (m²)', fmt: 'decimal' },
-      { k: 'regioesInteresse', l: 'Regiões de interesse', ph: 'Zona Oeste, Barra, Centro…', full: true },
+      { k: 'regioesInteresse', type: 'bairros' },
       { k: 'perfilLoja', l: 'Perfil de loja buscado', type: 'textarea', full: true },
       { k: 'observacoes', l: 'Observações', type: 'textarea', full: true },
     ] },
 ];
 
+// Lista dinâmica: um bairro por linha, com adicionar/remover. Salvo como "Méier; Tijuca".
+function BairrosInteresse({ value, onChange }) {
+  const [linhas, setLinhas] = useState(() => { const l = listaBairros(value); return l.length ? l : ['']; });
+  useEffect(() => { const l = listaBairros(value); if (juntarBairros(l) !== juntarBairros(linhas)) setLinhas(l.length ? l : ['']); }, [value]);
+  const mudar = (novas) => { setLinhas(novas); onChange(juntarBairros(novas)); };
+  return <div className="wz-field wz-full">
+    <label htmlFor="wz-bairro-0">Bairros de interesse</label>
+    <ul className="wz-areas wz-bairros">
+      {linhas.map((b, n) => <li key={n}>
+        <input id={`wz-bairro-${n}`} aria-label={`Bairro de interesse ${n + 1}`} value={b} placeholder="Ex.: Méier" onChange={e => mudar(linhas.map((x, k) => k === n ? e.target.value : x))}
+          onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); mudar([...linhas, '']); } }} />
+        <button type="button" className="icon-button" aria-label={`Remover bairro ${n + 1}`} disabled={linhas.length === 1 && !b} onClick={() => mudar(linhas.length === 1 ? [''] : linhas.filter((_, k) => k !== n))}><X size={16} /></button>
+      </li>)}
+    </ul>
+    <small><button type="button" className="wz-link" onClick={() => mudar([...linhas, ''])}><Plus size={12} /> Adicionar bairro</button></small>
+  </div>;
+}
+
 function Field({ def, value, onChange }) {
+  if (def.type === 'bairros') return <BairrosInteresse value={value} onChange={onChange} />;
   return <div className={`wz-field ${def.full ? 'wz-full' : ''}`}>
     <label htmlFor={`wz-${def.k}`}>{def.l}{def.req && <span className="wz-required">*</span>}</label>
     {def.type === 'textarea'
@@ -57,12 +77,12 @@ export default function EmpresaWizard() {
     { id: 'revisao', title: 'Revisão', subtitle: 'Conferir e salvar', heading: 'Revisar cadastro', description: 'Confira os dados antes de salvar a empresa.',
       content: ({ goToStep }) => <WizardReview
         title={form.nome || 'Nova empresa'}
-        description="O perfil buscado alimenta o match com imóveis na página de detalhes de cada ponto."
+        description="As premissas indicam este cliente como compatível no detalhe de cada imóvel."
         onEdit={goToStep}
         sections={[
           { title: 'Empresa', items: [['Nome fantasia', form.nome], ['Razão social', form.razaoSocial], ['Endereço', form.endereco], ['Segmento', form.segmento], ['CNPJ', form.cnpj], ['Sede', [form.cidade, form.uf].filter(Boolean).join(' / ')]] },
           { title: 'Contato', items: [['Contato', form.contatoNome], ['Cargo', form.contatoCargo], ['Telefone', form.telefone], ['E-mail', form.email]] },
-          { title: 'Perfil buscado', items: [['Área', form.areaMinima || form.areaMaxima ? `${fmtNum(form.areaMinima)} – ${fmtNum(form.areaMaxima)} m²` : ''], ['Regiões', form.regioesInteresse], ['Perfil', form.perfilLoja]] },
+          { title: 'Perfil buscado', items: [['Área', form.areaMinima || form.areaMaxima ? `${fmtNum(form.areaMinima)} – ${fmtNum(form.areaMaxima)} m²` : ''], ['Bairros de interesse', listaBairros(form.regioesInteresse).join(', ')], ['Perfil', form.perfilLoja]] },
         ]} /> },
   ], [form]);
 

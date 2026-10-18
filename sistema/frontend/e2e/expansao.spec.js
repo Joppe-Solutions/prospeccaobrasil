@@ -11,16 +11,20 @@ test('glossário: busca por alias, categoria e edição de termo',async({page})=
  await page.getByRole('button',{name:'Editar Founder',exact:true}).click();await page.getByLabel('Outras grafias para busca').fill('fander, fundador');await page.getByRole('button',{name:'Salvar termo',exact:true}).click();await expect(page.getByRole('dialog')).toHaveCount(0);
  await page.reload();await page.getByLabel('Buscar termo',{exact:true}).fill('fundador');await expect(page.getByRole('heading',{name:'Founder',exact:true})).toBeVisible();await expectNoErrors(errors);
 });
-test('demanda: cadastro, documentos, proposta e vínculo de operação',async({page})=>{
- await login(page);const errors=watchErrors(page);await page.goto('/demandas');await page.getByRole('link',{name:'Nova demanda',exact:true}).click();
- await page.getByLabel('Empresa',{exact:true}).selectOption({label:'Empresa E2E'});await page.getByLabel('Título da demanda').fill('Expansão teste RJ');await page.getByLabel('Cidades, bairros e áreas prioritárias').fill('Méier');
- await page.getByRole('button',{name:'Próximo',exact:true}).click();await page.getByLabel('Área mínima (m²)',{exact:true}).fill('100');await page.getByLabel('Área máxima (m²)',{exact:true}).fill('300');
- await page.getByRole('button',{name:'Próximo',exact:true}).click();await page.getByLabel('Aluguel máximo (R$/mês)').fill('20000');await page.getByRole('button',{name:'Próximo',exact:true}).click();await page.getByLabel('Próxima ação',{exact:true}).fill('Agendar visita');await page.getByRole('button',{name:'Próximo',exact:true}).click();await page.getByRole('button',{name:'Salvar demanda',exact:true}).click();
- await expect(page).toHaveURL(/\/demandas\/\d+$/);await expect(page.getByRole('heading',{name:'Expansão teste RJ',exact:true})).toBeVisible();
- await page.getByLabel('Registro',{exact:true}).fill('Contato com expansão');await page.getByRole('button',{name:'Registrar atividade'}).click();await expect(page.getByText('Contato com expansão',{exact:true})).toBeVisible();
- await page.getByLabel('Nome',{exact:true}).fill('Briefing teste');await page.getByLabel('Link',{exact:true}).fill('https://example.com/briefing');await page.getByRole('button',{name:'Vincular documento'}).click();await expect(page.getByRole('link',{name:'Briefing teste ↗'})).toBeVisible();
-
- await page.goto('/demandas');await page.getByRole('link',{name:'Expansão teste RJ Empresa E2E',exact:true}).click();await page.locator('#main-content').getByRole('link',{name:'Relacionamentos comerciais',exact:true}).click();await page.getByRole('button',{name:'Novo relacionamento'}).click();await page.getByLabel(/^Imóvel/).selectOption({label:'PB-E2E · Rua E2E, 1'});await page.getByLabel('Modalidade',{exact:true}).selectOption('venda_ativo');await page.getByRole('button',{name:'Criar oportunidade'}).click();await expect(page.getByRole('cell',{name:'Ativos à venda',exact:true})).toBeVisible();await expectNoErrors(errors);
+test('clientes: premissas e bairros de interesse dinâmicos; demandas saiu do sistema',async({page})=>{
+ await login(page);const errors=watchErrors(page);await page.goto('/empresas');
+ await expect(page.getByRole('columnheader',{name:/Premissas/})).toBeVisible();await expect(page.getByRole('columnheader',{name:/^Demandas/})).toHaveCount(0);
+ await page.getByRole('link',{name:'Nova empresa'}).click();const modal=page.locator('.modal');
+ await modal.locator('#wz-nome').fill('Rede Bairros E2E');await modal.getByRole('button',{name:'Próximo',exact:true}).click();await modal.getByRole('button',{name:'Próximo',exact:true}).click();
+ await modal.getByLabel('Bairro de interesse 1').fill('Méier');await modal.getByRole('button',{name:'Adicionar bairro'}).click();
+ await modal.getByLabel('Bairro de interesse 2').fill('Tijuca');await modal.getByRole('button',{name:'Adicionar bairro'}).click();
+ await modal.getByLabel('Bairro de interesse 3').fill('Centro');await modal.getByRole('button',{name:'Remover bairro 3'}).click();
+ await expect(modal.getByLabel('Bairro de interesse 3')).toHaveCount(0);
+ await modal.getByRole('button',{name:'Próximo',exact:true}).click();await expect(modal).toContainText('Méier, Tijuca');
+ await modal.getByRole('button',{name:/Cadastrar|Salvar/}).click();await expect(page).toHaveURL(/\/empresas$/);
+ const linha=page.getByRole('row',{name:/Rede Bairros E2E/});await expect(linha).toContainText('Méier');await expect(linha).toContainText('Tijuca');await expect(linha).toContainText('Nenhuma');
+ await page.goto('/demandas');await expect(page).toHaveURL(/\/$/);await expect(page.getByRole('link',{name:/^Demandas/})).toHaveCount(0);
+ await expectNoErrors(errors);
 });
 test('apresentação: resumo em uma folha e complementos em duas',async({page})=>{
  const fixture={codigo:'PB-PRINT',analises:[{score:74,resumo:'Ponto com bom fluxo de pedestres e forte demanda local; vale priorizar o contato com redes de varejo alimentar e farmácias.',modelo:'triagem-interna',conteudoJson:JSON.stringify({pontosFortes:['Esquina com vitrine ampla','Perto da estação','Alto fluxo diário'],pontosAtencao:['Ruído de tráfego','Calçada estreita'],segmentosRecomendados:['Farmácia','Mercado','Banco'],recomendacao:'Priorizar redes com operação de conveniência.'})}],titulo:'Loja comercial para expansão',endereco:'Rua de teste',numero:'100',bairro:'Méier',cidade:'Rio de Janeiro',uf:'RJ',tipo:'locacao',status:'disponivel',areaTotal:200,areaUtil:180,pisoAreaVenda:150,jirau:20,mezanino:30,frenteImovel:8,peDireito:4,vagas:10,aluguel:20000,condominio:1000,iptu:500,cdu:30000,luvas:10000,valorPonto:50000,periodoContrato:'5 anos',descricao:'Imóvel com boa localização e infraestrutura. '.repeat(100),criadoEm:'2026-10-05',fotos:Array.from({length:12},(_,i)=>({arquivo:`teste-${i}.png`,legenda:'Imagem do imóvel'})),documentos:Array.from({length:10},(_,i)=>({tipo:'planta',nome:`Planta ${i}`,url:'https://example.com/planta'}))};

@@ -7,7 +7,6 @@ const MODULES = [
   { path: '/financeiro', label: 'Financeiro', marker: null },
   { path: '/imoveis', label: 'Imóveis', navLabel: /^Imóveis/, marker: 'PB-E2E' },
   { path: '/empresas', label: 'Clientes', navLabel: /^Clientes/, marker: 'Empresa E2E' },
-  { path: '/demandas', label: 'Demandas', navLabel: /^Demandas/, marker: 'Demandas de Expansão' },
   { path: '/parceiros', label: 'Consultores', navLabel: /^Consultores/, marker: 'Parceiro E2E' },
   { path: '/leads', label: 'Leads', navLabel: /^Leads/, marker: 'Lead E2E' },
   { path: '/proprietarios', label: 'Proprietários e operadores', marker: 'Proprietário E2E' },
@@ -51,12 +50,19 @@ test('navegação pela sidebar visita todos os módulos', async ({ page }) => {
   await expectNoErrors(errors);
 });
 
-test('detalhe do imóvel abre', async ({ page }) => {
+test('detalhe do imóvel abre e apresenta para cliente compatível', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/imoveis');
   await page.getByText('PB-E2E').first().click();
   await page.waitForLoadState('networkidle');
   await expect(page.locator('#main-content')).toContainText(/PB-E2E|Imóvel E2E/);
+  // clientes compatíveis pelas premissas; apresentar vira uma ação da operação
+  const sugestoes = page.locator('.match-clientes');
+  await expect(sugestoes).toContainText('Rede Méier E2E');
+  await expect(sugestoes).not.toContainText('Empresa E2E');
+  await page.getByRole('button', { name: 'Apresentar para Rede Méier E2E' }).click();
+  await expect(page.getByRole('row', { name: /Rede Méier E2E/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Apresentar para Rede Méier E2E' })).toHaveCount(0);
   await expectNoErrors(errors);
 });
 

@@ -121,3 +121,11 @@ tr:hover td { background: #faf8f2; }
 .detail-list dt { color: var(--muted); }
 .detail-list dd { font-weight: 600; text-align: right; white-space: pre-wrap; }
 @media (max-width: 860px) { .detail-columns { grid-template-columns: 1fr; } .detail-columns section + section { border-left: 0; padding-left: 0; margin-top: 22px; } }
+
+.match-clientes { list-style:none; margin:4px 0 0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.match-clientes li { display:grid; grid-template-columns:minmax(0,1fr) auto auto; gap:12px; align-items:center; padding:10px 12px; border:1px solid var(--line); border-radius:10px; background:#fbfcfa; }
+.match-clientes li > span:first-child { display:flex; flex-direction:column; gap:3px; min-width:0; }
+.match-clientes small { font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.match-crits { display:flex; gap:6px; align-items:center; flex-wrap:wrap; }
+.match-crit { font-size:11px; } .match-crit.ok { color:#2c7549; } .match-crit.no { color:#a7554b; }
+@media (max-width: 640px) { .match-clientes li { grid-template-columns:1fr; } }

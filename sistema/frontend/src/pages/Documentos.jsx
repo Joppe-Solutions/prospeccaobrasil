@@ -14,14 +14,13 @@ const TIPOS = {
 const fmtData = (v) => v ? String(v).slice(0, 10).split('-').reverse().join('/') : '—';
 
 export default function Documentos() {
-  const [demandDocs, setDemandDocs] = useState([]);
   const [docs, setDocs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   const load = () => {
     setLoading(true); setError('');
-    Promise.all([api('/documentos'), api('/documentos/demandas')]).then(([d, dd]) => { setDocs(d); setDemandDocs(dd); }).catch(e => setError(e.message)).finally(() => setLoading(false));
+    api('/documentos').then(setDocs).catch(e => setError(e.message)).finally(() => setLoading(false));
   };
   useEffect(load, []);
 
@@ -50,7 +49,7 @@ export default function Documentos() {
     <PageHeader
       eyebrow="CADASTROS"
       title="Documentação"
-      description="RGI, IPTU, plantas, contratos, propostas, certidões e anexos dos imóveis e demandas."
+      description="RGI, IPTU, plantas, contratos, propostas, certidões e anexos dos imóveis."
     />
     <section className="panel collection-panel">
       <div className="collection-section-head">
@@ -69,10 +68,5 @@ export default function Documentos() {
         toolbar={error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
       />
     </section>
-    <section className="panel collection-panel"><div className="collection-section-head"><div><h2>Documentos das demandas</h2><p>Briefings, contratos de serviços, propostas e anexos.</p></div></div><DataTable columns={[
-      { accessorKey: 'nome', header: 'Documento', cell: ({ row }) => <a className="collection-title-link" href={row.original.url} target="_blank" rel="noopener noreferrer">{row.original.nome} ↗</a> },
-      { accessorKey: 'tipo', header: 'Tipo' },
-      { id: 'demanda', header: 'Empresa / demanda', accessorFn: d => `${d.demanda.empresa.nome} ${d.demanda.titulo}`, cell: ({ row }) => <Link className="collection-cell-stack collection-title-link" to={`/demandas/${row.original.demandaId}`}><strong>{row.original.demanda.empresa.nome}</strong><small>{row.original.demanda.titulo}</small></Link> },
-    ]} data={demandDocs} loading={loading} error={error} searchPlaceholder="Buscar documento, empresa ou demanda..." exportName="documentos-demandas.csv" emptyTitle="Nenhum documento de demanda" emptyDescription="Vincule os documentos no detalhe da demanda." /></section>
   </div>;
 }

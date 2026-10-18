@@ -55,7 +55,12 @@
 - Exclusões de cadastros e operações exigem `admin`; o sistema nunca fica sem admin ativo.
 - `/api/public/imoveis/:id` devolve só `CAMPOS_PUBLICOS` (campo novo não vaza por padrão).
 - Tipos de imóvel: `locacao`, `venda` (rótulo "Venda direta") e `passagem_ponto`.
-- Coluna "Demandas" em Imóveis (demandas ativas compatíveis com o imóvel): regra em `api/src/lib/compatibilidade.js`.
+- Fluxo comercial sem Demandas: Cliente (premissas = faixa de área + bairros de interesse) → Imóvel → Ação da
+  operação (`Oportunidade`, imóvel × cliente, etapas). O detalhe do imóvel lista "Clientes compatíveis"
+  (`frontend/src/lib/bairros.js`, `premissasDoCliente`) e "Apresentar" cria a ação. Bairros ficam em
+  `Empresa.regioesInteresse` como texto "Méier; Tijuca" (aceita vírgula/quebra de linha dos cadastros antigos).
+  O módulo Demandas saiu da interface (`/demandas/*` volta ao início); API e tabelas de demandas ficam sem tela
+  para preservar os dados.
 - Dimensões do imóvel: `imovel_areas` guarda a composição (térreo, 2º piso, jirau...);
   `areaTotal` é a ABL (sugerida pela soma, editável). As colunas `pisoAreaVenda`, `jirau`
   e `mezanino` são derivadas das linhas pela API e não aparecem mais no formulário.
@@ -93,7 +98,7 @@
   `sub` = linha de apoio, `children` = subitens; item sem `to` é só um grupo (rótulo sem página, caso de
   "Institucional", que contém apenas o link externo "Site institucional"). Rotas mantidas: Clientes = `/empresas`,
   Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários e Documentação não
-  estavam no PDF e foram mantidos em Cadastros. Os módulos Diretrizes, Institucional e Propostas Comerciais
+  estavam no PDF e foram mantidos em Cadastros. Os módulos Diretrizes, Demandas, Institucional e Propostas Comerciais
   foram removidos da interface; `/diretrizes`, `/institucional` e `/propostas` redirecionam para o início.
   A API de propostas (`/api/propostas`, `/proposta/:id`, `templates/proposta.js`) e a tabela
   `propostas_servico` continuam no sistema, sem tela, para não perder dados.

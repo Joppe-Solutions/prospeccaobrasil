@@ -22,3 +22,4 @@
 .proposta-legend{padding:0;margin-bottom:14px;font-size:13px;font-weight:650;color:var(--green)}
 .proposta-legend small{margin-left:8px;font-size:10px;font-weight:400;color:var(--muted)}
 .field-pair{display:grid;grid-template-columns:minmax(0,1fr) 120px;gap:12px}
+.collection-bairros{display:flex;flex-wrap:wrap;align-items:center;gap:4px;max-width:260px}.collection-bairros small{font-size:10px;color:var(--muted)}

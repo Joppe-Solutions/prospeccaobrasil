@@ -29,12 +29,13 @@ export default async function globalSetup() {
     data: { nome: 'Admin E2E', email: 'admin@e2e.dev', senhaHash, role: 'admin' },
   });
   await prisma.empresa.create({ data: { nome: 'Empresa E2E', segmento: 'Varejo' } });
+  await prisma.empresa.create({ data: { nome: 'Rede Méier E2E', segmento: 'Farmácia', areaMinima: 80, areaMaxima: 200, regioesInteresse: 'Méier; Tijuca' } });
   await prisma.proprietario.create({ data: { nome: 'Proprietário E2E' } });
   await prisma.parceiro.create({ data: { nome: 'Parceiro E2E' } });
   await prisma.lead.create({ data: { nome: 'Lead E2E' } });
   await prisma.lead.create({ data: { nome: 'Lead E2E Conv', telefone: '21955550000', email: 'conv@e2e.dev', interesse: 'Loja E2E' } });
   await prisma.imovel.create({
-    data: { titulo: 'Imóvel E2E', codigo: 'PB-E2E', endereco: 'Rua E2E, 1', cidade: 'Rio de Janeiro', uf: 'RJ' },
+    data: { titulo: 'Imóvel E2E', codigo: 'PB-E2E', endereco: 'Rua E2E, 1', bairro: 'Méier', cidade: 'Rio de Janeiro', uf: 'RJ', areaTotal: 120 },
   });
   await prisma.$disconnect();
 }

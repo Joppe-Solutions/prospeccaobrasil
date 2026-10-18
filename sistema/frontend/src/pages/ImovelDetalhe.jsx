@@ -1,5 +1,6 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
 import { useParams, Link, useLocation } from 'react-router-dom';
+import { listaBairros, premissasDoCliente } from '../lib/bairros';
 import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO, getToken, getUser, useArquivoToken } from '../lib/api';
 import PhotoUploader from '../components/PhotoUploader';
 import { DinheiroInput } from '../components/NumberFields';
@@ -16,8 +17,6 @@ export default function ImovelDetalhe() {
   const { id } = useParams();
   const [i, setI] = useState(null);
   const [empresas, setEmpresas] = useState([]);
-  const [demandas, setDemandas] = useState([]);
-  const [demandaSel, setDemandaSel] = useState('');
   const [modalidade, setModalidade] = useState('');
   const [empSel, setEmpSel] = useState('');
   const [docTipo, setDocTipo] = useState('planta');
@@ -34,7 +33,6 @@ export default function ImovelDetalhe() {
   useEffect(() => {
     setLoadError('');
     load();
-    api('/demandas').then(setDemandas).catch(() => setDemandas([]));
     api('/empresas').then(setEmpresas).catch(() => setEmpresas([]));
   }, [id]);
   const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
@@ -74,11 +72,11 @@ export default function ImovelDetalhe() {
       await load(); flash('Análise gerada');
     } catch (e) { flash(e.message || 'Falha ao gerar análise'); } finally { setGerando(false); }
   }
-  async function addOportunidade() {
-    if (!empSel) return;
+  async function addOportunidade(empresaId = empSel) {
+    if (!empresaId) return;
     try {
-      await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empSel, demandaId: demandaSel || null, finalidade: demandas.find(d => String(d.id) === demandaSel)?.finalidade || null, modalidade: modalidade || MODALIDADE_PADRAO[i.tipo] || 'locacao_direta' }) });
-      setEmpSel(''); setDemandaSel(''); setModalidade(''); load(); flash('Imóvel apresentado à empresa');
+      await api('/oportunidades', { method: 'POST', body: JSON.stringify({ imovelId: +id, empresaId: +empresaId, modalidade: modalidade || MODALIDADE_PADRAO[i.tipo] || 'locacao_direta' }) });
+      setEmpSel(''); setModalidade(''); load(); flash('Apresentação registrada em Ações das operações');
     } catch (e) { flash(e.message || 'Falha ao registrar apresentação'); }
   }
   async function addDespesa(e) {
@@ -265,35 +263,36 @@ export default function ImovelDetalhe() {
       </div>
 
       <div className="panel">
-        <h2>Apresentar para empresa</h2><p className="muted">Vincule uma demanda para registrar esta apresentação no acompanhamento da expansão.</p>
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+        <h2>Clientes compatíveis</h2><p className="muted">Clientes cujas premissas (bairros de interesse e faixa de área) batem com este imóvel. Ao apresentar, a negociação passa a ser acompanhada em <Link to="/oportunidades">Ações das operações</Link>.</p>
         {(() => {
-          const area = Number(i.areaTotal) || 0;
-          const regiao = `${i.bairro || ''} ${i.cidade || ''}`.toLowerCase();
-          const score = (e) => {
-            let s = 0;
-            if (e.areaMinima && area < e.areaMinima) return -1;
-            if (e.areaMaxima && area > e.areaMaxima) return -1;
-            if (e.areaMinima || e.areaMaxima) s += 2;
-            if (e.regioesInteresse && regiao.split(' ').some(w => w.length > 3 && e.regioesInteresse.toLowerCase().includes(w))) s += 2;
-            return s;
-          };
-          const ordenadas = [...empresas].sort((a, b) => score(b) - score(a));
-          return (
-          <select value={empSel} aria-label="Empresa para apresentação" onChange={e => { setEmpSel(e.target.value); setDemandaSel(''); }} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--line)' }}>
-            <option value="">Selecionar empresa…</option>
-            {ordenadas.map(e => <option key={e.id} value={e.id}>{score(e) > 0 ? '★ ' : score(e) < 0 ? '⚠ ' : ''}{e.nome} — {e.segmento || 'sem segmento'}{e.areaMinima || e.areaMaxima ? ` (${e.areaMinima || 0}–${e.areaMaxima || '∞'} m²)` : ''}</option>)}
-          </select>);
-        })()}
-          <select aria-label="Demanda para apresentação" value={demandaSel} onChange={e => setDemandaSel(e.target.value)}><option value="">Sem demanda vinculada</option>{demandas.filter(d => String(d.empresaId) === empSel && !['concluida','cancelada'].includes(d.status)).map(d => <option key={d.id} value={d.id}>{d.titulo}</option>)}</select>
+          const apresentadas = new Set(i.oportunidades.map(o => o.empresaId));
+          const ativos = empresas.filter(e => e.status !== 'inativo');
+          const sugeridos = ativos.map(e => ({ e, p: premissasDoCliente(e, i) }))
+            .filter(({ e, p }) => ['compativel', 'parcial'].includes(p.nivel) && !apresentadas.has(e.id))
+            .sort((a, b) => (a.p.nivel === b.p.nivel ? a.e.nome.localeCompare(b.e.nome) : a.p.nivel === 'compativel' ? -1 : 1));
+          const marca = (ok, rotulo) => ok == null ? null : <span className={`match-crit ${ok ? 'ok' : 'no'}`}>{ok ? '✓' : '✗'} {rotulo}</span>;
+          return <>
+            {sugeridos.length ? <ul className="match-clientes">{sugeridos.map(({ e, p }) => <li key={e.id}>
+              <span><strong>{e.nome}</strong><small>{[e.segmento, listaBairros(e.regioesInteresse).join(', ')].filter(Boolean).join(' · ') || 'Sem premissas'}</small></span>
+              <span className="match-crits"><span className={`badge ${p.nivel === 'compativel' ? 'disponivel' : 'negociacao'}`}>{p.nivel === 'compativel' ? 'Compatível' : 'Parcial'}</span>{marca(p.bairro, 'Bairro')}{marca(p.area, 'Área')}</span>
+              <button className="btn btn-primary btn-sm" onClick={() => addOportunidade(e.id)} aria-label={`Apresentar para ${e.nome}`}>Apresentar</button>
+            </li>)}</ul> : <p className="muted" style={{ margin: '4px 0 14px' }}>Nenhum cliente ainda não apresentado tem premissas compatíveis com este imóvel.</p>}
+            <h3 style={{ fontSize: 13, margin: '16px 0 8px' }}>Apresentar para outro cliente</h3>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
+              <select value={empSel} aria-label="Empresa para apresentação" onChange={e => setEmpSel(e.target.value)} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--line)' }}>
+                <option value="">Selecionar cliente…</option>
+                {ativos.filter(e => !apresentadas.has(e.id)).map(e => <option key={e.id} value={e.id}>{e.nome} — {e.segmento || 'sem segmento'}</option>)}
+              </select>
           <select aria-label="Modalidade da apresentação" value={modalidade} onChange={e => setModalidade(e.target.value)}><option value="">{{ venda: 'Ativos à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação direta'}</option><option value="locacao_direta">Locação direta</option><option value="passagem_ponto">Passagem de ponto comercial</option><option value="venda_ativo">Ativos à venda</option></select>
-          <button className="btn btn-primary btn-sm" disabled={!empSel} onClick={addOportunidade}>Registrar apresentação</button>
-        </div>
+          <button className="btn btn-primary btn-sm" disabled={!empSel} onClick={() => addOportunidade()}>Registrar apresentação</button>
+            </div>
+          </>;
+        })()}
         {i.oportunidades.length > 0 && (
           <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Apresentação</th><th>Data</th></tr></thead>
             <tbody>{i.oportunidades.map(o => (
               <tr key={o.id}>
-                <td>{o.empresa.nome}{o.demanda && <small style={{ display: 'block' }}><Link to={`/demandas/${o.demandaId}`}>{o.demanda.titulo}</Link></small>}</td>
+                <td><Link to={`/oportunidades?empresaId=${o.empresaId}`}>{o.empresa.nome}</Link></td>
                 <td>{[o.empresa.contatoNome, o.empresa.telefone || o.empresa.email].filter(Boolean).join(' · ') || '—'}</td>
                 <td><span className={`badge ${o.etapa}`}>{ETAPAS[o.etapa] || o.etapa}</span></td>
                 <td><a href={`/apresentacao/${i.id}`} target="_blank" rel="noreferrer">Abrir</a></td>
