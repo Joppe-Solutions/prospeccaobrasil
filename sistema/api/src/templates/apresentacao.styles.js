@@ -18,7 +18,7 @@ h1 { font-family:Georgia,'Times New Roman',serif; font-size:31px; line-height:1.
 p { margin:0; }.street { font-size:13px; margin-bottom:3px; }.location { color:var(--muted); font-size:11px; }
 figure { margin:0; }.hero img { width:100%; height:65mm; display:block; object-fit:cover; background:#f5f6f3; }
 .hero-row.has-map { display:grid; grid-template-columns:1fr 1fr; gap:12px; }.hero-row.has-map .no-photo { height:65mm; }
-.map { position:relative; display:block; height:65mm; overflow:hidden; background:#eef0ec; }
+.map { position:relative; display:block; height:65mm; overflow:hidden; background:#eef0ec; contain:strict; } /* contain: os tiles fora da área não podem alargar a página (o Chrome encolhia a impressão inteira) */
 .map-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
 .map-tiles { position:absolute; left:50%; top:50%; display:block; }.map-tiles img { position:absolute; display:block; max-width:none; }
 .map-pin { position:absolute; left:50%; top:50%; margin:-39px 0 0 -15px; filter:drop-shadow(0 2px 3px #0005); }
