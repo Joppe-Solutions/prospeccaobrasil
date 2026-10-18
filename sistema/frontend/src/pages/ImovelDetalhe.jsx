@@ -289,12 +289,13 @@ export default function ImovelDetalhe() {
           </>;
         })()}
         {i.oportunidades.length > 0 && (
-          <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Apresentação</th><th>Data</th></tr></thead>
+          <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Proposta</th><th>Apresentação</th><th>Data</th></tr></thead>
             <tbody>{i.oportunidades.map(o => (
               <tr key={o.id}>
                 <td><Link to={`/oportunidades?empresaId=${o.empresaId}`}>{o.empresa.nome}</Link></td>
                 <td>{[o.empresa.contatoNome, o.empresa.telefone || o.empresa.email].filter(Boolean).join(' · ') || '—'}</td>
                 <td><span className={`badge ${o.etapa}`}>{ETAPAS[o.etapa] || o.etapa}</span></td>
+                <td>{{ sem_proposta: '—', em_elaboracao: 'Em elaboração', enviada: 'Enviada', em_analise: 'Em análise', contraproposta: 'Contraproposta', aceita: 'Aceita', recusada: 'Recusada' }[o.propostaStatus || 'sem_proposta']}{o.propostaEnviadaEm && <small className="muted" style={{ display: 'block' }}>{new Date(`${o.propostaEnviadaEm}T12:00:00`).toLocaleDateString('pt-BR')}</small>}</td>
                 <td><a href={`/apresentacao/${i.id}`} target="_blank" rel="noreferrer">Abrir</a></td>
                 <td>{new Date(o.criadoEm).toLocaleDateString('pt-BR')}</td>
               </tr>

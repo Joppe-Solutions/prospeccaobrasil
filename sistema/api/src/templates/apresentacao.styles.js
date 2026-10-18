@@ -28,7 +28,7 @@ figure { margin:0; }.hero img { width:100%; height:65mm; display:block; object-f
 .highlights { display:grid; grid-template-columns:1.15fr 1fr; border-top:2px solid var(--ink); border-bottom:1px solid var(--line); margin:18px 0 21px; padding:16px 0; gap:22px; }
 .highlights>div+div { padding-left:22px; border-left:1px solid var(--line); }.small-label { text-transform:uppercase; font-size:9px; letter-spacing:1.2px; color:var(--muted); font-weight:700; display:block; }
 .highlights strong { display:block; font-size:28px; line-height:1.3; letter-spacing:-.8px; margin:5px 0 2px; font-weight:600; }.highlights small { color:var(--muted); font-size:9px; }
-.highlights.three { grid-template-columns:1.2fr 1fr 1fr; }.highlights.three strong { font-size:24px; }
+.highlights.three { grid-template-columns:1.2fr 1fr 1fr; }.card-name { display:block; font-size:10px; color:var(--ink); margin-top:1px; }.compact .details { display:none; }.compact .visit-resumo { display:flex; }.highlights.three strong { font-size:24px; }
 .first-foot { margin-top:14px; }
 .context { margin:0 0 12px; break-inside:avoid; }.context h3 { margin:0 0 8px; font-size:9px; letter-spacing:1.3px; text-transform:uppercase; color:var(--gold); }
 .context-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
@@ -90,6 +90,8 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
  .document-header.banner { margin:-25px -22px 0; padding:18px 22px 14px; }.document-footer.band { margin:auto -22px -25px; padding:12px 22px; }.nearby { columns:1; }.doc-grid { grid-template-columns:1fr 1fr; }
 }
 .print-only { display:none; }
+/* Cada folha é exatamente uma página A4 ISO (210 × 297 mm), sem margem da impressora */
+@page { size:A4 portrait; margin:0; }
 @media print {
  .compact .details,.digital-only,.viewer { display:none!important; }.print-only { display:block; }
  .compact .visit-resumo { display:flex; }
@@ -98,18 +100,18 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
  .visit-resumo .small-label,.details .contact .small-label { grid-area:1/1; }.visit-resumo h2,.details .contact h2 { grid-area:2/1; margin:0; font-size:17px; }
  .visit-resumo p:first-of-type,.details .contact p:first-of-type { grid-area:1/2; justify-self:end; font-size:10px; }.visit-resumo .email,.details .contact .email { grid-area:2/2; justify-self:end; font-size:10px; }.visit-resumo .fine-print,.details .contact .fine-print { display:none; }
  .banner .qr img { width:40px; height:40px; }.banner .qr { padding:3px 3px 2px; }
- .hero img,.map,.hero-row.has-map .no-photo { height:48mm; }.intro { padding:12px 0; } h1 { font-size:25px; }
- .highlights { margin:12px 0; padding:10px 0; }.highlights strong { font-size:24px; }.highlights.three strong { font-size:21px; }.context { margin-bottom:8px; }.context-grid strong { font-size:15px; }.first-foot { margin-top:8px; }
+ .hero img,.map,.hero-row.has-map .no-photo { height:60mm; }.intro { padding:12px 0; } h1 { font-size:25px; }
+ .highlights { margin:12px 0; padding:10px 0; }.highlights strong { font-size:24px; }.highlights.three strong { font-size:21px; }.context { margin-bottom:8px; }.context-grid strong { font-size:15px; }.first-foot { padding-top:8px; }
  .facts>div { padding:4px 0; font-size:9px; }.contact { margin-top:12px; padding:10px 0; }.contact h2 { font-size:21px; }
  .document-header { padding-bottom:10px; }.document-footer { padding-top:7px; }.disclaimer { margin:4px 0 10px; }
  .section-intro { margin:15px 0; }.description { margin-bottom:15px; }.description p { font-size:10px; line-height:1.5; }
  .gallery img { height:27mm; }.gallery figcaption { font-size:8px; padding-top:4px; }.documents { margin:12px 0; }.documents .doc-grid a { padding:6px 8px; }.documents .doc-grid strong { font-size:9px; }.documents .doc-grid small { font-size:8px; }
- .document-header.banner { margin:0; padding:4mm 7mm 3.5mm; }.sheet { min-height:270mm; }.document-footer.band { margin:auto 0 0; padding:4mm 7mm; }.details .section-intro h2 { font-size:21px; margin:4px 0; }.infra { margin-bottom:12px; }.nearby li { padding:3px 0; font-size:9px; }.details .contact { margin:10px 0 10px; }.documents h3,.infra h3 { margin-bottom:8px; }.flash { margin-bottom:12px; padding:11px 14px 8px; }.flash h3 { font-size:16px; }.flash header { margin-bottom:8px; }.flash-ring { width:56px; height:56px; }.flash-ring span { width:42px; height:42px; font-size:17px; }.flash-resumo p,.flash li { font-size:9px; }.flash-seg { margin-top:7px; }.gallery { margin-bottom:4px; }
+ .details .section-intro h2 { font-size:21px; margin:4px 0; }.infra { margin-bottom:12px; }.nearby li { padding:3px 0; font-size:9px; }.details .contact { margin:10px 0 10px; }.documents h3,.infra h3 { margin-bottom:8px; }.flash { margin-bottom:12px; padding:11px 14px 8px; }.flash h3 { font-size:16px; }.flash header { margin-bottom:8px; }.flash-ring { width:56px; height:56px; }.flash-ring span { width:42px; height:42px; font-size:17px; }.flash-resumo p,.flash li { font-size:9px; }.flash-seg { margin-top:7px; }.gallery { margin-bottom:4px; }
 
- @page { size:A4 portrait; margin:12mm 14mm 14mm; @bottom-right { content:counter(page) ' / ' counter(pages); font-family:Arial,sans-serif; font-size:8pt; color:#67756f; } }
  body { background:white; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
- .toolbar,.print-help { display:none!important; }.sheet { width:auto; min-height:0; margin:0; padding:0; box-shadow:none; }
- .sheet+.sheet { break-before:page; }.document-header,.intro,.hero-row,.highlights,.facts-grid,.contact,.first-foot,.document-footer { break-inside:avoid; }
+ .toolbar,.print-help { display:none!important; }html,body { margin:0; padding:0; }main { margin:0; padding:0; }
+ .sheet { width:210mm; height:296.8mm; min-height:0; margin:0; padding:0 12mm 8mm; box-shadow:none; overflow:hidden; break-after:page; page-break-after:always; }.sheet:last-child,.compact .sheet { break-after:auto; page-break-after:auto; }
+ .document-header.banner { margin:0 -12mm; padding:6mm 12mm 5mm; }.sheet>.document-header:not(.banner) { padding-top:9mm; }.document-footer.band { margin:auto -12mm -8mm; padding:4mm 12mm 5mm; }.document-header,.intro,.hero-row,.highlights,.facts-grid,.contact,.first-foot,.document-footer { break-inside:avoid; }
  h2,h3,.section-intro { break-after:avoid; }.description p { orphans:3; widows:3; }.gallery { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
  .gallery figure { margin:0; min-width:0; }.gallery figcaption { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
  .documents a { text-decoration:underline; text-decoration-color:#c6ceca; text-underline-offset:3px; }

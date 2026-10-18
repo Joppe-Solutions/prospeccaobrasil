@@ -6,6 +6,7 @@
 // Cache em memória 24h (IBGE atualiza anualmente; Nominatim pede uso moderado).
 
 const censo2022 = require('./censo2022');
+const setores = require('./setores');
 const { entorno } = require('./entorno');
 const { geocode } = require('./mapas');
 
@@ -98,10 +99,11 @@ async function demografia(imovel) {
       censo: mun ? {
         municipio: censo2022.municipio(mun.id),
         bairro: censo2022.bairro(mun.id, imovel.bairro),
+        raio: geo ? setores.raio(geo.lat, geo.lon, 500) : null,
         temBairros: censo2022.temBairros(mun.id),
       } : null,
       geo,
-      mapa: mapa(geo, { z: 15, cols: 4, rows: 4 }),
+      mapa: mapa(geo, { z: 16, cols: 4, rows: 4 }), // zoom 16: o raio de 500 m ocupa o mapa
       entorno: entornoRua,
       fonte: `Estimativas de população — IBGE (agregado 6579) · ${censo2022.FONTE}`,
     };

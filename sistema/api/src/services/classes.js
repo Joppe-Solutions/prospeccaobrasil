@@ -49,4 +49,22 @@ function estimarClasses({ rendaMediana, rendaMedia, domiciliosOcupados }) {
   };
 }
 
-module.exports = { estimarClasses, CLASSES, SALARIO_MINIMO_2022 };
+// Soma de vários territórios (ex.: setores censitários num raio): cada um entra com a própria curva, assim
+// um setor de renda alta e outro de renda baixa não viram uma média que não descreve nenhum dos dois.
+function somarClasses(itens) {
+  const brutos = CLASSES.map(() => 0);
+  for (const it of itens) {
+    const partes = participacoes(Number(it.rendaMediana), Number(it.rendaMedia));
+    const dom = Number(it.domiciliosOcupados);
+    if (!partes || !(dom > 0)) continue;
+    partes.forEach((p, i) => { brutos[i] += p * dom; });
+  }
+  const total = Math.round(brutos.reduce((a, b) => a + b, 0));
+  if (!(total > 0)) return null;
+  const qtd = brutos.map(Math.floor);
+  let falta = total - qtd.reduce((a, b) => a + b, 0);
+  brutos.map((b, i) => [b - Math.floor(b), i]).sort((a, b) => b[0] - a[0]).forEach(([, i]) => { if (falta > 0) { qtd[i] += 1; falta -= 1; } });
+  return { total, classes: CLASSES.map(([id, rotulo], i) => ({ id, rotulo, qtd: qtd[i], pct: (qtd[i] / total) * 100 })) };
+}
+
+module.exports = { estimarClasses, somarClasses, CLASSES, SALARIO_MINIMO_2022 };

@@ -43,7 +43,8 @@ module.exports = (prisma) => {
       entorno: await Promise.race([vizinhanca, new Promise((resolve) => setTimeout(resolve, 4000, null))]),
     };
     res.type('html').send(renderApresentacao(imovel, qrData, {
-      completa: req.query.formato === 'completa',
+      // padrão: as duas folhas; ?formato=resumo imprime só a primeira
+      completa: req.query.formato !== 'resumo',
       mapa: mapaDoc,
       contexto,
     }));

@@ -4,6 +4,7 @@ import { ArrowSquareOut, Buildings, Plus, Trash } from '@phosphor-icons/react';
 import { api, enviarFotos, fmtNum, lerCoordenadas, mapsUrl, MAPS_AUTO, PADRAO_COORDENADAS, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO } from '../lib/api';
 import FormWizard, { WizardReview } from '../components/FormWizard';
 import PhotoUploader from '../components/PhotoUploader';
+import MapaPonto from '../components/MapaPonto';
 import { CampoNumerico, DecimalInput } from '../components/NumberFields';
 import { documentoValido, mascararDocumento } from '../lib/numeros';
 
@@ -236,6 +237,10 @@ export default function ImovelWizard() {
           <label htmlFor="wz-coordenadas">Coordenadas do ponto (opcional, recomendado)</label>
           <input id="wz-coordenadas" value={form.coordenadas ?? ''} onChange={e => setForm(f => ({ ...f, coordenadas: e.target.value }))} placeholder="Ex.: -22.90680, -43.17290" pattern={PADRAO_COORDENADAS} title="Cole as coordenadas como o Google Maps copia: -22.90680, -43.17290" inputMode="decimal" autoComplete="off" />
           <small>{coordInvalida ? 'Formato inválido ou fora do intervalo. Use latitude e longitude, como: -22.90680, -43.17290.' : coord ? 'Mapa e QR code da apresentação usarão exatamente este ponto.' : 'No Google Maps, clique com o botão direito no ponto do imóvel e clique nos números que aparecem para copiá-los. Sem isso, o mapa usa o endereço e pode ficar aproximado.'}</small>
+        </div>}
+        {step.id === 'endereco' && <div className="wz-field wz-full">
+          <label>Ponto no mapa</label>
+          <MapaPonto form={form} ponto={coord} onPonto={v => setForm(f => ({ ...f, coordenadas: v }))} />
         </div>}
         {step.id === 'endereco' && <div className="wz-field wz-full">
           <label>Link do Google Maps</label>

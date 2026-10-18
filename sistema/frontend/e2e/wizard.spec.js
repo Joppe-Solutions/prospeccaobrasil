@@ -131,3 +131,26 @@ test('vínculos: cria proprietário na hora e, em passagem de ponto, pede o oper
   await expect(modal.locator('#wz-vinc-proprietario option:checked')).toContainText('Proprietário Inline E2E');
   await expectNoErrors(errors);
 });
+
+test('endereço: mapa localiza o endereço e o marcador define as coordenadas', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.route('https://tile.openstreetmap.org/**', r => r.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jG9sAAAAASUVORK5CYII=', 'base64') }));
+  await page.route('**/api/imoveis/localizar?*', r => r.fulfill({ json: { lat: -22.9, lon: -43.28, fonte: 'OpenStreetMap', precisao: 'rua' } }));
+  await page.goto('/imoveis/novo');
+  const modal = page.locator('.modal');
+  await modal.locator('#wz-titulo').fill('Imóvel Mapa E2E');
+  await modal.getByRole('button', { name: 'Próximo' }).click();
+  await modal.locator('#wz-endereco').fill('Av. Cônego Pascoal');
+  await modal.locator('#wz-numero').fill('472');
+  await modal.locator('#wz-cidade').fill('Rio de Janeiro');
+  await modal.getByRole('button', { name: 'Localizar endereço no mapa' }).click();
+  await expect(modal.locator('#wz-coordenadas')).toHaveValue('-22.900000, -43.280000');
+  await expect(modal).toContainText('achou só a rua');
+  // clicar no mapa reposiciona o marcador e atualiza o campo
+  const mapa = modal.getByRole('application', { name: 'Mapa para marcar o ponto do imóvel' });
+  await mapa.click({ position: { x: 90, y: 220 } });
+  await expect(modal.locator('#wz-coordenadas')).not.toHaveValue('-22.900000, -43.280000');
+  await expect(modal.locator('#wz-coordenadas')).toHaveValue(/^-22\.\d{6}, -43\.\d{6}$/);
+  await expect(modal.locator('.mapa-ponto-pin')).toHaveCount(1);
+  await expectNoErrors(errors);
+});

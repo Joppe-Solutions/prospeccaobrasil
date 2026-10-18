@@ -106,11 +106,17 @@ async function geocodeNominatim(imovel) {
   const expandido = (imovel.endereco ? { ...imovel, endereco: expandirAbreviacoes(imovel.endereco) } : imovel);
   const montar = (i, comNumero) => [i.endereco && `${i.endereco}${comNumero && i.numero ? `, ${i.numero}` : ''}`, i.bairro, i.cidade, i.uf, 'Brasil'].filter(Boolean).join(', ');
   const tentativas = [[consulta, false]];
+  // Busca estruturada (número + logradouro): o Nominatim acerta o número com mais frequência assim
+  if (imovel.numero && imovel.endereco) {
+    const estruturada = new URLSearchParams({ street: `${imovel.numero} ${expandido.endereco}`, city: imovel.cidade, ...(imovel.uf ? { state: imovel.uf } : {}), country: 'Brasil' });
+    tentativas.unshift([estruturada, false]);
+  }
   if (montar(expandido, true) !== consulta) tentativas.push([montar(expandido, true), false]);
   if (imovel.numero) tentativas.push([montar(expandido, false), true]); // sem o número: resultado é só a rua
   for (const [n, [q, soRua]] of tentativas.entries()) {
     if (n) await new Promise((resolve) => setTimeout(resolve, 1100));
-    const r = await buscarJson(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=br&q=${encodeURIComponent(q)}`, 'prospeccao-brasil-inteligencia/1.0');
+    const filtro = q instanceof URLSearchParams ? q.toString() : `q=${encodeURIComponent(q)}`;
+    const r = await buscarJson(`https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=10&countrycodes=br&${filtro}`, 'prospeccao-brasil-inteligencia/1.0');
     const g = escolherResultado(r || [], imovel);
     if (!g) continue;
     // Resultado de via (sem número no OSM) é o meio da rua: aproximado

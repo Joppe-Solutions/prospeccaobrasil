@@ -4,6 +4,7 @@ const require = createRequire(import.meta.url);
 const { renderInteligencia } = require('../../api/src/templates/inteligencia');
 const censo = require('../../api/src/services/censo2022');
 const { mapa } = require('../../api/src/services/demografia');
+const setores = require('../../api/src/services/setores');
 
 // Garantia de impressão: cada folha é uma página A4 paisagem exata; nunca folha vazia, nunca conteúdo que
 // estoura a folha, mesmo quando faltam bairro, Censo ou entorno.
@@ -22,12 +23,13 @@ const entorno = {
   naRua: Array.from({ length: 10 }, (_, n) => ({ nome: `Estabelecimento vizinho ${n + 1}`, categoria: 'Outras lojas e serviços', dist: 30 })),
   via: { nome: 'Avenida Cônego Vasconcelos', tipo: 'Via arterial principal', faixas: '3', maoUnica: 'Mão dupla', velocidade: '60 km/h' },
 };
-const censoCompleto = { municipio: censo.municipio(3304557), bairro: censo.bairro(3304557, 'Bangu'), temBairros: true };
-const base = { municipio, uf, geo, mapa: mapa(geo, { z: 15, cols: 4, rows: 4 }) };
+const censoCompleto = { municipio: censo.municipio(3304557), bairro: censo.bairro(3304557, 'Bangu'), raio: setores.raio(geo.lat, geo.lon, 500), temBairros: true };
+const base = { municipio, uf, geo, mapa: mapa(geo, { z: 16, cols: 4, rows: 4 }) };
 const CENARIOS = {
   completo: { ...base, censo: censoCompleto, entorno },
   'sem entorno': { ...base, censo: censoCompleto, entorno: null },
-  'bairro não identificado': { ...base, censo: { ...censoCompleto, bairro: null }, entorno },
+  'só bairro (sem setores)': { ...base, censo: { ...censoCompleto, raio: null }, entorno },
+  'bairro não identificado': { ...base, censo: { ...censoCompleto, bairro: null, raio: null }, entorno },
   'sem Censo': { ...base, censo: null, mapa: null, entorno },
   'sem nenhum dado externo': null,
 };

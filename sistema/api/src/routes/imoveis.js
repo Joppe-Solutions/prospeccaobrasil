@@ -1,4 +1,5 @@
 const express = require('express');
+const mapas = require('../services/mapas');
 const path = require('path');
 const fs = require('fs');
 const multer = require('multer');
@@ -165,6 +166,16 @@ module.exports = (prisma) => {
         _count: { select: { fotos: true, documentos: true } },
       },
     });
+  }));
+
+  // Localiza um endereço ainda não salvo (mapa do formulário): o usuário confere e ajusta o marcador
+  r.get('/localizar', asyncHandler(async (req, res) => {
+    const texto = (k, max = 160) => String(req.query[k] ?? '').trim().slice(0, max);
+    const alvo = { endereco: texto('endereco'), numero: texto('numero', 20), bairro: texto('bairro', 80), cidade: texto('cidade', 80), uf: texto('uf', 2) };
+    if (!alvo.endereco || !alvo.cidade) return res.status(400).json({ error: 'Informe endereço e cidade' });
+    const geo = await mapas.geocode(alvo);
+    if (!geo) return res.status(404).json({ error: 'Endereço não encontrado no mapa. Marque o ponto manualmente.' });
+    res.json(geo);
   }));
 
   r.get('/:id', asyncHandler(async (req, res) => {

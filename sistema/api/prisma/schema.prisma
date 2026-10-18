@@ -332,6 +332,13 @@ model Oportunidade {
   finalidade String?
   proximaAcao String? @map("proxima_acao")
   proximaAcaoEm String? @map("proxima_acao_em")
+  // Proposta: sem_proposta | em_elaboracao | enviada | em_analise | contraproposta | aceita | recusada
+  propostaStatus String @default("sem_proposta") @map("proposta_status")
+  propostaValor Decimal? @map("proposta_valor")
+  propostaEnviadaEm String? @map("proposta_enviada_em")
+  propostaRetornoEm String? @map("proposta_retorno_em")
+  propostaObservacao String? @map("proposta_observacao")
+  propostaAtualizadaEm DateTime? @map("proposta_atualizada_em")
   id         Int      @id @default(autoincrement())
   imovelId   Int      @map("imovel_id")
   empresaId  Int      @map("empresa_id")

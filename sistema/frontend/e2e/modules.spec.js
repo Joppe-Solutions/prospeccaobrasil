@@ -104,3 +104,30 @@ test('menu: Institucional é só um grupo (sem página própria) e módulos remo
   await expect(nav.getByRole('link', { name: /Diretrizes|Carta modelo/ })).toHaveCount(0);
   await expectNoErrors(errors);
 });
+
+test('ações das operações: acompanhamento da proposta', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/oportunidades');
+  await page.getByRole('button', { name: 'Novo relacionamento' }).click();
+  const modal = page.locator('.modal');
+  await expect(modal.locator('#op-imovel option', { hasText: 'PB-E2E' })).toHaveCount(1);
+  await modal.locator('#op-imovel').selectOption(await modal.locator('#op-imovel option', { hasText: 'PB-E2E' }).getAttribute('value'));
+  await modal.locator('#op-empresa').selectOption({ label: 'Empresa E2E' });
+  await modal.getByRole('button', { name: 'Criar oportunidade' }).click();
+  await expect(modal).toHaveCount(0);
+  const linha = page.getByRole('row', { name: /Empresa E2E/ });
+  await expect(linha).toContainText('Sem proposta');
+  await linha.getByRole('button', { name: /Editar oportunidade/ }).click();
+  await modal.locator('#op-prop-status').selectOption('enviada');
+  await modal.locator('#op-prop-valor').fill('18000');
+  await modal.locator('#op-prop-retorno').fill('2026-12-10');
+  await modal.getByRole('button', { name: 'Salvar alterações' }).click();
+  await expect(modal).toHaveCount(0);
+  await expect(linha).toContainText('Enviada');
+  await expect(linha).toContainText('R$ 18.000,00');
+  await expect(linha).toContainText('retorno 10/12/2026');
+  await expect(linha.getByRole('combobox')).toHaveValue('proposta');
+  await page.getByLabel('Filtrar proposta').selectOption('enviada');
+  await expect(page.getByRole('row', { name: /Empresa E2E/ })).toBeVisible();
+  await expectNoErrors(errors);
+});

@@ -151,3 +151,16 @@
   `proprietarioId` e `operadorId` (relações nomeadas). Imóvel de tipo `passagem_ponto` usa operador no lugar do
   proprietário (a API valida o papel do cadastro; trocar o papel de quem já tem imóveis dá 409). No wizard,
   `VinculoPessoa` seleciona ou cria o cadastro ali mesmo. Menu: "Proprietários e operadores".
+- Apresentação impressa: `@page { size:A4; margin:0 }` e cada `.sheet` com 210 × 296,8 mm (overflow oculto), faixas verdes
+  sangrando até a borda. Padrão = as duas folhas; `?formato=resumo` mostra/imprime só a primeira. O e2e confere
+  MediaBox A4, altura de cada folha e conteúdo sem corte. Cards: "OPEX · Custo total de ocupação" e "ABL · Área bruta locável".
+- Mapa do formulário de imóvel (`components/MapaPonto.jsx`, Leaflet + tiles OSM): "Localizar endereço no mapa" chama
+  `GET /api/imoveis/localizar` e o marcador arrastável preenche as coordenadas (que vencem qualquer geocodificação).
+  O Nominatim tenta primeiro a busca estruturada (número + logradouro). Sem `GOOGLE_MAPS_API_KEY`, o número raramente é achado.
+- Inteligência no raio de 500 m: `services/setores.js` soma os setores censitários do Censo 2022 (RJ,
+  `data/censo2022-setores-rj.json`, gerado por `scripts/build-censo2022-setores.py`) com a fração de cada setor dentro
+  do raio; classes sociais somadas setor a setor (`somarClasses`). Sem coordenadas/fora do RJ, o relatório usa o bairro.
+  O entorno (OSM) mostra só 500 m.
+- Ações das operações: proposta com situação (sem proposta → em elaboração → enviada → em análise → contraproposta →
+  aceita/recusada), valor, data de envio, retorno previsto e observação. Enviada/em análise movem a etapa para
+  Proposta; contraproposta → Negociação; recusada → Perdido.

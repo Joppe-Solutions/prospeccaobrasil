@@ -946,8 +946,9 @@ test('apresentação: ABL só no destaque, Flash de Mercado no lugar das fotos, 
   const corpo = (t) => t.replace(/<style>[\s\S]*?<\/style>/, '');
 
   // ABL: nome curto, só no destaque; fora de "Características do imóvel"
-  assert.match(primeira, /<span class="small-label">ABL<\/span>/);
-  assert.doesNotMatch(corpo(html), /Área bruta locável|Área Bruta Locável/);
+  assert.match(primeira, /<span class="small-label">ABL<\/span><span class="card-name">Área bruta locável<\/span>/);
+  assert.match(primeira, /<span class="small-label">OPEX<\/span><span class="card-name">Custo total de ocupação<\/span>/);
+  assert.doesNotMatch(corpo(html), /Custo mensal/);
   assert.doesNotMatch(primeira.match(/Características do imóvel[\s\S]*?<\/section>/)[0], /ABL/);
 
   // 2ª folha sem fotos: no lugar, o "Flash de Mercado" (só quando já há análise)
@@ -1074,7 +1075,7 @@ test('geocodificação: abreviações do endereço são expandidas antes de busc
   assert.equal(expandirAbreviacoes('Rua Min Guimarães'), 'Rua Min Guimarães');
   assert.equal(expandirAbreviacoes('Avenida das Américas'), 'Avenida das Américas');
 
-  // tentativas em ordem: original → abreviações expandidas → só a rua (marcada como aproximada)
+  // tentativas em ordem: estruturada → original → abreviações expandidas → só a rua (marcada como aproximada)
   const fs = require('fs');
   const os = require('os');
   const path = require('path');
@@ -1086,7 +1087,9 @@ test('geocodificação: abreviações do endereço são expandidas antes de busc
   global.fetch = async (url, opts) => {
     const u = String(url);
     if (!u.includes('nominatim.openstreetmap.org')) return original.fetch(url, opts);
-    const q = decodeURIComponent(new URL(u).searchParams.get('q'));
+    const params = new URL(u).searchParams;
+    // a primeira tentativa é a busca estruturada (número + logradouro)
+    const q = params.get('q') ?? `street=${params.get('street')}`;
     consultas.push(q);
     // só a forma por extenso, sem número, existe no mapa
     const achou = q.startsWith('Avenida Ministro Edgard Romero, Madureira');
@@ -1096,10 +1099,10 @@ test('geocodificação: abreviações do endereço são expandidas antes de busc
     const imovel = { endereco: 'Av. Min. Edgard Romero', numero: '36', bairro: 'Madureira', cidade: 'Rio de Janeiro', uf: 'RJ' };
     const geo = await mapas.geocode(imovel);
     assert.deepEqual([geo.lat, geo.precisao], [-22.86, 'rua']);
-    assert.deepEqual(consultas, ['Av. Min. Edgard Romero, 36, Madureira, Rio de Janeiro, RJ, Brasil', 'Avenida Ministro Edgard Romero, 36, Madureira, Rio de Janeiro, RJ, Brasil', 'Avenida Ministro Edgard Romero, Madureira, Rio de Janeiro, RJ, Brasil']);
+    assert.deepEqual(consultas, ['street=36 Avenida Ministro Edgard Romero', 'Av. Min. Edgard Romero, 36, Madureira, Rio de Janeiro, RJ, Brasil', 'Avenida Ministro Edgard Romero, 36, Madureira, Rio de Janeiro, RJ, Brasil', 'Avenida Ministro Edgard Romero, Madureira, Rio de Janeiro, RJ, Brasil']);
     // resultado guardado: nenhuma consulta nova
     await mapas.geocode(imovel);
-    assert.equal(consultas.length, 3);
+    assert.equal(consultas.length, 4);
     // endereço que não existe: não repete a busca a cada visita
     const fantasma = { endereco: 'Rua Que Nao Existe', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ' };
     assert.equal(await mapas.geocode(fantasma), null);
@@ -1217,4 +1220,27 @@ test('operador do ponto: mesmo cadastro dos proprietários, com papel, e víncul
   // o público nunca recebe os vínculos
   const publico = (await req('GET', `/api/public/imoveis/${imovel.id}`)).body;
   assert.equal('operadorId' in publico || 'operador' in publico || 'proprietarioId' in publico, false);
+});
+
+test('ações das operações: acompanhamento da proposta (situação, envio, valor) e etapa acompanhando', async () => {
+  const empresa = (await req('POST', '/api/empresas', { token, body: { nome: 'Rede proposta' } })).body;
+  const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua proposta', cidade: 'Rio de Janeiro' } })).body;
+  const op = (await req('POST', '/api/oportunidades', { token, body: { imovelId: imovel.id, empresaId: empresa.id } })).body;
+  assert.equal(op.propostaStatus, 'sem_proposta');
+  const put = (body) => req('PUT', `/api/oportunidades/${op.id}`, { token, body });
+  assert.equal((await put({ propostaStatus: 'rascunho' })).status, 400);
+  assert.equal((await put({ propostaEnviadaEm: '2026-02-30' })).status, 400);
+  assert.equal((await put({ propostaValor: -1 })).status, 400);
+  const elab = (await put({ propostaStatus: 'em_elaboracao', propostaValor: 15000.5 })).body;
+  assert.equal(elab.etapa, 'apresentado');
+  assert.equal(Number(elab.propostaValor), 15000.5);
+  // enviada: data de envio preenchida e etapa passa para "proposta"
+  const enviada = (await put({ propostaStatus: 'enviada' })).body;
+  assert.equal(enviada.etapa, 'proposta');
+  assert.match(enviada.propostaEnviadaEm, /^\d{4}-\d{2}-\d{2}$/);
+  assert.ok(enviada.propostaAtualizadaEm);
+  const contra = (await put({ propostaStatus: 'contraproposta', propostaRetornoEm: '2026-11-10', propostaObservacao: 'Pediram carência' })).body;
+  assert.equal(contra.etapa, 'negociacao');
+  assert.equal(contra.propostaEnviadaEm, enviada.propostaEnviadaEm);
+  assert.equal((await put({ propostaStatus: 'recusada' })).body.etapa, 'perdido');
 });
