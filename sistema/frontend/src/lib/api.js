@@ -22,7 +22,8 @@ export async function api(path, opts = {}) {
 export const fmtMoney = (v) => v == null || Number(v) === 0 ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 export const fmtNum = (v, u = '') => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + (u ? ' ' + u : '');
 export const STATUS = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido', inativo: 'Inativo' };
-export const TIPOS_IMOVEL = { locacao: 'Locação', venda: 'Venda direta', passagem_ponto: 'Passagem de ponto' };
+// A ordem das chaves é a ordem do campo "Tipo" no formulário
+export const TIPOS_IMOVEL = { locacao: 'Locação', passagem_ponto: 'Passagem de ponto comercial', venda: 'Ativo comercial à venda' };
 
 // Token curto (10 min) para links que abrem em nova aba: documentos privados, comprovantes e
 // relatórios. O token de sessão nunca vai na URL.
@@ -73,12 +74,14 @@ export const PADRAO_COORDENADAS = `\\s*${LAT}\\s*(?:[,;]\\s*|\\s+)${LON}\\s*`;
 
 export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
-export const TIPOS_PARCEIRO = { corretor: 'Corretor', imobiliaria: 'Imobiliária', advogado: 'Advogado', indicador: 'Indicador', outro: 'Outro' };
+export const TIPOS_PARCEIRO = { consultor: 'Consultor', advogado: 'Advogado', corretor: 'Corretor', imobiliaria: 'Imobiliária', indicador: 'Indicador' };
+// Pessoa definida pelo tipo (indicador pode ser física ou jurídica)
+export const PESSOA_PARCEIRO = { consultor: 'pf', advogado: 'pf', corretor: 'pf', imobiliaria: 'pj' };
 
-// Registro profissional do parceiro, como aparece nas telas e na apresentação: "CRECI Físico RJ-12345", "OAB RJ-123456"
+// Registro profissional do parceiro: "CRECI-PF RJ-12345" (corretor), "CRECI-PJ RJ-9876" (imobiliária), "OAB RJ-123456" (advogado)
 export function registroProfissional(p) {
   if (!p) return '';
-  if (['corretor', 'imobiliaria'].includes(p.tipo) && p.creci) return `CRECI ${p.tipoPessoa === 'pj' ? 'Jurídico' : 'Físico'} ${p.creciUf ? `${p.creciUf}-` : ''}${p.creci}`;
+  if (['corretor', 'imobiliaria'].includes(p.tipo) && p.creci) return `CRECI-${p.tipo === 'imobiliaria' ? 'PJ' : 'PF'} ${p.creciUf ? `${p.creciUf}-` : ''}${p.creci}`;
   if (p.tipo === 'advogado' && p.oab) return `OAB ${p.oabUf ? `${p.oabUf}-` : ''}${p.oab}`;
   return '';
 }

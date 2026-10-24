@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle, EnvelopeSimple, Handshake, Phone, Plus, Storefront, Trash, UsersThree } from '@phosphor-icons/react';
 import { api, registroProfissional, TIPOS_PARCEIRO, UFS } from '../lib/api';
-import { documentoValido, mascararDocumento } from '../lib/numeros';
+import { mascararDocumento } from '../lib/numeros';
+import ParceiroCampos, { validarParceiro } from '../components/ParceiroCampos';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
 import { Avatar, PageHeader, StatusBadge } from '../components/UI';
 import './collections.css';
 
 const TIPOS = TIPOS_PARCEIRO;
-const EMPTY = { nome: '', tipo: 'corretor', tipoPessoa: 'pf', documento: '', creci: '', creciUf: 'RJ', oab: '', oabUf: 'RJ', responsavel: '', telefone: '', email: '', cidade: '', uf: '', observacoes: '', status: 'ativo' };
+const EMPTY = { nome: '', tipo: 'consultor', tipoPessoa: 'pf', documento: '', creci: '', creciUf: 'RJ', oab: '', oabUf: 'RJ', responsavel: '', telefone: '', email: '', cidade: '', uf: '', observacoes: '', status: 'ativo' };
 const UF_OPCOES = UFS.map(u => <option key={u} value={u}>{u}</option>);
 
 export default function Parceiros() {
@@ -36,8 +37,8 @@ export default function Parceiros() {
   function openEdit(p) {
     const tipoPessoa = p.tipoPessoa || 'pf';
     setForm({
-      nome: p.nome || '', tipo: p.tipo || 'corretor', tipoPessoa,
-      documento: mascararDocumento(p.documento, tipoPessoa), creci: p.creci || '', creciUf: p.creciUf || 'RJ',
+      nome: p.nome || '', tipo: p.tipo || 'indicador', tipoPessoa,
+      documento: mascararDocumento(p.documento, tipoPessoa === 'pj' ? 'juridica' : 'fisica'), creci: p.creci || '', creciUf: p.creciUf || 'RJ',
       oab: p.oab || '', oabUf: p.oabUf || 'RJ', responsavel: p.responsavel || '', telefone: p.telefone || '',
       email: p.email || '', cidade: p.cidade || '', uf: p.uf || '',
       observacoes: p.observacoes || '', status: p.status || 'ativo',
@@ -46,7 +47,8 @@ export default function Parceiros() {
   }
   async function save(e) {
     e.preventDefault(); setFormError('');
-    if (!documentoValido(form.documento, form.tipoPessoa)) return setFormError(form.tipoPessoa === 'pj' ? 'CNPJ inválido: confira os 14 dígitos.' : 'CPF inválido: confira os 11 dígitos.');
+    const erro = validarParceiro(form);
+    if (erro) return setFormError(erro);
     setBusy(true);
     try {
       await api(modal.type === 'create' ? '/parceiros' : `/parceiros/${modal.parceiro.id}`, {
@@ -120,7 +122,7 @@ export default function Parceiros() {
       <DataTable
         columns={columns} data={filtered} loading={loading} error={error}
         searchPlaceholder="Buscar parceiro, telefone ou cidade..." exportName="parceiros.csv"
-        emptyTitle="Nenhum parceiro encontrado" emptyDescription="Cadastre corretores e indicadores."
+        emptyTitle="Nenhum parceiro encontrado" emptyDescription="Cadastre consultores, advogados, corretores, imobiliárias e indicadores."
         toolbar={<>
           <label className="collection-select"><Storefront size={16} /><select aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <label className="collection-select"><CheckCircle size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select></label>
@@ -132,24 +134,13 @@ export default function Parceiros() {
 
     {modal && <Modal
       title={modal.type === 'create' ? 'Novo parceiro' : 'Editar parceiro'}
-      description="Cadastre quem traz imóveis para a operação."
+      description="Consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliária (CRECI-PJ) ou indicador."
       onClose={() => !busy && setModal(null)}
       footer={<><button className="btn btn-ghost" disabled={busy} onClick={() => setModal(null)}>Cancelar</button><button className="btn btn-primary" type="submit" form="parc-form" disabled={busy}>{busy ? 'Salvando...' : modal.type === 'create' ? 'Cadastrar' : 'Salvar alterações'}<ArrowRight size={17} /></button></>}
     >
       <form id="parc-form" className="collection-modal-form" onSubmit={save}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
-        <div className="field"><label htmlFor="parc-tipo">Tipo de parceiro</label><select id="parc-tipo" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value, tipoPessoa: e.target.value === 'imobiliaria' ? 'pj' : form.tipoPessoa, documento: e.target.value === 'imobiliaria' && form.tipoPessoa !== 'pj' ? '' : form.documento })}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-        <div className="field"><label htmlFor="parc-pessoa">Pessoa</label><select id="parc-pessoa" value={form.tipoPessoa} disabled={form.tipo === 'imobiliaria'} onChange={e => setForm({ ...form, tipoPessoa: e.target.value, documento: '' })}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select>{form.tipo === 'imobiliaria' && <small className="muted">Imobiliária é sempre pessoa jurídica.</small>}</div>
-        <div className="field"><label htmlFor="parc-nome">{form.tipoPessoa === 'pj' ? 'Razão social ou nome fantasia' : 'Nome completo'} <span className="required">*</span></label><input id="parc-nome" required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={form.tipoPessoa === 'pj' ? 'Nome da empresa' : 'Nome do parceiro'} /></div>
-        <div className="field"><label htmlFor="parc-doc">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'} <span className="collection-optional">Opcional</span></label><input id="parc-doc" inputMode="numeric" autoComplete="off" value={form.documento} onChange={e => setForm({ ...form, documento: mascararDocumento(e.target.value, form.tipoPessoa) })} placeholder={form.tipoPessoa === 'pj' ? '00.000.000/0000-00' : '000.000.000-00'} /></div>
-        {['corretor', 'imobiliaria'].includes(form.tipo) && <div className="field-pair">
-          <div className="field"><label htmlFor="parc-creci">{form.tipoPessoa === 'pj' ? 'CRECI Jurídico' : 'CRECI Físico'} <span className="required">*</span></label><input id="parc-creci" required inputMode="numeric" autoComplete="off" value={form.creci} onChange={e => setForm({ ...form, creci: e.target.value.replace(/\D/g, '').slice(0, 8) })} placeholder={form.tipoPessoa === 'pj' ? 'Ex.: 9876' : 'Ex.: 12345'} /></div>
-          <div className="field"><label htmlFor="parc-creci-uf">UF do CRECI <span className="required">*</span></label><select id="parc-creci-uf" required value={form.creciUf} onChange={e => setForm({ ...form, creciUf: e.target.value })}>{UF_OPCOES}</select></div>
-        </div>}
-        {form.tipo === 'advogado' && <div className="field-pair">
-          <div className="field"><label htmlFor="parc-oab">Número da OAB <span className="required">*</span></label><input id="parc-oab" required inputMode="numeric" autoComplete="off" value={form.oab} onChange={e => setForm({ ...form, oab: e.target.value.replace(/\D/g, '').slice(0, 7) })} placeholder="Ex.: 123456" /></div>
-          <div className="field"><label htmlFor="parc-oab-uf">UF da OAB <span className="required">*</span></label><select id="parc-oab-uf" required value={form.oabUf} onChange={e => setForm({ ...form, oabUf: e.target.value })}>{UF_OPCOES}</select></div>
-        </div>}
+        <ParceiroCampos form={form} setForm={setForm} />
         {form.tipoPessoa === 'pj' && <div className="field"><label htmlFor="parc-resp">Responsável ou contato <span className="collection-optional">Opcional</span></label><input id="parc-resp" value={form.responsavel} onChange={e => setForm({ ...form, responsavel: e.target.value })} placeholder="Quem responde pela empresa" /></div>}
         <div className="field"><label htmlFor="parc-tel">Telefone</label><input id="parc-tel" value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} /></div>
         <div className="field"><label htmlFor="parc-email">E-mail</label><input id="parc-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>

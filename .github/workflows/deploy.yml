@@ -42,6 +42,8 @@ jobs:
           sudo chown -R www-data:www-data /var/www/prospeccaobrasil-landing || true
 
       - name: Publicar sistema
+        env:
+          GOOGLE_MAPS_API_KEY: ${{ secrets.GOOGLE_MAPS_API_KEY }}
         run: |
           sudo rsync -az \
             --exclude node_modules \
@@ -56,6 +58,12 @@ jobs:
           sudo node -e "const{DatabaseSync}=require('node:sqlite');const d=new DatabaseSync('prisma/prospeccao.db');d.exec('PRAGMA wal_checkpoint(TRUNCATE)');d.close()" 2>/dev/null || true
           sudo cp prisma/prospeccao.db backups/prospeccao-$(date +%Y%m%d%H%M%S).db
           sudo bash -c 'ls -t backups/*.db | tail -n +16 | xargs -r rm --'
+          # Chave do Google Maps (segredo do repositório): grava/atualiza no .env do servidor sem expor no código
+          if [ -n "$GOOGLE_MAPS_API_KEY" ]; then
+            sudo touch .env
+            sudo sed -i '/^GOOGLE_MAPS_API_KEY=/d' .env
+            printf 'GOOGLE_MAPS_API_KEY=%s\n' "$GOOGLE_MAPS_API_KEY" | sudo tee -a .env >/dev/null
+          fi
           sudo npm install --omit=dev
           # Chromium para o PDF da apresentação (A4 exato); as dependências do sistema já vêm do gate de e2e
           sudo PLAYWRIGHT_BROWSERS_PATH=/opt/prospeccao-sistema/.browsers npx playwright-core install chromium

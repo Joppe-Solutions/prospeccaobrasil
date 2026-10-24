@@ -14,7 +14,7 @@ const dec = (v, casas = 1) => (present(v) ? Number(v).toLocaleString('pt-BR', { 
 const perc = (parte, total) => (present(parte) && total ? `${dec((parte / total) * 100)}%` : '—');
 const trunc = (texto, n) => { const t = String(texto ?? ''); return t.length > n ? `${t.slice(0, n - 1).trimEnd()}…` : t; };
 const address = (i) => [i.endereco, i.numero].filter(Boolean).join(', ') + (i.complemento ? ` - ${i.complemento}` : '');
-const TIPOS = { locacao: 'Locação', venda: 'Venda direta', passagem_ponto: 'Passagem de ponto' };
+const TIPOS = { locacao: 'Locação', passagem_ponto: 'Passagem de ponto comercial', venda: 'Ativo comercial à venda' };
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Imóvel comercial' };
 const STATUS = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido' };
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];

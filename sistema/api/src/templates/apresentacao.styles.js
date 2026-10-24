@@ -35,7 +35,9 @@ figure { margin:0; }.hero img { width:100%; height:65mm; display:block; object-f
 .context-grid>div { border:1px solid var(--line); padding:8px 10px; }.context-grid .small-label { font-size:8px; }.context-grid strong { display:block; font-size:16px; line-height:1.3; margin:3px 0 1px; font-weight:600; letter-spacing:-.4px; }.context-grid small { font-size:8px; color:var(--muted); }
 .facts-grid { display:grid; grid-template-columns:1.08fr 1fr; gap:30px; }
 h2 { font-size:12px; margin:0 0 10px; line-height:1.4; }h2>span { font-size:9px; color:var(--gold); margin-right:6px; }
-.facts { margin:0; }.facts>div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:8px 0; border-bottom:1px solid #edf0eb; font-size:10px; }.facts dt { color:var(--muted); }.facts dd { margin:0; font-weight:600; text-align:right; }.dimensions>div { padding:5px 0; }
+.facts { margin:0; border-top:2px solid var(--ink); }
+.facts>div:nth-child(even) { background:#f6f8f4; }
+.facts-grid h2 { font-size:13px; margin-bottom:8px; }.facts>div { display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 10px; border-bottom:1px solid #e3e8e2; font-size:11.5px; }.facts dt { color:var(--muted); }.facts dd { margin:0; font-weight:700; text-align:right; color:var(--ink); }.dimensions>div { padding:5px 0; }
 .fine-print { font-size:8px; line-height:1.55; color:var(--muted); margin-top:9px; }.contract { font-size:10px; margin-top:10px; }
 .contact { display:flex; justify-content:center; align-items:center; gap:44px; text-align:center; border-top:1px solid var(--line); margin-top:20px; padding:16px 0 10px; }
 .contact h2 { font:25px Georgia,serif; margin:3px 0 8px; }.contact p { font-size:11px; }.contact .email { font-size:10px; }.contact .fine-print { font-size:8px; margin-top:5px; }
@@ -94,7 +96,29 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
 .print-only { display:none; }
 /* Cada folha é exatamente uma página A4 ISO (210 × 297 mm), sem margem da impressora */
 @page { size:A4 portrait; margin:0; }
+/* Cards de KPI: texto centralizado e título em destaque (laranja) */
+.highlights>div { text-align:center; }
+.highlights .small-label { color:#c46a1c; font-weight:800; font-size:11px; letter-spacing:1.4px; }
+.highlights .card-name { font-weight:600; }
+/* Termos comerciais e Dimensões: ficha com ícone em círculo, rótulo sublinhado e valor em caixa */
+.ficha { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:4px; }
+.ficha .bloco { padding-right:22px; }
+.ficha .bloco.espelho { padding:0 0 0 22px; border-left:1.5px solid var(--ink); }
+.caixa { display:block; width:max-content; min-width:62%; margin:0 auto 14px; padding:7px 22px; border:1.5px solid var(--ink); text-align:center; font:700 12px Arial,sans-serif; letter-spacing:3px; text-transform:uppercase; color:var(--ink); }
+.linhas { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
+.linhas li { display:grid; grid-template-columns:34px 1fr 1.15fr; align-items:center; gap:10px; }
+.espelho .linhas li { grid-template-columns:1.15fr 1fr 34px; }
+.espelho .linhas li .val { order:1; } .espelho .linhas li .rot { order:2; text-align:center; } .espelho .linhas li .ico { order:3; }
+.ico { display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:#eef2ee; border:1px solid #d6dfd8; color:var(--ink); }
+.ico svg { width:19px; height:19px; }
+.rot { text-align:center; min-width:0; }
+.rot b { display:block; padding-bottom:3px; border-bottom:1.5px solid var(--ink); font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; }
+.rot small { display:block; margin-top:2px; font-size:7.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:700; }
+.val { display:block; padding:7px 8px; border:1.5px solid var(--ink); border-radius:2px; text-align:center; font-size:13.5px; font-weight:700; letter-spacing:.4px; white-space:nowrap; color:var(--ink); }
+.ficha .fine-print,.ficha .contract { margin-top:10px; }
+@media screen and (max-width:720px) { .ficha { grid-template-columns:1fr; gap:24px; } .ficha .bloco.espelho { padding:0; border-left:0; } .espelho .linhas li { grid-template-columns:34px 1fr 1.15fr; } .espelho .linhas li .val { order:3; } .espelho .linhas li .ico { order:1; } }
 @media print {
+ .ficha .bloco { padding-right:16px; } .ficha .bloco.espelho { padding-left:16px; } .linhas { gap:4px; } .caixa { margin-bottom:7px; padding:4px 18px; font-size:10px; } .ico { width:24px; height:24px; } .ico svg { width:14px; height:14px; } .linhas li { grid-template-columns:24px 1fr 1.15fr; gap:8px; } .espelho .linhas li { grid-template-columns:1.15fr 1fr 24px; } .rot b { font-size:8.5px; padding-bottom:2px; } .rot small { font-size:6.5px; margin-top:1px; } .val { padding:3.5px 6px; font-size:11px; } .ficha .fine-print { margin-top:5px; } .ficha .contract { margin-top:6px; }
  .compact .details,.digital-only,.viewer { display:none!important; }.print-only { display:block; }
  .compact .visit-resumo { display:flex; }
  /* Visita no papel: faixa de uma linha (rótulo e título à esquerda, contatos à direita) */
@@ -104,7 +128,7 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
  .banner .qr img { width:40px; height:40px; }.banner .qr { padding:3px 3px 2px; }
  .hero img,.map,.hero-row.has-map .no-photo { height:60mm; }.intro { padding:12px 0; } h1 { font-size:25px; }
  .highlights { margin:12px 0; padding:10px 0; }.highlights strong { font-size:24px; }.highlights.three strong { font-size:21px; }.context { margin-bottom:8px; }.context-grid strong { font-size:15px; }.first-foot { padding-top:8px; }
- .facts>div { padding:4px 0; font-size:9px; }.contact { margin-top:12px; padding:10px 0; }.contact h2 { font-size:21px; }
+ .facts>div { padding:7px 9px; font-size:10.5px; }.contact { margin-top:12px; padding:10px 0; }.contact h2 { font-size:21px; }
  .document-header { padding-bottom:10px; }.document-footer { padding-top:7px; }.disclaimer { margin:4px 0 10px; }
  .section-intro { margin:15px 0; }.description { margin-bottom:15px; }.description p { font-size:10px; line-height:1.5; }
  .gallery img { height:27mm; }.gallery figcaption { font-size:8px; padding-top:4px; }.documents { margin:12px 0; }.documents .doc-grid a { padding:6px 8px; }.documents .doc-grid strong { font-size:9px; }.documents .doc-grid small { font-size:8px; }

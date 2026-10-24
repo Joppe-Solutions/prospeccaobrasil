@@ -53,49 +53,44 @@ test('máscaras: dinheiro com R$, milhar e vírgula; decimais e inteiros no cada
   await expectNoErrors(errors);
 });
 
-test('parceiros: campos específicos por tipo, pessoa física/jurídica e registro profissional', async ({ page }) => {
+test('parceiros: consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliária (CRECI-PJ) e indicador', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/parceiros');
   await page.getByRole('button', { name: /Novo parceiro/ }).click();
   const modal = page.locator('.modal');
+  const tipo = modal.getByLabel('Tipo de parceiro');
 
-  // corretor pessoa física: CRECI Físico e CPF
-  await expect(modal.getByLabel('Tipo de parceiro')).toHaveValue('corretor');
-  await expect(modal.getByLabel(/CRECI Físico/)).toBeVisible();
+  // consultor: CPF obrigatório, sem CRECI/OAB nem escolha de pessoa
+  await expect(tipo).toHaveValue('consultor');
   await expect(modal.getByLabel(/^CPF/)).toBeVisible();
-  await expect(modal.getByLabel(/Número da OAB/)).toHaveCount(0);
-  // pessoa jurídica: CRECI Jurídico, CNPJ e responsável
-  await modal.getByLabel('Pessoa', { exact: true }).selectOption('pj');
-  await expect(modal.getByLabel(/CRECI Jurídico/)).toBeVisible();
-  await expect(modal.getByLabel(/^CNPJ/)).toBeVisible();
-  await expect(modal.getByLabel(/Responsável ou contato/)).toBeVisible();
-  // imobiliária força pessoa jurídica
-  await modal.getByLabel('Tipo de parceiro').selectOption('imobiliaria');
-  await expect(modal.getByLabel('Pessoa', { exact: true })).toBeDisabled();
-  // advogado: OAB no lugar do CRECI
-  await modal.getByLabel('Tipo de parceiro').selectOption('advogado');
-  await modal.getByLabel('Pessoa', { exact: true }).selectOption('pf');
-  await expect(modal.getByLabel(/CRECI/)).toHaveCount(0);
-  await modal.getByLabel(/Nome completo/).fill('Dr. Paulo Advogado');
-  await modal.getByLabel(/^CPF/).pressSequentially('11144477736');
-  await expect(modal.getByLabel(/^CPF/)).toHaveValue('111.444.777-36');
-  await modal.getByLabel(/Número da OAB/).pressSequentially('123abc456');
-  await expect(modal.getByLabel(/Número da OAB/)).toHaveValue('123456');
+  await expect(modal.getByLabel(/CRECI|Número da OAB/)).toHaveCount(0);
+  await expect(modal.getByLabel('Pessoa', { exact: true })).toHaveCount(0);
+  await modal.getByLabel(/Nome completo/).fill('Ana Consultora');
   await modal.getByRole('button', { name: /Cadastrar/ }).click();
-  await expect(modal).toContainText('CPF inválido');
-  await modal.getByLabel(/^CPF/).fill('111.444.777-35');
+  await expect(modal).toContainText('Informe o CPF do consultor');
+  await modal.getByLabel(/^CPF/).pressSequentially('11144477735');
   await modal.getByRole('button', { name: /Cadastrar/ }).click();
-
   const main = page.locator('#main-content');
-  await expect(main).toContainText('Dr. Paulo Advogado');
-  await expect(main).toContainText('Advogado · Pessoa física · OAB RJ-123456');
+  await expect(main).toContainText('Consultor · Pessoa física');
 
-  // corretor pessoa jurídica aparece com CRECI Jurídico
+  // corretor: CRECI-PF; imobiliária: CRECI-PJ com CNPJ; advogado: OAB; indicador: escolhe a pessoa
   await page.getByRole('button', { name: /Novo parceiro/ }).click();
-  await modal.getByLabel('Pessoa', { exact: true }).selectOption('pj');
-  await modal.getByLabel(/Razão social/).fill('Corretora Exemplo Ltda');
-  await modal.getByLabel(/CRECI Jurídico/).pressSequentially('9876');
+  await tipo.selectOption('corretor');
+  await expect(modal.getByLabel(/^CRECI-PF/)).toBeVisible();
+  await tipo.selectOption('imobiliaria');
+  await expect(modal.getByLabel(/^CRECI-PJ/)).toBeVisible();
+  await expect(modal.getByLabel(/^CNPJ/)).toBeVisible();
+  await tipo.selectOption('advogado');
+  await expect(modal.getByLabel(/CRECI/)).toHaveCount(0);
+  await expect(modal.getByLabel(/Número da OAB/)).toBeVisible();
+  await tipo.selectOption('indicador');
+  await expect(modal.getByLabel(/CRECI|Número da OAB/)).toHaveCount(0);
+  await expect(modal.getByLabel('Pessoa', { exact: true })).toBeVisible();
+
+  await tipo.selectOption('imobiliaria');
+  await modal.getByLabel(/Razão social/).fill('Imobiliária Exemplo Ltda');
+  await modal.getByLabel(/^CRECI-PJ/).pressSequentially('9876');
   await modal.getByRole('button', { name: /Cadastrar/ }).click();
-  await expect(main).toContainText('Corretor · Pessoa jurídica · CRECI Jurídico RJ-9876');
+  await expect(main).toContainText('Imobiliária · Pessoa jurídica · CRECI-PJ RJ-9876');
   await expectNoErrors(errors);
 });

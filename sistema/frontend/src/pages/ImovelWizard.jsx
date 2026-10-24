@@ -7,6 +7,7 @@ import PhotoUploader from '../components/PhotoUploader';
 import MapaPonto from '../components/MapaPonto';
 import { CampoNumerico, DecimalInput } from '../components/NumberFields';
 import { documentoValido, mascararDocumento } from '../lib/numeros';
+import ParceiroCampos, { validarParceiro } from '../components/ParceiroCampos';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -31,8 +32,8 @@ const STEPS = [
   { id: 'dimensoes', title: 'Dimensões', subtitle: 'Áreas e medidas', heading: 'Dimensões', description: 'Áreas por pavimento ou ambiente e medidas exibidas no bloco "Dimensões" da apresentação.',
     fields: [
       { k: 'areaUtil', l: 'Área útil (m²)', fmt: 'decimal' },
-      { k: 'peDireito', l: 'Pé direito (m)', fmt: 'decimal' },
-      { k: 'frenteImovel', l: 'Frente do imóvel (m)', fmt: 'decimal' },
+      { k: 'peDireito', l: 'Pé direito (mts)', fmt: 'decimal' },
+      { k: 'frenteImovel', l: 'Frente do imóvel (mts)', fmt: 'decimal' },
       { k: 'vagas', l: 'Vagas de estacionamento', fmt: 'inteiro' },
       { k: 'acessibilidade', l: 'Acessibilidade', type: 'textarea', full: true },
       { k: 'infraestrutura', l: 'Infraestrutura e estado de conservação', type: 'textarea', full: true },
@@ -47,7 +48,6 @@ const STEPS = [
     ] },
   { id: 'vinculos', title: 'Vínculos', subtitle: 'Responsável e parceiro', heading: 'Proprietário (ou operador), parceiro e observações', description: 'Quem é o dono (ou o operador do ponto), quem trouxe o imóvel e o texto usado na apresentação.',
     fields: [
-      { k: 'parceiroId', l: 'Parceiro (quem trouxe)', type: 'select', optionsKey: 'parceiros', full: true },
       { k: 'descricao', l: 'Descrição', type: 'textarea', full: true }, { k: 'observacoes', l: 'Observações internas', type: 'textarea', full: true },
     ] },
 ];
@@ -126,6 +126,42 @@ function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
         <div className="wz-field"><label htmlFor="nv-doc">{nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="nv-doc" inputMode="numeric" value={nova.documento} onChange={e => set('documento', mascararDocumento(e.target.value, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica'))} /></div>
         <div className="wz-field"><label htmlFor="nv-tel">Telefone</label><input id="nv-tel" value={nova.telefone} onChange={e => set('telefone', e.target.value)} /></div>
         <div className="wz-field"><label htmlFor="nv-email">E-mail</label><input id="nv-email" type="email" value={nova.email} onChange={e => set('email', e.target.value)} /></div>
+      </div>
+      <div className="wz-inline-actions"><button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setCriando(false); setErro(''); }}>Cancelar</button><button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={criar}>{busy ? 'Salvando...' : 'Cadastrar e selecionar'}</button></div>
+    </div>}
+  </div>;
+}
+
+const PARCEIRO_VAZIO = { tipo: 'consultor', tipoPessoa: 'pf', nome: '', documento: '', creci: '', creciUf: 'RJ', oab: '', oabUf: 'RJ', telefone: '' };
+
+// Parceiro (quem trouxe o imóvel): escolhe um cadastrado ou cria ali mesmo, com o registro do tipo
+function VinculoParceiro({ value, onChange, lista, onCriado }) {
+  const [criando, setCriando] = useState(false);
+  const [novo, setNovo] = useState(PARCEIRO_VAZIO);
+  const [erro, setErro] = useState('');
+  const [busy, setBusy] = useState(false);
+  async function criar() {
+    const msg = validarParceiro(novo);
+    if (msg) return setErro(msg);
+    setBusy(true); setErro('');
+    try {
+      const p = await api('/parceiros', { method: 'POST', body: JSON.stringify({ ...novo, nome: novo.nome.trim() }) });
+      onCriado(p); onChange(String(p.id)); setCriando(false); setNovo(PARCEIRO_VAZIO);
+    } catch (e) { setErro(e.message); } finally { setBusy(false); }
+  }
+  return <div className="wz-field wz-full">
+    <label htmlFor="wz-parceiroId">Parceiro (quem trouxe)</label>
+    <select id="wz-parceiroId" value={value ?? ''} onChange={e => onChange(e.target.value)}>
+      <option value="">Não vinculado</option>
+      {lista.map(o => <option key={o.id} value={String(o.id)}>{[o.nome, TIPOS_PARCEIRO[o.tipo], registroProfissional(o)].filter(Boolean).join(' · ')}</option>)}
+    </select>
+    {!criando && <small><button type="button" className="wz-link" onClick={() => setCriando(true)}>+ Cadastrar novo parceiro</button></small>}
+    {criando && <div className="wz-inline-create">
+      <strong>Novo parceiro</strong>
+      {erro && <div className="alert error" role="alert">{erro}</div>}
+      <div className="wz-grid">
+        <ParceiroCampos form={novo} setForm={setNovo} prefixo="np" classe="wz-field" />
+        <div className="wz-field"><label htmlFor="np-tel">Telefone</label><input id="np-tel" value={novo.telefone} onChange={e => setNovo(n => ({ ...n, telefone: e.target.value }))} /></div>
       </div>
       <div className="wz-inline-actions"><button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setCriando(false); setErro(''); }}>Cancelar</button><button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={criar}>{busy ? 'Salvando...' : 'Cadastrar e selecionar'}</button></div>
     </div>}
@@ -229,6 +265,7 @@ export default function ImovelWizard() {
         {step.id === 'vinculos' && (passagem
           ? <VinculoPessoa papel="operador" value={form.operadorId} lista={options.operadores} onCriado={criado('operador')} onChange={v => setForm(f => ({ ...f, operadorId: v }))} />
           : <VinculoPessoa papel="proprietario" value={form.proprietarioId} lista={options.proprietarios} onCriado={criado('proprietario')} onChange={v => setForm(f => ({ ...f, proprietarioId: v }))} />)}
+        {step.id === 'vinculos' && <VinculoParceiro value={form.parceiroId} lista={options.parceiros} onCriado={p => setOptions(o => ({ ...o, parceiros: [...o.parceiros, p] }))} onChange={v => setForm(f => ({ ...f, parceiroId: v }))} />}
         {step.fields.map(def => (
           <Field key={def.k} def={def} value={form[def.k]} options={options}
             onChange={v => setForm(f => ({ ...f, [def.k]: v }))} />
@@ -265,7 +302,7 @@ export default function ImovelWizard() {
         sections={[
           { title: 'Identificação', items: [['Código', form.codigo], ['Título', form.titulo], ['Tipo', TIPOS_IMOVEL[form.tipo]], ['Categoria', CATEGORIAS[form.categoria] || form.categoria], ['Status', STATUS[form.status] || form.status]] },
           { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep], ['Coordenadas', coord ? `${coord.lat}, ${coord.lon}` : '']] },
-          { title: 'Dimensões', items: [['ABL', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Áreas', form.areas.filter(a => a.nome.trim() && a.area !== '').map(a => `${a.nome.trim()}: ${fmtNum(a.area)} m²`).join(' · ')], ['Pé direito', form.peDireito && `${fmtNum(form.peDireito)} m`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} m`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
+          { title: 'Dimensões', items: [['ABL', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Áreas', form.areas.filter(a => a.nome.trim() && a.area !== '').map(a => `${a.nome.trim()}: ${fmtNum(a.area)} m²`).join(' · ')], ['Pé direito', form.peDireito && `${fmtNum(form.peDireito)} mts`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} mts`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
           { title: 'Termos', items: [['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['Carência (meses)', form.carenciaMeses], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
           { title: 'Vínculos', items: [passagem ? ['Operador do ponto', operNome] : ['Proprietário', propNome], ['Parceiro', parcNome], ['Descrição', form.descricao], ['Observações internas', form.observacoes]] },
           { title: 'Fotos', items: [['Fotos', itensFoto.length ? `${itensFoto.length} ${itensFoto.length === 1 ? 'foto' : 'fotos'}${pendentes.length ? ` (${pendentes.length} a enviar)` : ''}` : '']] },

@@ -154,3 +154,24 @@ test('endereço: mapa localiza o endereço e o marcador define as coordenadas', 
   await expect(modal.locator('.mapa-ponto-pin')).toHaveCount(1);
   await expectNoErrors(errors);
 });
+
+test('vínculos: parceiro cadastrado na hora com o registro do tipo (corretor → CRECI-PF)', async ({ page }) => {
+  const errors = watchErrors(page);
+  await page.goto('/imoveis/novo');
+  const modal = page.locator('.modal');
+  await modal.locator('#wz-titulo').fill('Imóvel Parceiro E2E');
+  const proximo = (n) => (async () => { for (let k = 0; k < n; k++) await modal.getByRole('button', { name: 'Próximo' }).click(); })();
+  await proximo(1);
+  await modal.locator('#wz-endereco').fill('Rua do Parceiro, 1');
+  await modal.locator('#wz-cidade').fill('Rio de Janeiro');
+  await proximo(3);
+  await modal.getByRole('button', { name: '+ Cadastrar novo parceiro' }).click();
+  await modal.locator('#np-tipo').selectOption('corretor');
+  await modal.locator('#np-nome').fill('Carlos Corretor E2E');
+  await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).last().click();
+  await expect(modal).toContainText('Informe o CRECI-PF');
+  await modal.locator('#np-creci').fill('45678');
+  await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).last().click();
+  await expect(modal.locator('#wz-parceiroId option:checked')).toHaveText('Carlos Corretor E2E · Corretor · CRECI-PF RJ-45678');
+  await expectNoErrors(errors);
+});

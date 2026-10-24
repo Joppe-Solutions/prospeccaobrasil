@@ -1,6 +1,5 @@
 const { Prisma } = require('@prisma/client');
 const { DOC_PUBLICOS } = require('../lib/publicDocs');
-const { TIPOS_PARCEIRO, registroProfissional } = require('../lib/parceiros');
 const styles = require('./apresentacao.styles');
 const G = require('./graficos');
 
@@ -95,9 +94,25 @@ ${fatias.length > 1 ? `<figure class="composicao"><figcaption>Composição do co
 </div><p class="fine-print">Fonte: OpenStreetMap · mapeamento colaborativo: as contagens indicam o mínimo existente.</p></section>`;
 }
 
+// Ícones de traço (24×24) dos termos comerciais e das dimensões
+const ICONES = {
+  cdu: '<path d="M6 3h9l3 3v15H6z"/><path d="M9 13h6M12 10l3 3-3 3"/>',
+  aluguel: '<circle cx="8" cy="15" r="4"/><path d="M11 12l8-8M16 7l2 2M14 9l2 2"/>',
+  iptu: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M10 20v-6h4v6"/>',
+  condominio: '<path d="M5 21V4h9v17M14 9h5v12M3 21h18"/><path d="M8 8h3M8 12h3M8 16h3"/>',
+  ponto: '<path d="M4 9l2-5h12l2 5"/><path d="M4 9h16v11H4z"/><path d="M9 20v-6h6v6"/>',
+  venda: '<path d="M3 12V3h9l9 9-9 9z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  area: '<rect x="4" y="4" width="16" height="16" rx="1"/><path d="M4 9h3M4 14h3M9 4v3M14 4v3"/>',
+  altura: '<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>',
+  vagas: '<path d="M5 15v-4l2-5h10l2 5v4"/><path d="M4 15h16v4H4z"/><circle cx="8" cy="17" r=".8"/><circle cx="16" cy="17" r=".8"/>',
+};
+const icone = nome => `<i class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONES[nome]}</svg></i>`;
+// [ícone, rótulo, subtítulo, valor] → linha com ícone em círculo, rótulo sublinhado e valor em caixa
+const linhaFicha = ([ic, rotulo, sub, valor]) => `<li>${icone(ic)}<span class="rot"><b>${esc(rotulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><strong class="val">${esc(valor)}</strong></li>`;
+
 function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto = null } = {}) {
   const sale = i.tipo === 'venda';
-  const deal = { venda: 'Venda', passagem_ponto: 'Passagem de ponto' }[i.tipo] || 'Locação';
+  const deal = { venda: 'Ativo comercial à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação';
   const photos = (i.fotos || []).filter(f => f.arquivo);
   const docs = (i.documentos || []).filter(d => DOC_PUBLICOS.has(d.tipo)).map(d => ({
     ...d, href: d.arquivo ? uploadUrl(d.arquivo) : safeUrl(d.url),
@@ -108,18 +123,19 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const date = new Date(i.atualizadoEm || i.criadoEm);
   const updated = Number.isNaN(date.getTime()) ? 'Data não informada' : date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const subtitle = [i.bairro, [i.cidade, i.uf].filter(Boolean).join(' / '), i.cep ? `CEP ${i.cep}` : ''].filter(Boolean).join(' · ');
-  const rows = [
-    [sale ? 'Valor de venda' : 'Aluguel', money(sale ? i.precoVenda : i.aluguel)],
-    ['Condomínio', money(i.condominio)], ['IPTU / cota cadastrada', money(i.iptu)],
-    ...(present(i.cdu) ? [['Cessão de direito de uso (CDU)', money(i.cdu)]] : []),
-    ...(present(i.valorPonto) ? [['Passagem de ponto', money(i.valorPonto)]] : []),
+  const termos = [
+    ...(present(i.cdu) ? [['cdu', 'CDU', 'Cessão de direito de uso · CAPEX', money(i.cdu)]] : []),
+    sale ? ['venda', 'Valor de venda', '', money(i.precoVenda)] : ['aluguel', 'Aluguel', 'Mensal', money(i.aluguel)],
+    ['iptu', 'IPTU / Cota', String(new Date().getFullYear()), money(i.iptu)],
+    ['condominio', 'Condomínio', 'Mensal', money(i.condominio)],
+    ...(present(i.valorPonto) ? [['ponto', 'Passagem de ponto', 'Valor do ponto', money(i.valorPonto)]] : []),
   ];
-  const areas = (i.areas || []).map(a => [a.nome, measure(a.area)]);
-  const dimensions = [['Área útil', measure(i.areaUtil)],
-    ...(areas.length ? areas : [['Piso / área de venda', measure(i.pisoAreaVenda)], ['Jirau', measure(i.jirau)], ['Mezanino', measure(i.mezanino)]]),
-    ['Frente', measure(i.frenteImovel, 'm')], ['Pé-direito', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['Vagas', String(i.vagas)]] : [])]
+  const areas = (i.areas || []).map(a => ['area', a.nome, '', measure(a.area)]);
+  const dimensions = [['area', 'Área útil', '', measure(i.areaUtil)],
+    ...(areas.length ? areas : [['area', 'Piso / área de venda', '', measure(i.pisoAreaVenda)], ['area', 'Jirau', '', measure(i.jirau)], ['area', 'Mezanino', '', measure(i.mezanino)]]),
+    ['ponto', 'Frente de loja', '', measure(i.frenteImovel, 'm')], ['altura', 'Pé-direito loja', '', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['vagas', 'Vagas', 'Estacionamento', String(i.vagas)]] : [])]
     // Medida não cadastrada não vira linha vazia (a ABL aparece só no destaque da primeira folha)
-    .filter(([, value]) => value !== 'Não informada');
+    .filter(([, , , value]) => value !== 'Não informada');
   const base = sale ? i.precoVenda : i.aluguel;
   const porM2 = present(base) && Number(i.areaTotal) > 0 ? money(Number(base) / Number(i.areaTotal)) : null;
   const context = contextSection(i, contexto);
@@ -128,11 +144,9 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
   const hasDetails = Boolean(i.descricao?.trim() || docs.length || infra || entorno1km);
-  // Vínculo comercial do imóvel (parceiro que o trouxe): tipo, nome e registro profissional
-  const vinculo = i.parceiro?.nome ? `<div class="partner"><span>${esc(TIPOS_PARCEIRO[i.parceiro.tipo] || 'Parceiro')}</span><strong>${esc(i.parceiro.nome)}</strong>${registroProfissional(i.parceiro) ? `<span>${esc(registroProfissional(i.parceiro))}</span>` : ''}</div>` : '';
-  const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div>${hasDetails ? '' : vinculo}<div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
+  const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>`;
-  const footerBand = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div>${vinculo}<div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
+  const footerBand = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const title = i.titulo || address(i);
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(i.codigo)} - Apresentação comercial</title><style>${styles}</style></head><body class="${completa ? 'complete' : 'compact'}">
@@ -140,8 +154,8 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
 <main><article class="sheet" aria-label="Ficha comercial">${headerFirst}
 <section class="intro"><div class="eyebrow">${esc(categories[i.categoria] || 'Imóvel comercial')} <span>/</span> ${deal} <span class="status">${esc(statuses[i.status] || 'Status sob consulta')}</span></div><h1 class="digital-only">${esc(title)}</h1><h1 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h1>${i.titulo ? `<p class="street">${esc(address(i))}</p>` : ''}<p class="location">${esc(subtitle)}</p></section>
 <div class="hero-row${mapa ? ' has-map' : ''}"><figure class="hero">${photos[0] ? `${photos.length > 1 ? `<button type="button" class="hero-open" data-foto="0" aria-label="Ver as ${photos.length} fotos do imóvel">` : ''}<img src="${esc(uploadUrl(photos[0].arquivo))}" alt="${esc(photos[0].legenda || `Foto do imóvel ${i.codigo}`)}" loading="eager">${photos.length > 1 ? `<span class="hero-count digital-only">1 / ${photos.length} · ver fotos</span></button>` : ''}` : '<div class="no-photo"><span>PROSPECÇÃO BRASIL</span><strong>Fotografia não cadastrada</strong><p>Solicite imagens à nossa equipe comercial.</p></div>'}<figcaption>${photos[0] ? '01 / Imagem cadastrada do imóvel' : 'Imagens sob consulta'}<span>${esc(i.codigo)}</span></figcaption></figure>${mapa ? mapFigure(i, mapa) : ''}</div>
-<section class="highlights${porM2 ? ' three' : ''}" aria-label="Informações principais"><div>${sale ? '<span class="small-label">Valor de venda</span>' : '<span class="small-label">OPEX</span><span class="card-name">Custo total de ocupação</span>'}<strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div><div><span class="small-label">ABL</span><span class="card-name">Área bruta locável</span><strong>${measure(i.areaTotal)}</strong><small>${present(i.areaUtil) ? `Área útil: ${measure(i.areaUtil)}` : 'Conforme cadastro do imóvel'}</small></div>${porM2 ? `<div><span class="small-label">${sale ? 'Valor por m²' : 'Aluguel por m²'}</span><strong>${porM2}</strong><small>${sale ? 'Valor de venda ÷ ABL' : 'Aluguel ÷ ABL, sem encargos'}</small></div>` : ''}</section>
-<div class="facts-grid"><section><h2><span>01</span> Condições comerciais</h2><dl class="facts">${rows.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl>${i.periodoContrato ? `<p class="contract">Prazo de contrato: ${esc(i.periodoContrato)}</p>` : ''}<p class="fine-print">${sale ? 'Encargos apresentados conforme cadastro.' : '* Composição conforme valores cadastrados. Confirmar a periodicidade da cota de IPTU.'} CDU não integra o total mensal. Valores ausentes permanecem sob consulta.</p></section><section><h2><span>02</span> Características do imóvel</h2><dl class="facts dimensions">${dimensions.map(([label,value]) => `<div><dt>${esc(label)}</dt><dd>${esc(value)}</dd></div>`).join('')}</dl></section></div>
+<section class="highlights${porM2 ? ' three' : ''}" aria-label="Informações principais"><div>${sale ? '<span class="small-label">Valor de venda</span>' : '<span class="small-label">OPEX</span><span class="card-name">Custo total de ocupação</span>'}<strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div>${porM2 ? `<div><span class="small-label">${sale ? 'Valor por m²' : 'Aluguel por m²'}</span><span class="card-name">${sale ? 'Venda por metro quadrado' : 'Locação por metro quadrado'}</span><strong>${porM2}</strong><small>${sale ? 'Valor de venda ÷ ABL' : 'Aluguel ÷ ABL, sem encargos'}</small></div>` : ''}<div><span class="small-label">ABL</span><span class="card-name">Área bruta locável</span><strong>${measure(i.areaTotal)}</strong><small>${present(i.areaUtil) ? `Área útil: ${measure(i.areaUtil)}` : 'Conforme cadastro do imóvel'}</small></div></section>
+<div class="ficha"><section class="bloco"><h2 class="caixa">Termos comerciais</h2><ul class="linhas">${termos.map(linhaFicha).join('')}</ul>${i.periodoContrato ? `<p class="contract">Prazo de contrato: ${esc(i.periodoContrato)}</p>` : ''}<p class="fine-print">${sale ? 'Encargos apresentados conforme cadastro.' : '* Composição conforme valores cadastrados. Confirmar a periodicidade da cota de IPTU.'} CDU não integra o total mensal. Valores ausentes permanecem sob consulta.</p></section><section class="bloco espelho"><h2 class="caixa">Dimensões</h2><ul class="linhas">${dimensions.map(linhaFicha).join('')}</ul></section></div>
 ${visita(hasDetails ? 'visit-resumo' : '')}
 <p class="disclaimer">Disponibilidade e condições sujeitas a confirmação. Esta apresentação não substitui a documentação técnica do imóvel.</p>
 ${context ? `<div class="first-foot">${context}${footer}</div>` : footer}</article>

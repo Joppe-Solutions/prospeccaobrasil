@@ -138,7 +138,7 @@ model Proprietario {
 model Parceiro {
   id           Int      @id @default(autoincrement())
   nome         String
-  tipo         String?  // corretor | imobiliaria | advogado | indicador | outro
+  tipo         String?  // consultor (CPF) | advogado (OAB) | corretor (CRECI-PF) | imobiliaria (CRECI-PJ) | indicador
   tipoPessoa   String   @default("pf") @map("tipo_pessoa") // pf | pj (imobiliária é sempre pj)
   documento    String?  // CPF ou CNPJ, só dígitos
   creci        String?  @map("creci") // corretor e imobiliária: só dígitos; físico (pf) ou jurídico (pj) conforme tipoPessoa

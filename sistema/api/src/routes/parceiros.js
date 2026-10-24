@@ -9,7 +9,9 @@ const PARCEIRO_FIELDS = [
   'nome', 'tipo', 'tipoPessoa', 'documento', 'creci', 'creciUf', 'oab', 'oabUf', 'responsavel',
   'telefone', 'email', 'cidade', 'uf', 'observacoes', 'status',
 ];
-const TIPOS = ['corretor', 'imobiliaria', 'advogado', 'indicador', 'outro'];
+const TIPOS = ['consultor', 'advogado', 'corretor', 'imobiliaria', 'indicador'];
+// Pessoa definida pelo tipo; indicador pode ser PF ou PJ
+const PESSOA = { consultor: 'pf', advogado: 'pf', corretor: 'pf', imobiliaria: 'pj' };
 const COM_CRECI = ['corretor', 'imobiliaria'];
 
 module.exports = (prisma) => {
@@ -28,17 +30,19 @@ module.exports = (prisma) => {
     return d;
   };
 
-  // Regras por tipo: corretor e imobiliária têm CRECI, advogado tem OAB; imobiliária é sempre pessoa jurídica.
+  // Regras por tipo: consultor exige CPF; advogado, OAB; corretor, CRECI-PF; imobiliária, CRECI-PJ; indicador, nenhum registro.
   // Campos que não pertencem ao tipo escolhido são limpos para não ficar registro de outro tipo.
   function validar(d, atual, body) {
     const p = { tipoPessoa: 'pf', ...atual, ...d };
-    if (p.tipo && !TIPOS.includes(p.tipo)) fail('Tipo de parceiro inválido');
+    if (!p.tipo || !TIPOS.includes(p.tipo)) fail('Tipo de parceiro inválido: consultor, advogado, corretor, imobiliária ou indicador');
+    if (PESSOA[p.tipo]) p.tipoPessoa = d.tipoPessoa = PESSOA[p.tipo];
     if (!['pf', 'pj'].includes(p.tipoPessoa)) fail('Informe se o parceiro é pessoa física ou jurídica');
-    if (p.tipo === 'imobiliaria' && p.tipoPessoa !== 'pj') fail('Imobiliária é sempre pessoa jurídica');
     if (p.documento) {
       d.documento = soDigitos(p.documento);
       if (!documentoValido(d.documento, p.tipoPessoa)) fail(p.tipoPessoa === 'pj' ? 'CNPJ inválido' : 'CPF inválido');
     }
+    const mexeuTipo = !atual || ['tipo', 'documento'].some((k) => k in body);
+    if (p.tipo === 'consultor' && mexeuTipo && !(d.documento ?? p.documento)) fail('Informe o CPF do consultor');
     for (const k of ['uf', 'creciUf', 'oabUf']) {
       if (d[k]) { d[k] = d[k].toUpperCase(); if (!UFS.includes(d[k])) fail(`UF inválida: ${d[k]}`); }
     }
@@ -47,7 +51,7 @@ module.exports = (prisma) => {
     if (COM_CRECI.includes(p.tipo)) {
       if (d.creci !== undefined) d.creci = soDigitos(d.creci) || null;
       const creci = d.creci !== undefined ? d.creci : p.creci;
-      if (mexeu && !creci) fail(`Informe o CRECI ${p.tipoPessoa === 'pj' ? 'jurídico' : 'físico'}`);
+      if (mexeu && !creci) fail(`Informe o ${p.tipo === 'imobiliaria' ? 'CRECI-PJ' : 'CRECI-PF'}`);
       if (creci && (creci.length < 3 || creci.length > 8)) fail('CRECI inválido (use só o número, de 3 a 8 dígitos)');
       if (mexeu && !(d.creciUf || p.creciUf)) fail('Informe a UF do CRECI');
     } else Object.assign(d, { creci: null, creciUf: null });

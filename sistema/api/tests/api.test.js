@@ -81,7 +81,7 @@ test('CRUD de proprietários', async () => {
 });
 
 test('CRUD de parceiros', async () => {
-  const created = await req('POST', '/api/parceiros', { token, body: { nome: 'Parceiro Teste' } });
+  const created = await req('POST', '/api/parceiros', { token, body: { nome: 'Parceiro Teste', tipo: 'indicador' } });
   assert.equal(created.status, 200);
   assert.equal((await req('DELETE', `/api/parceiros/${created.body.id}`, { token })).status, 200);
 });
@@ -767,7 +767,7 @@ test('apresentação: mapa ao lado da foto quando há coordenadas; sem luvas', a
   const html = await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text();
   assert.match(html, /class="hero-row has-map"/);
   assert.equal((html.match(/tile\.openstreetmap\.org\/16\//g) || []).length, 15);
-  assert.match(html, /Cessão de direito de uso \(CDU\)/);
+  assert.match(html, /<b>CDU<\/b><small>Cessão de direito de uso · CAPEX<\/small>/);
   assert.doesNotMatch(html, /Luvas/);
   const semCoord = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua sem mapa', cidade: 'Rio de Janeiro' } })).body;
   assert.match(await (await fetch(`${getBase()}/apresentacao/${semCoord.id}`)).text(), /class="hero-row"/);
@@ -949,7 +949,7 @@ test('apresentação: ABL só no destaque, entorno em 1 km no lugar das fotos, d
   assert.match(primeira, /<span class="small-label">ABL<\/span><span class="card-name">Área bruta locável<\/span>/);
   assert.match(primeira, /<span class="small-label">OPEX<\/span><span class="card-name">Custo total de ocupação<\/span>/);
   assert.doesNotMatch(corpo(html), /Custo mensal/);
-  assert.doesNotMatch(primeira.match(/Características do imóvel[\s\S]*?<\/section>/)[0], /ABL/);
+  assert.doesNotMatch(primeira.match(/Dimensões[\s\S]*?<\/section>/)[0], /ABL/);
 
   // 2ª folha sem fotos e sem o Flash de Mercado: no lugar, transporte e composição do comércio em 1 km
   assert.equal((segunda.match(/<figure data-foto=/g) || []).length, 0);
@@ -1120,69 +1120,61 @@ test('geocodificação: abreviações do endereço são expandidas antes de busc
   }
 });
 
-test('parceiros: campos por tipo (CRECI físico/jurídico, OAB), pessoa física/jurídica e documento válido', async () => {
+test('parceiros: consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliária (CRECI-PJ) e indicador', async () => {
   const criar = (body) => req('POST', '/api/parceiros', { token, body });
   const msg = async (body) => (await criar(body)).body.error;
+  const { registroProfissional } = require('../src/lib/parceiros');
 
-  // corretor: CRECI e UF obrigatórios; só dígitos
-  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor', tipoPessoa: 'pf' }), /CRECI físico/);
-  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor', tipoPessoa: 'pj' }), /CRECI jurídico/);
-  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor', tipoPessoa: 'pf', creci: '12345' }), /UF do CRECI/);
-  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor', tipoPessoa: 'pf', creci: '12', creciUf: 'RJ' }), /CRECI inválido/);
-  const pf = await criar({ nome: ' Maria Corretora ', tipo: 'corretor', tipoPessoa: 'pf', creci: 'CRECI 12.345-F', creciUf: 'rj', documento: '111.444.777-35', oab: '999', responsavel: 'ignorado' });
+  // tipo obrigatório e só os cinco
+  assert.match(await msg({ nome: 'X' }), /Tipo de parceiro inválido/);
+  assert.match(await msg({ nome: 'X', tipo: 'outro' }), /Tipo de parceiro inválido/);
+
+  // consultor: CPF obrigatório e válido; sempre pessoa física
+  assert.equal(await msg({ nome: 'Ana Consultora', tipo: 'consultor' }), 'Informe o CPF do consultor');
+  assert.equal(await msg({ nome: 'Ana Consultora', tipo: 'consultor', documento: '111.444.777-36' }), 'CPF inválido');
+  const cons = await criar({ nome: 'Ana Consultora', tipo: 'consultor', tipoPessoa: 'pj', documento: '111.444.777-35', creci: '123', oab: '9' });
+  assert.equal(cons.status, 200);
+  assert.deepEqual([cons.body.tipoPessoa, cons.body.documento, cons.body.creci, cons.body.oab], ['pf', '11144477735', null, null]);
+  assert.equal(registroProfissional(cons.body), '');
+
+  // corretor: CRECI-PF (pessoa física, mesmo se mandarem pj)
+  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor' }), /CRECI-PF/);
+  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor', creci: '12345' }), /UF do CRECI/);
+  assert.match(await msg({ nome: 'Corretor A', tipo: 'corretor', creci: '12', creciUf: 'RJ' }), /CRECI inválido/);
+  const pf = await criar({ nome: ' Maria Corretora ', tipo: 'corretor', tipoPessoa: 'pj', creci: 'CRECI 12.345-F', creciUf: 'rj', documento: '111.444.777-35' });
   assert.equal(pf.status, 200);
-  assert.deepEqual([pf.body.nome, pf.body.creci, pf.body.creciUf, pf.body.documento, pf.body.tipoPessoa], ['Maria Corretora', '12345', 'RJ', '11144477735', 'pf']);
-  assert.equal(pf.body.oab, null);          // OAB não pertence ao corretor
-  assert.equal(pf.body.responsavel, null);  // responsável só para pessoa jurídica
+  assert.deepEqual([pf.body.nome, pf.body.creci, pf.body.creciUf, pf.body.tipoPessoa], ['Maria Corretora', '12345', 'RJ', 'pf']);
+  assert.equal(registroProfissional(pf.body), 'CRECI-PF RJ-12345');
 
-  // documento: dígitos verificadores conforme a pessoa
-  assert.equal(await msg({ nome: 'X', tipo: 'indicador', tipoPessoa: 'pf', documento: '111.444.777-36' }), 'CPF inválido');
-  assert.equal(await msg({ nome: 'X', tipo: 'indicador', tipoPessoa: 'pj', documento: '11.222.333/0001-82' }), 'CNPJ inválido');
-  assert.equal(await msg({ nome: 'X', tipo: 'indicador', tipoPessoa: 'pj', documento: '111.444.777-35' }), 'CNPJ inválido');
-
-  // imobiliária: sempre pessoa jurídica, com CRECI jurídico e responsável
-  assert.equal(await msg({ nome: 'Imob', tipo: 'imobiliaria', tipoPessoa: 'pf', creci: '1234', creciUf: 'RJ' }), 'Imobiliária é sempre pessoa jurídica');
-  const pj = await criar({ nome: 'Imobiliária Centro Ltda', tipo: 'imobiliaria', tipoPessoa: 'pj', creci: '9876', creciUf: 'RJ', documento: '11.222.333/0001-81', responsavel: 'João Responsável' });
+  // imobiliária: CRECI-PJ, sempre pessoa jurídica, com responsável
+  assert.match(await msg({ nome: 'Imob', tipo: 'imobiliaria' }), /CRECI-PJ/);
+  const pj = await criar({ nome: 'Imobiliária Centro Ltda', tipo: 'imobiliaria', tipoPessoa: 'pf', creci: '9876', creciUf: 'RJ', documento: '11.222.333/0001-81', responsavel: 'João Responsável' });
   assert.equal(pj.status, 200);
   assert.deepEqual([pj.body.tipoPessoa, pj.body.creci, pj.body.responsavel], ['pj', '9876', 'João Responsável']);
+  assert.equal(registroProfissional(pj.body), 'CRECI-PJ RJ-9876');
 
   // advogado: OAB e UF obrigatórias; sem CRECI
-  assert.match(await msg({ nome: 'Dr. Paulo', tipo: 'advogado', tipoPessoa: 'pf' }), /número da OAB/);
-  assert.match(await msg({ nome: 'Dr. Paulo', tipo: 'advogado', tipoPessoa: 'pf', oab: '123456' }), /UF da OAB/);
-  assert.match(await msg({ nome: 'Dr. Paulo', tipo: 'advogado', tipoPessoa: 'pf', oab: '123456', oabUf: 'XX' }), /UF inválida/);
-  const adv = await criar({ nome: 'Dr. Paulo', tipo: 'advogado', tipoPessoa: 'pf', oab: 'OAB/RJ 123.456', oabUf: 'RJ', creci: '555', creciUf: 'RJ' });
-  assert.equal(adv.status, 200);
-  assert.deepEqual([adv.body.oab, adv.body.oabUf, adv.body.creci], ['123456', 'RJ', null]);
+  assert.match(await msg({ nome: 'Dr. Paulo', tipo: 'advogado' }), /número da OAB/);
+  assert.match(await msg({ nome: 'Dr. Paulo', tipo: 'advogado', oab: '123456' }), /UF da OAB/);
+  const adv = await criar({ nome: 'Dr. Paulo', tipo: 'advogado', oab: 'OAB/RJ 123.456', oabUf: 'RJ', creci: '555', creciUf: 'RJ' });
+  assert.deepEqual([adv.body.oab, adv.body.creci, registroProfissional(adv.body)], ['123456', null, 'OAB RJ-123456']);
 
-  // tipo inventado e edição trocando de tipo limpam o que não vale mais
-  assert.equal(await msg({ nome: 'X', tipo: 'inventado' }), 'Tipo de parceiro inválido');
+  // indicador: sem registro profissional, pessoa física ou jurídica; documento conforme a pessoa
+  assert.equal(await msg({ nome: 'X', tipo: 'indicador', tipoPessoa: 'pj', documento: '111.444.777-35' }), 'CNPJ inválido');
+  const ind = await criar({ nome: 'Indicador PJ', tipo: 'indicador', tipoPessoa: 'pj', creci: '123', creciUf: 'RJ' });
+  assert.deepEqual([ind.body.tipoPessoa, ind.body.creci, registroProfissional(ind.body)], ['pj', null, '']);
+
+  // trocar de tipo limpa o registro que não vale mais
   const troca = await req('PUT', `/api/parceiros/${pf.body.id}`, { token, body: { tipo: 'indicador', status: '' } });
-  assert.equal(troca.status, 200);
   assert.deepEqual([troca.body.tipo, troca.body.creci, troca.body.status], ['indicador', null, 'ativo']);
   assert.equal((await req('PUT', '/api/parceiros/99999', { token, body: { nome: 'x' } })).status, 404);
 });
 
-test('apresentação: rodapé da 2ª folha traz o vínculo do parceiro com CRECI físico/jurídico ou OAB, sem contato', async () => {
-  const novo = async (parceiro) => {
-    const p = (await req('POST', '/api/parceiros', { token, body: { telefone: '(21) 99999-0000', email: 'segredo@parceiro.com', ...parceiro } })).body;
-    const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua dos Vínculos', cidade: 'Rio de Janeiro', descricao: 'Texto', parceiroId: p.id } })).body;
-    return (await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text()).replace(/<style>[\s\S]*?<\/style>/, '');
-  };
-  const rodape = (html) => html.split('<article class="sheet details"')[1].match(/<footer class="document-footer band">[\s\S]*?<\/footer>/)[0].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ');
-
-  const fisica = rodape(await novo({ nome: 'Maria Corretora', tipo: 'corretor', tipoPessoa: 'pf', creci: '12345', creciUf: 'RJ' }));
-  assert.match(fisica, /Corretor Maria Corretora CRECI Físico RJ-12345/);
-  const juridica = rodape(await novo({ nome: 'Imobiliária Centro', tipo: 'imobiliaria', tipoPessoa: 'pj', creci: '9876', creciUf: 'RJ' }));
-  assert.match(juridica, /Imobiliária Imobiliária Centro CRECI Jurídico RJ-9876/);
-  const advogado = rodape(await novo({ nome: 'Dr. Paulo', tipo: 'advogado', tipoPessoa: 'pf', oab: '123456', oabUf: 'RJ' }));
-  assert.match(advogado, /Advogado Dr\. Paulo OAB RJ-123456/);
-
-  // documento público: o contato do parceiro nunca vai junto
-  const html = await novo({ nome: 'Sigilo', tipo: 'corretor', tipoPessoa: 'pf', creci: '5555', creciUf: 'SP' });
-  assert.doesNotMatch(html, /99999-0000|segredo@parceiro/);
-  // sem parceiro, sem bloco de vínculo
-  const sem = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Sem Vínculo', cidade: 'Rio de Janeiro', descricao: 'Texto' } })).body;
-  assert.doesNotMatch(await (await fetch(`${getBase()}/apresentacao/${sem.id}`)).text(), /class="partner"/);
+test('apresentação: o vínculo do parceiro (corretor, imobiliária, advogado) não aparece no documento', async () => {
+  const p = (await req('POST', '/api/parceiros', { token, body: { nome: 'Maria Corretora', tipo: 'corretor', tipoPessoa: 'pf', creci: '12345', creciUf: 'RJ', telefone: '(21) 99999-0000', email: 'segredo@parceiro.com' } })).body;
+  const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua dos Vínculos', cidade: 'Rio de Janeiro', descricao: 'Texto', parceiroId: p.id } })).body;
+  const html = await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text();
+  assert.doesNotMatch(html, /Maria Corretora|CRECI|class="partner"|99999-0000|segredo@parceiro/);
 });
 
 test('operador do ponto: mesmo cadastro dos proprietários, com papel, e vínculo próprio no imóvel', async () => {
