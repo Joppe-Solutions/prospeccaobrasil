@@ -117,8 +117,32 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
 .val { display:block; padding:7px 8px; border:1.5px solid var(--ink); border-radius:2px; text-align:center; font-size:13.5px; font-weight:700; letter-spacing:.4px; white-space:nowrap; color:var(--ink); }
 .ficha .fine-print,.ficha .contract { margin-top:10px; }
 @media screen and (max-width:720px) { .ficha { grid-template-columns:1fr; gap:24px; } .ficha .bloco.espelho { padding:0; border-left:0; } .espelho .linhas li { grid-template-columns:34px 1fr 1.15fr; } .espelho .linhas li .val { order:3; } .espelho .linhas li .ico { order:1; } }
+/* Painel premium (verde da marca, como na landing page): cards de KPI + Termos comerciais e Dimensões */
+.painel { --dourado:#e8b84b; --claro:#dcebe4; --suave:#9fbfb1; margin:16px 0 14px; padding:20px 24px 18px; border-radius:8px;
+  background:radial-gradient(circle at 85% 0%, #8bb59d22, transparent 42%), linear-gradient(135deg,#0a3431 0%,#0d4a43 60%,#12312d 100%); color:var(--claro); break-inside:avoid; }
+.painel .highlights { margin:0 0 20px; padding:4px 0 18px; border-top:0; border-bottom:1px solid #ffffff26; gap:0; }
+.painel .highlights>div { padding:0 14px; }
+.painel .highlights>div+div { border-left:1px solid #ffffff26; }
+.painel .highlights .small-label { color:var(--dourado); font-size:11.5px; letter-spacing:2.6px; }
+.painel .highlights .card-name { color:var(--claro); font-size:10px; letter-spacing:.6px; text-transform:uppercase; margin-top:2px; }
+.painel .highlights strong { color:#fff; font-size:30px; margin:8px 0 4px; }
+.painel .highlights small { color:var(--suave); }
+.painel .ficha { margin-top:0; }
+.painel .ficha .bloco.espelho { border-left:1px solid #ffffff33; }
+.painel .caixa { border:1px solid var(--dourado); color:var(--dourado); margin-bottom:18px; padding:8px 24px; letter-spacing:3.5px; }
+.painel .linhas { gap:14px; }
+.painel .ico { width:38px; height:38px; background:#ffffff14; border:1px solid #e8b84b80; color:var(--dourado); }
+.painel .ico svg { width:20px; height:20px; }
+.painel .linhas li { grid-template-columns:38px 1fr 1.15fr; gap:12px; }
+.painel .espelho .linhas li { grid-template-columns:1.15fr 1fr 38px; }
+.painel .rot b { color:#fff; border-bottom:1px solid #e8b84b99; padding-bottom:4px; }
+.painel .rot small { color:var(--suave); margin-top:3px; }
+.painel .val { border:1px solid #ffffff59; background:#ffffff0d; color:#fff; padding:9px 8px; font-size:14px; border-radius:4px; }
+.painel .fine-print { color:var(--suave); }
+.painel .contract { color:var(--claro); }
 @media print {
- .ficha .bloco { padding-right:16px; } .ficha .bloco.espelho { padding-left:16px; } .linhas { gap:4px; } .caixa { margin-bottom:7px; padding:4px 18px; font-size:10px; } .ico { width:24px; height:24px; } .ico svg { width:14px; height:14px; } .linhas li { grid-template-columns:24px 1fr 1.15fr; gap:8px; } .espelho .linhas li { grid-template-columns:1.15fr 1fr 24px; } .rot b { font-size:8.5px; padding-bottom:2px; } .rot small { font-size:6.5px; margin-top:1px; } .val { padding:3.5px 6px; font-size:11px; } .ficha .fine-print { margin-top:5px; } .ficha .contract { margin-top:6px; }
+ .painel { margin:10px 0 8px; padding:13px 16px 11px; } .painel .highlights { margin:0 0 12px; padding:2px 0 11px; } .painel .highlights strong { font-size:23px; margin:5px 0 2px; } .painel .highlights .small-label { font-size:10px; } .painel .highlights .card-name { font-size:8.5px; }
+ .ficha .bloco { padding-right:16px; } .ficha .bloco.espelho { padding-left:16px; } .painel .linhas { gap:8px; } .painel .caixa { margin-bottom:11px; padding:5px 18px; font-size:10px; } .painel .ico { width:28px; height:28px; } .painel .ico svg { width:15px; height:15px; } .painel .linhas li { grid-template-columns:28px 1fr 1.15fr; gap:9px; } .painel .espelho .linhas li { grid-template-columns:1.15fr 1fr 28px; } .rot b { font-size:8.5px; padding-bottom:2px; } .rot small { font-size:6.5px; margin-top:1px; } .painel .val { padding:5.5px 6px; font-size:11.5px; } .ficha .fine-print { margin-top:6px; } .ficha .contract { margin-top:7px; }
  .compact .details,.digital-only,.viewer { display:none!important; }.print-only { display:block; }
  .compact .visit-resumo { display:flex; }
  /* Visita no papel: faixa de uma linha (rótulo e título à esquerda, contatos à direita) */
@@ -126,7 +150,7 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
  .visit-resumo .small-label,.details .contact .small-label { grid-area:1/1; }.visit-resumo h2,.details .contact h2 { grid-area:2/1; margin:0; font-size:17px; }
  .visit-resumo p:first-of-type,.details .contact p:first-of-type { grid-area:1/2; justify-self:end; font-size:10px; }.visit-resumo .email,.details .contact .email { grid-area:2/2; justify-self:end; font-size:10px; }.visit-resumo .fine-print,.details .contact .fine-print { display:none; }
  .banner .qr img { width:40px; height:40px; }.banner .qr { padding:3px 3px 2px; }
- .hero img,.map,.hero-row.has-map .no-photo { height:60mm; }.intro { padding:12px 0; } h1 { font-size:25px; }
+ .hero img,.map,.hero-row.has-map .no-photo { height:52mm; }.compact .hero img,.compact .map,.compact .hero-row.has-map .no-photo { height:42mm; }.complete .hero img,.complete .map,.complete .hero-row.has-map .no-photo { height:52mm; }.complete .painel { padding:16px 18px 14px; }.complete .painel .linhas { gap:9px; }.complete .painel .val { padding:6.5px 6px; }.complete .painel .highlights { margin-bottom:15px; padding-bottom:13px; }.intro { padding:12px 0; } h1 { font-size:25px; }
  .highlights { margin:12px 0; padding:10px 0; }.highlights strong { font-size:24px; }.highlights.three strong { font-size:21px; }.context { margin-bottom:8px; }.context-grid strong { font-size:15px; }.first-foot { padding-top:8px; }
  .facts>div { padding:7px 9px; font-size:10.5px; }.contact { margin-top:12px; padding:10px 0; }.contact h2 { font-size:21px; }
  .document-header { padding-bottom:10px; }.document-footer { padding-top:7px; }.disclaimer { margin:4px 0 10px; }
