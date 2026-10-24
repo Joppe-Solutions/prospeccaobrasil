@@ -125,6 +125,9 @@ h3.sub { font:16px Georgia,serif; font-weight:400; margin:0 0 6px; } h3.sub span
 .cover-left { flex:1; min-width:0; padding:15mm 14mm 11mm 18mm; display:flex; flex-direction:column; justify-content:space-between; }
 .cover-right { flex:0 0 34%; background:var(--ink) center/cover no-repeat; position:relative; }
 .cover-right::before { content:''; position:absolute; left:0; top:0; bottom:0; width:4px; background:var(--gold); }
+/* Monograma da marca (o mesmo do favicon), grande e translúcido, deslocado para a borda direita */
+.cover-right { overflow:hidden; }
+.cover-mark { position:absolute; right:-16mm; top:50%; transform:translateY(-58%); width:125mm; height:auto; opacity:.28; pointer-events:none; }
 .cover-right-inner { position:absolute; left:12mm; bottom:12mm; display:flex; flex-direction:column; gap:6px; }
 .cover-code { font:44px/1 Georgia,serif; color:#fff; letter-spacing:1px; }
 .cover-tag { font-size:11px; letter-spacing:3px; text-transform:uppercase; color:#e8d9a8; }

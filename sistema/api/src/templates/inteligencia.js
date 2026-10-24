@@ -366,6 +366,7 @@ function renderInteligencia(imovel, analise, demo) {
       <div class="cover-bottom"><span>PROSPECÇÃO BRASIL · RETAIL &amp; REAL ESTATE</span><span>${esc(dataDoc)} · ${esc(imovel.codigo)}</span></div>
     </div>
     <div class="cover-right"${foto ? ` style="background-image:linear-gradient(rgba(21,60,52,.25),rgba(21,60,52,.55)),url('${esc(foto.arquivo)}')"` : ''}>
+      <img class="cover-mark" src="/images/monograma-pb.png" alt="" aria-hidden="true">
       <div class="cover-right-inner"><span class="cover-code">${esc(imovel.codigo)}</span><span class="cover-tag">${esc(imovel.cidade || '')}${imovel.uf ? ` · ${esc(imovel.uf)}` : ''}</span></div>
     </div>
   </div>
