@@ -8,7 +8,7 @@
 const censo2022 = require('./censo2022');
 const setores = require('./setores');
 const { entorno } = require('./entorno');
-const { geocode } = require('./mapas');
+const { geocode, mapaEstatico, usaGoogle } = require('./mapas');
 
 const CACHE = new Map();
 const TTL = 24 * 60 * 60 * 1000;
@@ -78,6 +78,16 @@ function mapa(geo, { z = 15, cols = 3, rows = 3 } = {}) {
   return { z, tiles, w: cols * ts, h: rows * ts, px, py, r1: 1000 / mpp, r2: 2000 / mpp };
 }
 
+// Com a chave do Google: imagem estática centrada no ponto (512 px em escala 2 no zoom 14 = 1024 px no zoom 15),
+// embutida no documento (a chave nunca vai para a página). O anel de 1 km é desenhado por cima, como nos tiles.
+async function mapaGoogle(geo) {
+  if (!geo || !usaGoogle()) return null;
+  const imagem = await Promise.race([mapaEstatico(geo, { largura: 512, altura: 512, zoom: 14, marcador: false }), new Promise((r) => setTimeout(r, 8000, null))]).catch(() => null);
+  if (!imagem) return null;
+  const base = mapa(geo, { z: 15, cols: 4, rows: 4 });
+  return { ...base, tiles: [], google: `data:image/png;base64,${imagem.toString('base64')}`, px: base.w / 2, py: base.h / 2 };
+}
+
 async function demografia(imovel) {
   try {
     if (!imovel.cidade || !imovel.uf) return null;
@@ -104,7 +114,7 @@ async function demografia(imovel) {
         temBairros: censo2022.temBairros(mun.id),
       } : null,
       geo,
-      mapa: mapa(geo, { z: 15, cols: 4, rows: 4 }), // zoom 15: o raio de 1 km ocupa o mapa
+      mapa: await mapaGoogle(geo) || mapa(geo, { z: 15, cols: 4, rows: 4 }), // zoom 15: o raio de 1 km ocupa o mapa
       entorno: entornoRua,
       fonte: `Estimativas de população — IBGE (agregado 6579) · ${censo2022.FONTE}`,
     };

@@ -179,3 +179,5 @@
   composição do comércio em 1 km (no lugar do antigo Flash de Mercado).
 - Overpass público lento (~30 s): timeout de 75 s, consultas em andamento compartilhadas, pré-carga ao salvar o imóvel
   e ao gerar a análise; o relatório espera até 40 s pelo entorno.
+- Mapa do relatório de inteligência: com a chave do Google, imagem estática (512 px escala 2, zoom 14, sem marcador)
+  embutida em base64 e o anel de 1 km desenhado por cima; sem chave ou falha, tiles do OpenStreetMap.

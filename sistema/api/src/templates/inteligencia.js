@@ -38,14 +38,14 @@ function mapVisual(imovel, demo) {
     const tiles = m.tiles.map((t) =>
       `<img src="https://tile.openstreetmap.org/${m.z}/${t.x}/${t.y}.png" alt="" width="256" height="256" style="position:absolute;left:${t.left}px;top:${t.top}px" crossorigin="anonymous">`).join('');
     return `<div class="map-real" style="width:${m.w}px;height:${m.h}px" role="img" aria-label="Mapa da área de influência">
-      ${tiles}
+      ${m.google ? `<img src="${m.google}" alt="" width="${m.w}" height="${m.h}" style="position:absolute;left:0;top:0">` : tiles}
       <svg width="${m.w}" height="${m.h}" style="position:absolute;left:0;top:0">
         <circle cx="${m.px}" cy="${m.py}" r="${m.r1}" fill="rgba(21,60,52,0.12)" stroke="#a27a35" stroke-width="2"/>
         <circle cx="${m.px}" cy="${m.py}" r="8" fill="#153c34" stroke="#fff" stroke-width="2"/>
         <text x="${Math.min(m.px + 14, m.w - 60)}" y="${m.py - m.r1 - 8}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">1 km</text>
         <text x="${Math.min(m.px + 16, m.w - 80)}" y="${m.py + 5}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(imovel.codigo)}</text>
       </svg>
-      <span class="map-attr">© OpenStreetMap contributors${demo.geo?.fonte ? ` · centro: ${esc(demo.geo.fonte)}` : ''}</span>
+      ${m.google ? '' : `<span class="map-attr">© OpenStreetMap contributors${demo.geo?.fonte ? ` · centro: ${esc(demo.geo.fonte)}` : ''}</span>`}
     </div>`;
   }
   return `<svg class="map-visual" viewBox="0 0 360 300" role="img" aria-label="Área de influência esquemática">
@@ -190,7 +190,7 @@ function renderInteligencia(imovel, analise, demo) {
         <div class="raios"><span><i></i>Raio de 1 km</span><span><b></b>${esc(imovel.codigo)}</span></div>
         ${imovel.googleMapsUrl ? `<p class="link"><a href="${esc(imovel.googleMapsUrl)}" target="_blank" rel="noopener noreferrer">Abrir localização no Google Maps ↗</a></p>` : ''}
       </div>
-    </div>`, 'Mapa: OpenStreetMap contributors · raio em linha reta a partir do ponto');
+    </div>`, `Mapa: ${demo?.mapa?.google ? 'Google Maps' : 'OpenStreetMap contributors'} · raio em linha reta a partir do ponto`);
 
   // População e domicílios
   if (areas.length) {

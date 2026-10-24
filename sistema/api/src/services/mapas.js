@@ -145,14 +145,14 @@ async function geocode(imovel) {
 
 // Imagem do mapa com marcador (Google Static Maps), guardada em disco: cada imóvel custa uma
 // única chamada. Devolve Buffer PNG ou null (sem chave, falha ou limite da conta).
-async function mapaEstatico(geo, { largura = 640, altura = 490, zoom } = {}) {
+async function mapaEstatico(geo, { largura = 640, altura = 490, zoom, marcador = true } = {}) {
   if (!usaGoogle() || !geo) return null;
   const z = zoom || (geo.precisao === 'rua' ? 16 : 17);
   const ponto = `${geo.lat.toFixed(6)},${geo.lon.toFixed(6)}`;
-  const arquivo = path.join(CACHE_DIR(), 'img', `${hash(`${ponto}|${z}|${largura}x${altura}`)}.png`);
+  const arquivo = path.join(CACHE_DIR(), 'img', `${hash(`${ponto}|${z}|${largura}x${altura}${marcador ? '' : '|sem-marcador'}`)}.png`);
   const salvo = lerCache(arquivo, { binario: true });
   if (salvo) return salvo;
-  const url = `https://maps.googleapis.com/maps/api/staticmap?center=${ponto}&zoom=${z}&size=${largura}x${altura}&scale=2&maptype=roadmap&language=pt-BR&region=br&markers=${encodeURIComponent(`color:0x153c34|size:mid|${ponto}`)}&key=${encodeURIComponent(chaveGoogle())}`;
+  const url = `https://maps.googleapis.com/maps/api/staticmap?center=${ponto}&zoom=${z}&size=${largura}x${altura}&scale=2&maptype=roadmap&language=pt-BR&region=br${marcador ? `&markers=${encodeURIComponent(`color:0x153c34|size:mid|${ponto}`)}` : ''}&key=${encodeURIComponent(chaveGoogle())}`;
   try {
     const r = await fetch(url, { signal: AbortSignal.timeout(15000) });
     if (!r.ok || !String(r.headers.get('content-type') || '').startsWith('image/')) throw new Error(`Static Maps ${r.status}`);
