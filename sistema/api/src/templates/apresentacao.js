@@ -2,6 +2,7 @@ const { Prisma } = require('@prisma/client');
 const { DOC_PUBLICOS } = require('../lib/publicDocs');
 const { TIPOS_PARCEIRO, registroProfissional } = require('../lib/parceiros');
 const styles = require('./apresentacao.styles');
+const G = require('./graficos');
 
 const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({
   '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
@@ -50,16 +51,17 @@ function mapFigure(i, m) {
   return `<figure class="hero-map"><a class="map" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer" aria-label="Abrir a localização do imóvel no Google Maps">${corpo}</a><figcaption>${aproximada ? 'Localização aproximada' : 'Localização'}<span>${esc([i.bairro, i.cidade].filter(Boolean).join(' · '))}</span></figcaption></figure>`;
 }
 
-// Indicadores de inteligência territorial e comercial: moradores no raio de 500 m (setores do Censo 2022; sem eles, o bairro) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
+// Indicadores de inteligência territorial e comercial: moradores no raio de 1 km (setores do Censo 2022; sem eles, o bairro) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
 function contextSection(i, contexto) {
-  const raio = contexto?.raio || null;
-  const b = raio || contexto?.bairro, e = contexto?.entorno;
+  const raio = contexto?.raio || null, bairro = contexto?.bairro || null;
+  const b = raio || bairro, e = contexto?.entorno;
   const int = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
   const tiles = [
-    b && present(b.populacao) && [raio ? 'Moradores em 500 m' : 'Moradores no bairro', int(b.populacao), raio ? 'raio do ponto · Censo 2022' : `${esc(b.nome)} · Censo 2022`],
+    b && present(b.populacao) && [raio ? 'Moradores em 1 km' : 'Moradores no bairro', int(b.populacao), raio ? 'raio do ponto · Censo 2022' : `${esc(b.nome)} · Censo 2022`],
     b && present(b.rendaMedia) && ['Renda média', `R$ ${int(b.rendaMedia)}`, 'do responsável pelo domicílio'],
-    b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), `${raio ? 'em 500 m' : 'no bairro'} · Censo 2022`],
-    e && ['Comércio e serviços', int(e.total500), 'mapeados a até 500 m'],
+    raio && bairro && present(bairro.populacao) ? ['Moradores no bairro', int(bairro.populacao), `${esc(bairro.nome)} · Censo 2022`]
+      : b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), `${raio ? 'em 1 km' : 'no bairro'} · Censo 2022`],
+    e && ['Comércio e serviços', int(e.total1000), 'mapeados a até 1 km'],
   ].filter(Boolean);
   if (!tiles.length) return '';
   return `<section class="context"><h3>Indicadores de Inteligência Territorial e Comercial</h3>
@@ -76,27 +78,21 @@ function infraSection(contexto) {
 <p class="fine-print">Fonte: OpenStreetMap · distâncias em linha reta a partir do imóvel; mapeamento colaborativo.</p></section>`;
 }
 
-// "Flash de Mercado": resumo da última análise de inteligência do imóvel (a mesma do detalhe no sistema)
-function flashSection(i) {
-  const analise = i.analises?.[0];
-  if (!analise) return '';
-  let ai = {};
-  try { ai = analise.conteudoJson ? JSON.parse(analise.conteudoJson) : {}; } catch { ai = {}; }
-  const lista = (itens, n) => (itens || []).slice(0, n).map(t => `<li>${esc(String(t).length > 105 ? `${String(t).slice(0, 104).trimEnd()}…` : t)}</li>`).join('');
-  const fortes = lista(ai.pontosFortes, 3), atencao = lista(ai.pontosAtencao, 3);
-  const segmentos = (ai.segmentosRecomendados || []).slice(0, 6);
-  const score = Number(analise.score);
-  const pct = Number.isFinite(score) ? Math.max(0, Math.min(100, score)) : null;
-  const resumo = String(analise.resumo || '');
-  if (pct === null && !fortes && !atencao && !resumo) return '';
-  return `<section class="flash" aria-label="Flash de Mercado"><header><h3>Flash de Mercado</h3><span>Leitura do ponto a partir dos dados cadastrados</span></header>
-<div class="flash-grid">
-${pct === null ? '' : `<div class="flash-score"><div class="flash-ring" style="background:conic-gradient(#e8b84b ${pct}%, rgba(255,255,255,.16) 0)"><span>${pct}</span></div><small>Score de triagem</small></div>`}
-<div class="flash-resumo">${resumo ? `<p>${esc(resumo.length > 230 ? `${resumo.slice(0, 229).trimEnd()}…` : resumo)}</p>` : ''}${ai.recomendacao ? `<p class="flash-rec"><strong>Recomendação:</strong> ${esc(String(ai.recomendacao).length > 170 ? `${String(ai.recomendacao).slice(0, 169).trimEnd()}…` : ai.recomendacao)}</p>` : ''}</div>
-${fortes ? `<div><h4>Pontos fortes</h4><ul>${fortes}</ul></div>` : ''}${atencao ? `<div><h4>Atenção</h4><ul>${atencao}</ul></div>` : ''}
-</div>
-${segmentos.length ? `<div class="flash-seg"><h4>Segmentos recomendados</h4>${segmentos.map(t => `<span>${esc(t)}</span>`).join('')}</div>` : ''}
-<p class="flash-nota">Triagem automática com base nos dados do imóvel; não constitui estudo de mercado.</p></section>`;
+// Comércio, serviços e transporte em 1 km (OpenStreetMap): a mesma leitura da página
+// "O que existe ao redor do ponto" da inteligência de mercado — tabela de transporte e composição em rosca.
+function entornoSection(contexto) {
+  const e = contexto?.entorno;
+  if (!e || !e.total1000) return '';
+  const int = v => Number(v || 0).toLocaleString('pt-BR');
+  const cores = [G.COR.verde, G.COR.dourado, G.COR.verde2, '#6f8fa8', G.COR.areia, '#b58b7a'];
+  const cats = (e.linhas || []).filter(l => l.r1000 > 0).sort((a, c) => c.r1000 - a.r1000);
+  const fatias = cats.slice(0, 5).map((l, k) => ({ rotulo: l.rotulo.replace(/ \(.*\)/, ''), valor: l.r1000, cor: cores[k] }));
+  const resto = cats.slice(5).reduce((n, l) => n + l.r1000, 0);
+  if (resto) fatias.push({ rotulo: 'Demais categorias', valor: resto, cor: cores[5] });
+  return `<section class="entorno1km"><h3>Comércio, serviços e transporte em 1 km</h3><div class="entorno1km-grid">
+<table class="transporte"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${(e.transporte || []).map(l => `<tr><td>${esc(l.rotulo)}</td><td>${int(l.r1000)}</td></tr>`).join('')}<tr class="total"><td>Total de estabelecimentos</td><td>${int(e.total1000)}</td></tr></tbody></table>
+${fatias.length > 1 ? `<figure class="composicao"><figcaption>Composição do comércio e serviços</figcaption>${G.rosca({ fatias, centro: { valor: int(e.total1000), titulo: 'estabelecimentos' }, largura: 400, altura: 170, descricao: 'Composição do comércio e serviços em 1 km' })}</figure>` : ''}
+</div><p class="fine-print">Fonte: OpenStreetMap · mapeamento colaborativo: as contagens indicam o mínimo existente.</p></section>`;
 }
 
 function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto = null } = {}) {
@@ -128,10 +124,10 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const porM2 = present(base) && Number(i.areaTotal) > 0 ? money(Number(base) / Number(i.areaTotal)) : null;
   const context = contextSection(i, contexto);
   const infra = infraSection(contexto);
-  const flash = flashSection(i);
+  const entorno1km = entornoSection(contexto);
   const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
-  const hasDetails = Boolean(i.descricao?.trim() || docs.length || infra || flash);
+  const hasDetails = Boolean(i.descricao?.trim() || docs.length || infra || entorno1km);
   // Vínculo comercial do imóvel (parceiro que o trouxe): tipo, nome e registro profissional
   const vinculo = i.parceiro?.nome ? `<div class="partner"><span>${esc(TIPOS_PARCEIRO[i.parceiro.tipo] || 'Parceiro')}</span><strong>${esc(i.parceiro.nome)}</strong>${registroProfissional(i.parceiro) ? `<span>${esc(registroProfissional(i.parceiro))}</span>` : ''}</div>` : '';
   const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div>${hasDetails ? '' : vinculo}<div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
@@ -152,7 +148,7 @@ ${context ? `<div class="first-foot">${context}${footer}</div>` : footer}</artic
 ${hasDetails ? `<article class="sheet details" aria-label="Informações complementares">${header}<div class="section-intro"><span class="eyebrow">Informações complementares</span><h2 class="digital-only">${esc(title)}</h2><h2 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h2><p>${esc(subtitle)}</p></div>
 ${i.descricao?.trim() ? `<section class="description"><h3>Sobre o imóvel</h3><p class="digital-only">${esc(i.descricao)}</p><p class="print-only">${esc(i.descricao.slice(0, 600))}${i.descricao.length > 600 ? '… Descrição completa na versão digital.' : ''}</p></section>` : ''}
 ${infra}
-${flash}
+${entorno1km}
 ${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul class="doc-grid">${docs.map((d, n) => `<li class="${n > 5 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer"><span><strong>${esc(d.nome || labels[d.tipo])}</strong><small>${esc(labels[d.tipo])}</small></span><span aria-hidden="true">↗</span></a></li>`).join('')}</ul>${docs.length > 6 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
 ${visita()}
 ${footerBand}</article>` : ''}

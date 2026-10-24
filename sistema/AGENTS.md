@@ -157,10 +157,10 @@
 - Mapa do formulário de imóvel (`components/MapaPonto.jsx`, Leaflet + tiles OSM): "Localizar endereço no mapa" chama
   `GET /api/imoveis/localizar` e o marcador arrastável preenche as coordenadas (que vencem qualquer geocodificação).
   O Nominatim tenta primeiro a busca estruturada (número + logradouro). Sem `GOOGLE_MAPS_API_KEY`, o número raramente é achado.
-- Inteligência no raio de 500 m: `services/setores.js` soma os setores censitários do Censo 2022 (RJ,
+- Inteligência no raio de 1 km: `services/setores.js` soma os setores censitários do Censo 2022 (RJ,
   `data/censo2022-setores-rj.json`, gerado por `scripts/build-censo2022-setores.py`) com a fração de cada setor dentro
   do raio; classes sociais somadas setor a setor (`somarClasses`). Sem coordenadas/fora do RJ, o relatório usa o bairro.
-  O entorno (OSM) mostra só 500 m.
+  O entorno (OSM) mostra só 1 km.
 - Ações das operações: proposta com situação (sem proposta → em elaboração → enviada → em análise → contraproposta →
   aceita/recusada), valor, data de envio, retorno previsto e observação. Enviada/em análise movem a etapa para
   Proposta; contraproposta → Negociação; recusada → Perdido.
@@ -171,6 +171,11 @@
   409 com ações das operações), termo do glossário (admin) e lançamento financeiro só "previsto" (pago/estornado
   ficam no histórico; usa-se estorno). Benchmark não tem exclusão (tabela fixa de referências).
 - PDF da inteligência: `GET /inteligencia/:id/pdf` (mesma sessão/?token= do documento), A4 paisagem pelo Chromium.
-- Apresentação: indicadores do rodapé da 1ª folha usam o raio de 500 m (setores) quando há coordenadas; senão o bairro.
+- Apresentação: indicadores do rodapé da 1ª folha usam o raio de 1 km (setores) quando há coordenadas; senão o bairro.
 - Backup diário: `api/scripts/backup.sh` via /etc/cron.d/prospeccao-backup (03:15, 30 cópias .db.gz em backups/).
   Com `BACKUP_REMOTE=<remoto rclone>` no .env e o rclone configurado na VPS, envia a cópia para fora.
+- Raio de análise: 1 km em todo o sistema (setores censitários, entorno OSM, mapas). O bairro do imóvel entra como
+  coluna de contexto no relatório e como indicador na apresentação. A 2ª folha da apresentação traz transporte e a
+  composição do comércio em 1 km (no lugar do antigo Flash de Mercado).
+- Overpass público lento (~30 s): timeout de 75 s, consultas em andamento compartilhadas, pré-carga ao salvar o imóvel
+  e ao gerar a análise; o relatório espera até 40 s pelo entorno.

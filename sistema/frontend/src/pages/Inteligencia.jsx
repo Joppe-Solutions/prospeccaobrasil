@@ -10,7 +10,7 @@ import './business.css';
 const fmtData = (v) => v ? new Date(v).toLocaleDateString('pt-BR') : '—';
 const CONTEUDO = [
   [UsersThree, 'Bairro', 'População, domicílios, faixa etária e renda do Censo 2022, comparados ao município.'],
-  [MapPin, 'Rua e entorno', 'Comércio, serviços e transporte a 500 m e 1 km, tipo da via e geradores de fluxo mais próximos.'],
+  [MapPin, 'Rua e entorno', 'Comércio, serviços e transporte até 1 km, tipo da via e geradores de fluxo mais próximos.'],
   [Sparkle, 'Triagem do ponto', 'Pontos fortes, pontos de atenção e segmentos sugeridos a partir do cadastro do imóvel.'],
 ];
 

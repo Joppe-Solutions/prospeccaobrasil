@@ -914,7 +914,7 @@ test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalh
   const imovel = { codigo: 'PB-IND', titulo: 'Loja teste', endereco: 'Rua A', numero: '1', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', aluguel: 10000, areaTotal: 100, criadoEm: '2026-10-01', fotos: [], documentos: [] };
   const contexto = {
     bairro: { nome: 'Centro', populacao: 23774, rendaMedia: 4195.82, domiciliosOcupados: 12996 },
-    entorno: { total500: 393, destaques: [{ rotulo: 'Banco', nome: 'Itaú', dist: 180 }] },
+    entorno: { total500: 393, total1000: 393, destaques: [{ rotulo: 'Banco', nome: 'Itaú', dist: 180 }] },
   };
   const html = renderApresentacao(imovel, 'data:image/png;base64,AAAA', { contexto });
   const primeira = html.split('<article class="sheet details"')[0];
@@ -936,7 +936,7 @@ test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalh
   assert.doesNotMatch(semDados, /first-foot|Indicadores de Inteligência/);
 });
 
-test('apresentação: ABL só no destaque, Flash de Mercado no lugar das fotos, documentos em grade e visita no fim da 2ª folha', () => {
+test('apresentação: ABL só no destaque, entorno em 1 km no lugar das fotos, documentos em grade e visita no fim da 2ª folha', () => {
   const { renderApresentacao } = require('../src/templates/apresentacao');
   const base = { id: 9, codigo: 'PB-LAY', titulo: 'Loja layout', endereco: 'Rua B', bairro: 'Centro', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', aluguel: 10000, areaTotal: 100, areaUtil: 90, peDireito: 4, criadoEm: '2026-10-01' };
   const fotos = Array.from({ length: 8 }, (_, n) => ({ arquivo: `f${n}.jpg`, legenda: `Foto ${n}` }));
@@ -951,13 +951,17 @@ test('apresentação: ABL só no destaque, Flash de Mercado no lugar das fotos, 
   assert.doesNotMatch(corpo(html), /Custo mensal/);
   assert.doesNotMatch(primeira.match(/Características do imóvel[\s\S]*?<\/section>/)[0], /ABL/);
 
-  // 2ª folha sem fotos: no lugar, o "Flash de Mercado" (só quando já há análise)
+  // 2ª folha sem fotos e sem o Flash de Mercado: no lugar, transporte e composição do comércio em 1 km
   assert.equal((segunda.match(/<figure data-foto=/g) || []).length, 0);
   assert.doesNotMatch(segunda, /Ver todas as fotos|class="gallery"/);
-  assert.doesNotMatch(corpo(segunda), /Flash de Mercado/);
-  const analise = { score: 72, resumo: 'Ponto com bom fluxo.', modelo: 'regras', conteudoJson: JSON.stringify({ pontosFortes: ['Esquina'], pontosAtencao: ['Ruído'], segmentosRecomendados: ['Farmácia'], recomendacao: 'Priorizar.' }) };
-  const comFlash = renderApresentacao({ ...base, fotos, documentos: docs, descricao: 'Texto', analises: [analise] }, 'data:image/png;base64,AAAA', { completa: true }).split('<article class="sheet details"')[1];
-  assert.match(corpo(comFlash), /Flash de Mercado[\s\S]*72[\s\S]*Esquina[\s\S]*Ruído[\s\S]*Farmácia/);
+  assert.doesNotMatch(corpo(html), /Flash de Mercado/);
+  const entorno = { total1000: 101, linhas: [{ rotulo: 'Alimentação (restaurantes, bares, cafés)', r1000: 26 }, { rotulo: 'Farmácias e saúde', r1000: 15 }, { rotulo: 'Outras lojas e serviços', r1000: 60 }], transporte: [{ rotulo: 'Pontos de ônibus', r1000: 7 }, { rotulo: 'Estações de metrô, trem ou VLT', r1000: 0 }], destaques: [{ rotulo: 'Farmácia', nome: 'Pacheco', dist: 100 }] };
+  const comEntorno = renderApresentacao({ ...base, fotos, documentos: docs, descricao: 'Texto' }, 'data:image/png;base64,AAAA', { completa: true, contexto: { entorno } }).split('<article class="sheet details"')[1];
+  assert.match(corpo(comEntorno), /Comércio, serviços e transporte em 1 km[\s\S]*Pontos de ônibus<\/td><td>7[\s\S]*Total de estabelecimentos<\/td><td>101/);
+  const rosca = comEntorno.match(/<figure class="composicao">[\s\S]*?<\/figure>/)[0];
+  assert.match(rosca, /<svg/);
+  assert.match(rosca, /Alimentação/);
+  assert.match(rosca, /estabelecimentos/);
 
   // documentos em grade; 6 no papel (resto só na versão digital)
   assert.match(segunda, /class="doc-grid"/);
@@ -1322,14 +1326,14 @@ test('inteligência em PDF gerado no servidor: exige sessão e sai em A4 paisage
   }
 });
 
-test('apresentação: indicadores do rodapé usam o raio de 500 m quando há setores censitários', () => {
+test('apresentação: indicadores do rodapé usam o raio de 1 km e trazem o bairro quando há setores censitários', () => {
   const { renderApresentacao } = require('../src/templates/apresentacao');
   const setores = require('../src/services/setores');
-  const raio = setores.raio(-22.9025, -43.2795, 500);
+  const raio = setores.raio(-22.9025, -43.2795, 1000);
   const base = { id: 7, codigo: 'PB-R5', endereco: 'Rua', bairro: 'Méier', cidade: 'Rio de Janeiro', uf: 'RJ', tipo: 'locacao', status: 'disponivel', criadoEm: '2026-10-01' };
   const html = renderApresentacao(base, 'data:image/png;base64,AAAA', { contexto: { raio, bairro: { nome: 'Méier', populacao: 49828, rendaMedia: 5210, domiciliosOcupados: 20311 } } });
-  assert.match(html, /Moradores em 500 m/);
+  assert.match(html, /Moradores em 1 km/);
+  assert.match(html, /Moradores no bairro[\s\S]*49\.828/);
   assert.match(html, new RegExp(raio.populacao.toLocaleString('pt-BR').replace('.', '\\.')));
-  assert.doesNotMatch(html, /Moradores no bairro/);
   assert.match(renderApresentacao(base, 'data:image/png;base64,AAAA', { contexto: { bairro: { nome: 'Méier', populacao: 49828 } } }), /Moradores no bairro/);
 });

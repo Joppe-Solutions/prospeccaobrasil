@@ -23,8 +23,8 @@ const entorno = {
   naRua: Array.from({ length: 10 }, (_, n) => ({ nome: `Estabelecimento vizinho ${n + 1}`, categoria: 'Outras lojas e serviços', dist: 30 })),
   via: { nome: 'Avenida Cônego Vasconcelos', tipo: 'Via arterial principal', faixas: '3', maoUnica: 'Mão dupla', velocidade: '60 km/h' },
 };
-const censoCompleto = { municipio: censo.municipio(3304557), bairro: censo.bairro(3304557, 'Bangu'), raio: setores.raio(geo.lat, geo.lon, 500), temBairros: true };
-const base = { municipio, uf, geo, mapa: mapa(geo, { z: 16, cols: 4, rows: 4 }) };
+const censoCompleto = { municipio: censo.municipio(3304557), bairro: censo.bairro(3304557, 'Bangu'), raio: setores.raio(geo.lat, geo.lon, 1000), temBairros: true };
+const base = { municipio, uf, geo, mapa: mapa(geo, { z: 15, cols: 4, rows: 4 }) };
 const CENARIOS = {
   completo: { ...base, censo: censoCompleto, entorno },
   'sem entorno': { ...base, censo: censoCompleto, entorno: null },

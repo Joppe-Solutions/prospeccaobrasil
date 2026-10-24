@@ -31,7 +31,7 @@ const fmt2 = (v) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2
 const FAIXAS = [['0–14', [0, 1, 2]], ['15–29', [3, 4, 5]], ['30–39', [6]], ['40–49', [7]], ['50–59', [8]], ['60–69', [9]], ['70+', [10]]];
 const ROTULOS_PIRAMIDE = ['0–4', '5–9', '10–14', '15–19', '20–24', '25–29', '30–39', '40–49', '50–59', '60–69', '70+'];
 
-// Mapa real: tiles OSM + anel de 500 m em SVG; fallback esquemático se sem geo
+// Mapa real: tiles OSM + anel de 1 km em SVG; fallback esquemático se sem geo
 function mapVisual(imovel, demo) {
   const m = demo?.mapa;
   if (m) {
@@ -40,9 +40,9 @@ function mapVisual(imovel, demo) {
     return `<div class="map-real" style="width:${m.w}px;height:${m.h}px" role="img" aria-label="Mapa da área de influência">
       ${tiles}
       <svg width="${m.w}" height="${m.h}" style="position:absolute;left:0;top:0">
-        <circle cx="${m.px}" cy="${m.py}" r="${m.r1 / 2}" fill="rgba(21,60,52,0.12)" stroke="#a27a35" stroke-width="2"/>
+        <circle cx="${m.px}" cy="${m.py}" r="${m.r1}" fill="rgba(21,60,52,0.12)" stroke="#a27a35" stroke-width="2"/>
         <circle cx="${m.px}" cy="${m.py}" r="8" fill="#153c34" stroke="#fff" stroke-width="2"/>
-        <text x="${Math.min(m.px + 14, m.w - 60)}" y="${m.py - m.r1 / 2 - 8}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">500 m</text>
+        <text x="${Math.min(m.px + 14, m.w - 60)}" y="${m.py - m.r1 - 8}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">1 km</text>
         <text x="${Math.min(m.px + 16, m.w - 80)}" y="${m.py + 5}" font-size="13" font-weight="700" fill="#153c34" paint-order="stroke" stroke="#fff" stroke-width="3">${esc(imovel.codigo)}</text>
       </svg>
       <span class="map-attr">© OpenStreetMap contributors${demo.geo?.fonte ? ` · centro: ${esc(demo.geo.fonte)}` : ''}</span>
@@ -53,7 +53,7 @@ function mapVisual(imovel, demo) {
   <circle cx="180" cy="150" r="120" fill="#153c3410" stroke="#a27a35" stroke-width="1.6"/>
   <circle cx="180" cy="150" r="7" fill="#153c34"/>
   <text x="196" y="146" font-size="11" font-weight="700" fill="#153c34">${esc(imovel.codigo)}</text>
-  <text x="196" y="24" font-size="10" fill="#67756f">500 m</text>
+  <text x="196" y="24" font-size="10" fill="#67756f">1 km</text>
   <text x="180" y="288" font-size="8" fill="#67756f" text-anchor="middle">Mapa esquemático — endereço não geocodificado</text>
   </svg>`;
 }
@@ -77,14 +77,15 @@ function renderInteligencia(imovel, analise, demo) {
   const foto = imovel.fotos?.[0];
   const censo = demo?.censo;
   const ent = demo?.entorno;
-  // Território principal: os moradores num raio de 500 m (setores censitários); sem coordenadas ou fora da
+  // Território principal: os moradores num raio de 1 km (setores censitários); sem coordenadas ou fora da
   // cobertura, o bairro do cadastro
   const raio = censo?.raio || null;
   const b = raio || censo?.bairro;
-  const noLocal = raio ? 'no raio de 500 m' : 'no bairro', doLocal = raio ? 'do raio de 500 m' : 'do bairro';
+  const noLocal = raio ? 'no raio de 1 km' : 'no bairro', doLocal = raio ? 'do raio de 1 km' : 'do bairro';
   const m = censo?.municipio;
-  // Colunas das tabelas do Censo: raio de 500 m (ou bairro) e município
-  const areas = [b && [raio ? 'Raio de 500 m' : `Bairro ${b.nome}`, b, G.COR.verde], m && [m.nome, m, G.COR.dourado]].filter(Boolean);
+  // Colunas das tabelas do Censo: raio de 1 km, o bairro do imóvel (contexto) e o município
+  const bairroCtx = raio ? censo?.bairro : null;
+  const areas = [b && [raio ? 'Raio de 1 km' : `Bairro ${b.nome}`, b, G.COR.verde], bairroCtx && [`Bairro ${bairroCtx.nome}`, bairroCtx, G.COR.verde2], m && [m.nome, m, G.COR.dourado]].filter(Boolean);
   const semBairro = censo && !b
     ? `<p class="note"><strong>Bairro não identificado.</strong> ${imovel.bairro ? `"${esc(imovel.bairro)}" não consta` : 'O cadastro não informa o bairro e por isso ele não consta'} ${censo.temBairros ? 'na base de bairros do Censo 2022 deste município — confira a grafia no cadastro do imóvel.' : 'neste recorte: o IBGE não divulga dados por bairro para este município.'} As análises usam o município.</p>` : '';
   const tabela = (linhas, primeira = 'Indicador', cls = '') => `<table class="demo ${cls}"><thead><tr><th>${primeira}</th>${areas.map(([n]) => `<th>${esc(n)}</th>`).join('')}</tr></thead>
@@ -106,8 +107,9 @@ function renderInteligencia(imovel, analise, demo) {
   }
   const cb = b ? classes.find((c) => c.nome === areas[0][0])?.r : null;
   if (cb) { const ab = cb.classes.filter((c) => ['A1', 'A2', 'B1', 'B2'].includes(c.id)).reduce((n, c) => n + c.pct, 0); leitura.push(`Estimativa: ${dec(ab)}% dos domicílios ${doLocal} estão nas classes A e B e ${dec(cb.classes.find((c) => c.id === 'D/E').pct)}% na classe D/E.`); }
-  if (raio) leitura.unshift(`Num raio de 500 m do ponto vivem cerca de ${num(raio.populacao)} pessoas em ${num(raio.domiciliosOcupados)} domicílios ocupados (soma de ${raio.setores} setores censitários).`);
-  if (ent) leitura.push(`Há ${num(ent.total500)} estabelecimentos mapeados a até 500 m do ponto.`);
+  if (raio) leitura.unshift(`Num raio de 1 km do ponto vivem cerca de ${num(raio.populacao)} pessoas em ${num(raio.domiciliosOcupados)} domicílios ocupados (soma de ${raio.setores} setores censitários).`);
+  if (bairroCtx && present(bairroCtx.rendaMedia) && present(raio.rendaMedia)) leitura.push(`No bairro ${bairroCtx.nome} como um todo vivem ${num(bairroCtx.populacao)} pessoas, com renda média do responsável de ${money0(bairroCtx.rendaMedia)}, contra ${money0(raio.rendaMedia)} no raio de 1 km.`);
+  if (ent) leitura.push(`Há ${num(ent.total1000)} estabelecimentos mapeados a até 1 km do ponto.`);
 
   // ---------------------------------------------------------------- folhas (cada uma só existe se tiver conteúdo)
   const folhas = [];
@@ -126,8 +128,8 @@ function renderInteligencia(imovel, analise, demo) {
       <div class="col texto">
         <p><strong>Geomarketing.</strong> Dados oficiais e mapeamento colaborativo organizados no mapa, a partir do ponto do imóvel, para descrever quem mora e consome no entorno e o que existe ao redor.</p>
         <ul>
-          <li><strong>Moradores:</strong> Censo 2022 (IBGE), somando os setores censitários a até 500 m do ponto. Sem coordenadas, usa-se o bairro.</li>
-          <li><strong>Entorno:</strong> estabelecimentos, transporte e via no OpenStreetMap, até 500 m.</li>
+          <li><strong>Moradores:</strong> Censo 2022 (IBGE), somando os setores censitários a até 1 km do ponto. Sem coordenadas, usa-se o bairro.</li>
+          <li><strong>Entorno:</strong> estabelecimentos, transporte e via no OpenStreetMap, até 1 km.</li>
         </ul>
       </div>
       <div class="col texto">
@@ -140,8 +142,8 @@ function renderInteligencia(imovel, analise, demo) {
     </div>
     <div class="sumario"><h3>Neste documento</h3><ol>${sumario.filter((x) => x.n !== 2).map((x) => `<li><span>${String(x.n).padStart(2, '0')}</span>${esc(x.titulo)}</li>`).join('')}</ol></div>
     <div class="cartoes">
-      <div><span>RAIO DE 500 M</span><strong>Censo Demográfico 2022</strong><small>IBGE · setores censitários, bairros e municípios</small></div>
-      <div><span>RUA E ENTORNO</span><strong>OpenStreetMap</strong><small>Estabelecimentos, transporte e via em 500 m</small></div>
+      <div><span>RAIO DE 1 KM</span><strong>Censo Demográfico 2022</strong><small>IBGE · setores censitários, bairros e municípios</small></div>
+      <div><span>RUA E ENTORNO</span><strong>OpenStreetMap</strong><small>Estabelecimentos, transporte e via em 1 km</small></div>
       <div><span>MUNICÍPIO E ESTADO</span><strong>Estimativas de população</strong><small>IBGE · projeção por TGCA</small></div>
     </div>`);
 
@@ -159,7 +161,7 @@ function renderInteligencia(imovel, analise, demo) {
     </div>`);
 
   // Localização
-  folha('LOCALIZAÇÃO', 'O ponto e o raio de 500 m', `
+  folha('LOCALIZAÇÃO', 'O ponto e o raio de 1 km', `
     <div class="map-box">
       <div class="map-slot">${mapVisual(imovel, demo)}</div>
       <div class="map-info">
@@ -179,20 +181,20 @@ function renderInteligencia(imovel, analise, demo) {
           ${present(imovel.iptu) ? `<div><dt>IPTU</dt><dd>${money0(imovel.iptu)}</dd></div>` : ''}
           ${present(imovel.cdu) ? `<div><dt>CDU</dt><dd>${money0(imovel.cdu)}</dd></div>` : ''}
         </dl>
-        ${demo?.entorno ? `<table class="demo compact no-raio"><thead><tr><th>No entorno do ponto</th><th>Até 500 m</th></tr></thead><tbody>
+        ${demo?.entorno ? `<table class="demo compact no-raio"><thead><tr><th>No entorno do ponto</th><th>Até 1 km</th></tr></thead><tbody>
           ${raio ? `<tr class="hl"><td>Moradores (Censo 2022)</td><td>${num(raio.populacao)}</td></tr>` : ''}
-          <tr class="hl"><td>Estabelecimentos mapeados</td><td>${num(demo.entorno.total500)}</td></tr>
-          ${demo.entorno.linhas.filter((l) => l.r500 > 0).sort((a, c) => c.r500 - a.r500).slice(0, raio ? 3 : 4).map((l) => `<tr><td>${esc(l.rotulo.replace(/ \(.*\)/, ''))}</td><td>${num(l.r500)}</td></tr>`).join('')}
-          ${demo.entorno.transporte.filter((l) => l.r500 > 0).slice(0, 2).map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r500)}</td></tr>`).join('')}
+          <tr class="hl"><td>Estabelecimentos mapeados</td><td>${num(demo.entorno.total1000)}</td></tr>
+          ${demo.entorno.linhas.filter((l) => l.r1000 > 0).sort((a, c) => c.r1000 - a.r1000).slice(0, raio ? 3 : 4).map((l) => `<tr><td>${esc(l.rotulo.replace(/ \(.*\)/, ''))}</td><td>${num(l.r1000)}</td></tr>`).join('')}
+          ${demo.entorno.transporte.filter((l) => l.r1000 > 0).slice(0, 2).map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r1000)}</td></tr>`).join('')}
         </tbody></table>` : ''}
-        <div class="raios"><span><i></i>Raio de 500 m</span><span><b></b>${esc(imovel.codigo)}</span></div>
+        <div class="raios"><span><i></i>Raio de 1 km</span><span><b></b>${esc(imovel.codigo)}</span></div>
         ${imovel.googleMapsUrl ? `<p class="link"><a href="${esc(imovel.googleMapsUrl)}" target="_blank" rel="noopener noreferrer">Abrir localização no Google Maps ↗</a></p>` : ''}
       </div>
     </div>`, 'Mapa: OpenStreetMap contributors · raio em linha reta a partir do ponto');
 
   // População e domicílios
   if (areas.length) {
-    folha(`${raio ? 'RAIO DE 500 M' : 'BAIRRO'} E MUNICÍPIO`, 'População e domicílios — Censo 2022', `
+    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'População e domicílios — Censo 2022', `
       <div class="cols2 fill">
         <div class="col">${tabela([
           ['População residente', (a) => num(a.populacao), 'hl'],
@@ -216,11 +218,11 @@ function renderInteligencia(imovel, analise, demo) {
   // Domicílios por classe social (estimativa)
   if (classes.length) {
     const ids = classes[0].r.classes.map((c) => c.id);
-    folha(`${raio ? 'RAIO DE 500 M' : 'BAIRRO'} E MUNICÍPIO`, 'Domicílios por classe social', `
+    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'Domicílios por classe social', `
       <table class="demo classes"><thead><tr><th>Área de influência</th>${ids.map((id) => `<th>${id}</th>`).join('')}<th>Total</th></tr></thead>
       <tbody>${classes.map(({ nome, r }) => `<tr class="hl"><td>${esc(nome)}</td>${r.classes.map((c) => `<td>${num(c.qtd)}</td>`).join('')}<td>${num(r.total)}</td></tr><tr class="dim"><td>%</td>${r.classes.map((c) => `<td>${dec(c.pct)}%</td>`).join('')}<td>100%</td></tr>`).join('')}</tbody></table>
       <div class="chart-box grow"><h3>Participação de cada classe nos domicílios (%)</h3><div class="chart">${G.barrasAgrupadas({ categorias: ids, series: classes.map((c) => ({ nome: c.nome, cor: c.cor, valores: c.r.classes.map((x) => Number(x.pct.toFixed(1))) })), formato: (v) => `${G.pt(v, 1)}%`, largura: 976, altura: 392, descricao: 'Domicílios por classe social' })}</div></div>
-      <p class="note compacta"><strong>Estimativa.</strong> O IBGE não divulga domicílios por classe social. A distribuição foi calculada ${raio ? 'setor a setor, dentro do raio de 500 m, ' : ''}ajustando uma curva lognormal à média e à mediana do rendimento do responsável pelo domicílio (Censo 2022) e aplicando os limites do Critério Brasil sobre o salário mínimo de ${money0(SM)}. Como considera só o rendimento do responsável, tende a subestimar a renda total do domicílio. Use como ordem de grandeza.</p>`,
+      <p class="note compacta"><strong>Estimativa.</strong> O IBGE não divulga domicílios por classe social. A distribuição foi calculada ${raio ? 'setor a setor, dentro do raio de 1 km, ' : ''}ajustando uma curva lognormal à média e à mediana do rendimento do responsável pelo domicílio (Censo 2022) e aplicando os limites do Critério Brasil sobre o salário mínimo de ${money0(SM)}. Como considera só o rendimento do responsável, tende a subestimar a renda total do domicílio. Use como ordem de grandeza.</p>`,
     'Fonte: IBGE, Censo Demográfico 2022 (rendimento do responsável) · Critério Brasil · estimativa Prospecção Brasil');
   }
 
@@ -240,17 +242,17 @@ function renderInteligencia(imovel, analise, demo) {
       <div class="chart-box"><h3>Pirâmide etária — ${esc(areas[0][0])}</h3><div class="chart">${base.homensFaixas && base.mulheresFaixas ? G.piramide({ rotulos: ROTULOS_PIRAMIDE, esquerda: base.homensFaixas, direita: base.mulheresFaixas, largura: 464, altura: 520, descricao: 'Pirâmide etária' }) : ''}</div></div>
       <table class="demo compact"><thead><tr><th>Faixa etária</th>${FAIXAS.map(([r]) => `<th>${r}</th>`).join('')}</tr></thead>
       <tbody>${areas.map(([nome, a]) => `<tr class="hl"><td>${esc(nome)}</td>${FAIXAS.map(([, idx]) => `<td>${perc(faixa(a, idx), totalFaixas(a))}</td>`).join('')}</tr>`).join('')}</tbody></table>` : '';
-    folha(`${raio ? 'RAIO DE 500 M' : 'BAIRRO'}, MUNICÍPIO E ESTADO`, 'Evolução populacional e faixa etária', `<div class="cols2 fill"><div class="col">${esquerda}</div><div class="col">${direita}</div></div>`,
+    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'}, MUNICÍPIO E ESTADO`, 'Evolução populacional e faixa etária', `<div class="cols2 fill"><div class="col">${esquerda}</div><div class="col">${direita}</div></div>`,
       'Fonte: IBGE — estimativas de população (município e estado) e Censo Demográfico 2022 (faixa etária)');
   }
 
   // Renda
   if (areas.length && areas.some(([, a]) => present(a.rendaMedia))) {
-    folha(`${raio ? 'RAIO DE 500 M' : 'BAIRRO'} E MUNICÍPIO`, 'Renda — Censo 2022', `
+    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'Renda — Censo 2022', `
       <div class="cols2 fill">
         <div class="col">
           <div class="chart-box grow"><h3>Rendimento mensal do responsável pelo domicílio (R$)</h3><div class="chart">${G.barrasHorizontais({ categorias: ['Média', 'Mediana'], series: areas.map(([nome, a, cor]) => ({ nome, cor, valores: [a.rendaMedia, a.rendaMediana] })), formato: (v) => money0(v), largura: 464, altura: 525, rotuloLargura: 70, maxBarra: 44, tamRotulo: 13, margemDireita: 84, descricao: 'Rendimento médio e mediano' })}</div></div>
-          ${b && indice(b) ? `<div class="destaque"><span>ÍNDICE DE RENDA ${raio ? 'NO RAIO DE 500 M' : 'DO BAIRRO'}</span><strong>${indice(b)}</strong><small>município = 100</small></div>` : ''}
+          ${b && indice(b) ? `<div class="destaque"><span>ÍNDICE DE RENDA ${raio ? 'NO RAIO DE 1 KM' : 'DO BAIRRO'}</span><strong>${indice(b)}</strong><small>município = 100</small></div>` : ''}
         </div>
         <div class="col">${tabela([
           ['Rendimento médio mensal do responsável', (a) => money0(a.rendaMedia), 'hl'],
@@ -269,12 +271,12 @@ function renderInteligencia(imovel, analise, demo) {
   if (ent) {
     folha('RUA E ENTORNO', 'O que existe ao redor do ponto', `
       <div class="cols2 fill">
-        <div class="col chart-box"><h3>Estabelecimentos mapeados por categoria</h3><div class="chart">${G.barrasHorizontais({ categorias: ent.linhas.map((l) => l.rotulo.replace(/ \(.*\)/, '')), series: [{ nome: 'Até 500 m', cor: G.COR.verde, valores: ent.linhas.map((l) => l.r500) }], largura: 464, altura: 588, rotuloLargura: 190, maxBarra: 18, tamRotulo: 11.5, descricao: 'Estabelecimentos por categoria' })}</div></div>
+        <div class="col chart-box"><h3>Estabelecimentos mapeados por categoria</h3><div class="chart">${G.barrasHorizontais({ categorias: ent.linhas.map((l) => l.rotulo.replace(/ \(.*\)/, '')), series: [{ nome: 'Até 1 km', cor: G.COR.verde, valores: ent.linhas.map((l) => l.r1000) }], largura: 464, altura: 588, rotuloLargura: 190, maxBarra: 18, tamRotulo: 11.5, descricao: 'Estabelecimentos por categoria' })}</div></div>
         <div class="col">
-          <table class="demo"><thead><tr><th>Transporte</th><th>Até 500 m</th></tr></thead><tbody>${ent.transporte.map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r500)}</td></tr>`).join('')}<tr class="hl"><td>Total de estabelecimentos</td><td>${num(ent.total500)}</td></tr></tbody></table>
+          <table class="demo"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${ent.transporte.map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r1000)}</td></tr>`).join('')}<tr class="hl"><td>Total de estabelecimentos</td><td>${num(ent.total1000)}</td></tr></tbody></table>
           ${ent.via ? `<table class="demo"><thead><tr><th colspan="2">A via — ${esc(trunc(ent.via.nome, 36))}</th></tr></thead><tbody><tr><td>Tipo</td><td>${esc(ent.via.tipo)}</td></tr>${ent.via.faixas ? `<tr><td>Faixas</td><td>${esc(ent.via.faixas)}</td></tr>` : ''}${ent.via.maoUnica ? `<tr><td>Sentido</td><td>${esc(ent.via.maoUnica)}</td></tr>` : ''}${ent.via.velocidade ? `<tr><td>Velocidade máxima</td><td>${esc(ent.via.velocidade)}</td></tr>` : ''}</tbody></table>` : ''}
           ${ent.destaques.length ? `<table class="demo"><thead><tr><th>Mais próximo</th><th>Nome</th><th>Dist.</th></tr></thead><tbody>${ent.destaques.slice(0, 7).map((x) => `<tr><td>${esc(x.rotulo)}</td><td>${esc(trunc(x.nome, 26))}</td><td>${num(x.dist)} m</td></tr>`).join('')}</tbody></table>` : ''}
-          ${(() => { const cores = [G.COR.verde, G.COR.dourado, G.COR.verde2, '#6f8fa8', G.COR.areia, '#b58b7a']; const cats = ent.linhas.filter((l) => l.r500 > 0).sort((a, c) => c.r500 - a.r500); const topo = cats.slice(0, 5).map((l, k) => ({ rotulo: l.rotulo.replace(/ \(.*\)/, ''), valor: l.r500, cor: cores[k] })); const resto = cats.slice(5).reduce((n, l) => n + l.r500, 0); if (resto) topo.push({ rotulo: 'Demais categorias', valor: resto, cor: cores[5] }); return topo.length > 1 ? `<div class="chart-box grow"><h3>Composição do comércio e serviços em 500 m</h3><div class="chart">${G.rosca({ fatias: topo, centro: { valor: num(ent.total500), titulo: 'estabelecimentos' }, largura: 464, altura: 184, descricao: 'Composição do entorno' })}</div></div>` : ''; })()}
+          ${(() => { const cores = [G.COR.verde, G.COR.dourado, G.COR.verde2, '#6f8fa8', G.COR.areia, '#b58b7a']; const cats = ent.linhas.filter((l) => l.r1000 > 0).sort((a, c) => c.r1000 - a.r1000); const topo = cats.slice(0, 5).map((l, k) => ({ rotulo: l.rotulo.replace(/ \(.*\)/, ''), valor: l.r1000, cor: cores[k] })); const resto = cats.slice(5).reduce((n, l) => n + l.r1000, 0); if (resto) topo.push({ rotulo: 'Demais categorias', valor: resto, cor: cores[5] }); return topo.length > 1 ? `<div class="chart-box grow"><h3>Composição do comércio e serviços em 1 km</h3><div class="chart">${G.rosca({ fatias: topo, centro: { valor: num(ent.total1000), titulo: 'estabelecimentos' }, largura: 464, altura: 184, descricao: 'Composição do entorno' })}</div></div>` : ''; })()}
           ${ent.naRua.length ? `<p class="na-rua"><strong>Na mesma rua ou vizinhos imediatos:</strong> ${ent.naRua.slice(0, 8).map((n) => esc(trunc(n.nome, 28))).join(' · ')}.</p>` : ''}
         </div>
       </div>`, `Fonte: OpenStreetMap (Overpass API), consulta de ${new Date(ent.consultadoEm || Date.now()).toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' })} · mapeamento colaborativo: contagens indicam o mínimo existente`);
@@ -288,8 +290,8 @@ function renderInteligencia(imovel, analise, demo) {
     b && indice(b) && ['Índice de renda', String(indice(b)), 'município = 100'],
     base && present(base.domiciliosVagos) && base.domicilios && ['Domicílios vagos', perc(base.domiciliosVagos, base.domicilios), 'do total'],
     base && present(base.moradoresPorDomicilio) && ['Moradores/domicílio', dec(base.moradoresPorDomicilio), 'média'],
-    ent && ['Estabelecimentos', num(ent.total500), 'até 500 m'],
-    ent && ['Transporte', num((ent.transporte[0]?.r500 || 0) + (ent.transporte[1]?.r500 || 0)), 'pontos até 500 m'],
+    ent && ['Estabelecimentos', num(ent.total1000), 'até 1 km'],
+    ent && ['Transporte', num((ent.transporte[0]?.r1000 || 0) + (ent.transporte[1]?.r1000 || 0)), 'pontos até 1 km'],
   ].filter(Boolean);
   const razao = (x, y) => (present(x) && present(y) && Number(y) ? (Number(x) / Number(y)) * 100 : null);
   const comparativo = b && m ? [
@@ -305,7 +307,7 @@ function renderInteligencia(imovel, analise, demo) {
       ${kpis.length ? `<div class="kpis">${kpis.map(([t, v, s]) => `<div><span>${esc(t)}</span><strong>${esc(v)}</strong><small>${s}</small></div>`).join('')}</div>` : ''}
       <div class="cols2 fill sintese">
         ${leitura.length ? `<div class="col"><h3 class="sub"><span>01</span>O que os números dizem</h3><ul class="findings fortes leitura">${L(leitura, 6, 260)}</ul></div>` : '<div></div>'}
-        ${comparativo.length ? `<div class="col chart-box"><h3>${raio ? 'Raio de 500 m' : 'Bairro'} em relação ao município (município = 100)</h3><div class="chart">${G.barrasIndice({ itens: comparativo, largura: 464, altura: 388, descricao: `${raio ? 'Raio de 500 m' : 'Bairro'} em relação ao município` })}</div></div>` : ''}
+        ${comparativo.length ? `<div class="col chart-box"><h3>${raio ? 'Raio de 1 km' : 'Bairro'} em relação ao município (município = 100)</h3><div class="chart">${G.barrasIndice({ itens: comparativo, largura: 464, altura: 388, descricao: `${raio ? 'Raio de 1 km' : 'Bairro'} em relação ao município` })}</div></div>` : ''}
       </div>`,
     'Síntese gerada a partir das páginas anteriores · não inclui fluxo de pedestres, concorrência qualificada nem potencial de consumo, que dependem de campo');
   }
@@ -332,7 +334,7 @@ function renderInteligencia(imovel, analise, demo) {
     <div class="cols2">
       <div class="col texto"><ul>
         <li>Séries populacionais (município e estado): estimativas oficiais IBGE com projeção por TGCA.</li>
-        <li>População, domicílios, faixa etária e rendimento: Censo Demográfico 2022 (IBGE), nos recortes de raio de 500 m (setores censitários), bairro e município.</li>
+        <li>População, domicílios, faixa etária e rendimento: Censo Demográfico 2022 (IBGE), nos recortes de raio de 1 km (setores censitários), bairro e município.</li>
         <li>Domicílios por classe social: estimativa estatística a partir do rendimento do responsável; não é contagem oficial.</li>
         <li>Entorno da rua: OpenStreetMap. A cobertura varia por região; ausência de um estabelecimento no mapa não prova que ele não existe.</li>
         <li>A triagem cadastral é heurística: deriva exclusivamente dos dados do imóvel e não substitui estudo de mercado.</li>
@@ -355,7 +357,7 @@ function renderInteligencia(imovel, analise, demo) {
     <div class="cover-left">
       <img class="cover-logo" src="/images/logo-wide.png" alt="Prospecção Brasil">
       <div class="cover-mid">
-        <div class="eyebrow">Geomarketing · raio de 500 m</div>
+        <div class="eyebrow">Geomarketing · raio de 1 km</div>
         <h1>Inteligência<br>de mercado</h1>
         <div class="cover-rule"></div>
         <div class="cover-place">${esc(local)}</div>

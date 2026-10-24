@@ -21,7 +21,6 @@ module.exports = (prisma) => {
       where: { id },
       include: {
         fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: true, parceiro: { select: PARCEIRO_PUBLICO },
-        analises: { orderBy: { criadoEm: 'desc' }, take: 1 }, // base do "Flash de Mercado"
       },
     });
     if (!imovel || imovel.status === 'inativo') return res.status(404).send('Imóvel não encontrado');
@@ -42,7 +41,7 @@ module.exports = (prisma) => {
     const vizinhanca = entorno(geo, imovel).catch(() => null);
     const contexto = {
       bairro: municipio ? censo2022.bairro(municipio, imovel.bairro) : null,
-      raio: geo ? setores.raio(geo.lat, geo.lon, 500) : null,
+      raio: geo ? setores.raio(geo.lat, geo.lon, 1000) : null,
       entorno: await Promise.race([vizinhanca, new Promise((resolve) => setTimeout(resolve, 4000, null))]),
     };
     res.type('html').send(renderApresentacao(imovel, qrData, {

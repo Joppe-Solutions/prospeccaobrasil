@@ -42,7 +42,7 @@ function fracaoDentro(d, r, R) {
 }
 
 /** Registro no formato de censo2022.registro (com nome "Raio de N m") ou null fora da cobertura */
-function raio(lat, lon, metros = 500) {
+function raio(lat, lon, metros = 1000) {
   const idx = carregar();
   if (!idx || !Number.isFinite(lat) || !Number.isFinite(lon)) return null;
   const ci = Math.floor(lat / CELULA), cj = Math.floor(lon / CELULA);

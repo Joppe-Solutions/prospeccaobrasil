@@ -66,13 +66,14 @@ function distancia(a, b) {
 }
 
 async function consultar(geo) {
-  const p = `(around:${RAIO},${geo.lat},${geo.lon})`;
-  const query = `[out:json][timeout:25];(nwr${p}[amenity];nwr${p}[shop];nwr${p}[railway~"^(station|tram_stop)$"];nwr${p}[highway=bus_stop];nwr${p}[leisure=fitness_centre];nwr${p}[tourism~"^(hotel|hostel)$"];way(around:40,${geo.lat},${geo.lon})[highway][name];);out center tags;`;
+  // Comércio, transporte e referências até 1 km (o raio dos documentos)
+  const p = `(around:${RAIO},${geo.lat},${geo.lon})`, l = p;
+  const query = `[out:json][timeout:90];(nwr${p}[amenity];nwr${p}[shop];nwr${p}[highway=bus_stop];nwr${p}[leisure=fitness_centre];nwr${p}[tourism~"^(hotel|hostel)$"];nwr${l}[railway~"^(station|tram_stop)$"];nwr${l}[shop~"^(mall|supermarket)$"];nwr${l}[amenity~"^(bank|pharmacy|hospital|university|college|ferry_terminal)$"];way(around:40,${geo.lat},${geo.lon})[highway][name];);out center tags;`;
   let erro;
   for (const url of ENDPOINTS) {
     try {
       const r = await fetch(url, {
-        method: 'POST', signal: AbortSignal.timeout(20000),
+        method: 'POST', signal: AbortSignal.timeout(75000),
         headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'User-Agent': 'prospeccao-brasil-inteligencia/1.0' },
         body: `data=${encodeURIComponent(query)}`,
       });
@@ -128,6 +129,9 @@ function resumir(elementos, geo, imovel) {
   };
 }
 
+// Consultas em andamento por ponto: a pré-carga e o relatório aberto logo depois esperam a mesma consulta
+const emAndamento = new Map();
+
 async function entorno(geo, imovel) {
   // Nos testes automatizados não há chamada externa
   if (!geo || process.env.NODE_ENV === 'test') return null;
@@ -135,7 +139,9 @@ async function entorno(geo, imovel) {
   const salvo = lerCache(arquivo);
   if (salvo && Date.now() - salvo.t < TTL) return { ...resumir(salvo.elementos, geo, imovel), consultadoEm: salvo.t };
   try {
-    const elementos = await consultar(geo);
+    const chave = arquivo;
+    if (!emAndamento.has(chave)) emAndamento.set(chave, consultar(geo).finally(() => emAndamento.delete(chave)));
+    const elementos = await emAndamento.get(chave);
     const t = Date.now();
     try { fs.mkdirSync(CACHE_DIR, { recursive: true }); fs.writeFileSync(arquivo, JSON.stringify({ t, elementos })); } catch (e) { console.error('Cache de entorno:', e.message); }
     return { ...resumir(elementos, geo, imovel), consultadoEm: t };

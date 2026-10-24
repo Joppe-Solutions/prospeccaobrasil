@@ -431,6 +431,7 @@ module.exports = (prisma) => {
   r.post('/:id/analise', asyncHandler(async (req, res) => {
     const i = await prisma.imovel.findUnique({ where: { id: +req.params.id } });
     if (!i) return res.status(404).json({ error: 'Não encontrado' });
+    aquecerLocalizacao(i); // o relatório usa o entorno da rua: a consulta (lenta) começa já
     const a = await gerarAnalise(i);
     res.json(await prisma.analiseMercado.create({
       data: { imovelId: i.id, score: a.score, resumo: a.resumo, conteudoJson: JSON.stringify(a.conteudo), modelo: a.modelo },

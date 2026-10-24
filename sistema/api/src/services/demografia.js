@@ -90,8 +90,9 @@ async function demografia(imovel) {
     const [serieMun, serieUF, entornoRua] = await Promise.all([
       mun ? seriePopulacao('N6', mun.id).catch(() => null) : null,
       seriePopulacao('N3', UF_ID[uf]).catch(() => null),
-      // O serviço de mapas pode demorar: o relatório espera no máximo 12 s (a consulta segue e fica em cache)
-      Promise.race([entorno(geo, imovel).catch(() => null), new Promise((resolve) => setTimeout(resolve, 12000, null))]),
+      // O Overpass público tem levado ~30 s: o relatório espera até 40 s (a consulta segue e fica em cache).
+      // Ao gerar a análise a consulta já começa em segundo plano, então em geral o resultado chega antes.
+      Promise.race([entorno(geo, imovel).catch(() => null), new Promise((resolve) => setTimeout(resolve, 40000, null))]),
     ]);
     return {
       municipio: serieMun ? { nome: serieMun.nome, ...projetar(serieMun) } : null,
@@ -99,11 +100,11 @@ async function demografia(imovel) {
       censo: mun ? {
         municipio: censo2022.municipio(mun.id),
         bairro: censo2022.bairro(mun.id, imovel.bairro),
-        raio: geo ? setores.raio(geo.lat, geo.lon, 500) : null,
+        raio: geo ? setores.raio(geo.lat, geo.lon, 1000) : null,
         temBairros: censo2022.temBairros(mun.id),
       } : null,
       geo,
-      mapa: mapa(geo, { z: 16, cols: 4, rows: 4 }), // zoom 16: o raio de 500 m ocupa o mapa
+      mapa: mapa(geo, { z: 15, cols: 4, rows: 4 }), // zoom 15: o raio de 1 km ocupa o mapa
       entorno: entornoRua,
       fonte: `Estimativas de população — IBGE (agregado 6579) · ${censo2022.FONTE}`,
     };
