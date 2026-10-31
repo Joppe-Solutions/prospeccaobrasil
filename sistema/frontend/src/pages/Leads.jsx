@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Selecao from '../components/Selecao';
 import { ArrowRight, CheckCircle, EnvelopeSimple, Handshake, Phone, Plus, Target, Trash, UserFocus } from '@phosphor-icons/react';
 import { avisar } from '../lib/avisos';
 import { api } from '../lib/api';
@@ -160,8 +161,8 @@ export default function Leads() {
         searchPlaceholder="Buscar lead, telefone ou interesse..." exportName="leads.csv"
         emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo lead</button>} emptyTitle="Nenhum lead encontrado" emptyDescription="Cadastre quem ligou do site ou anúncio."
         toolbar={<>
-          <label className="collection-select"><Target size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS_LEAD).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></label>
-          <label className="collection-select"><UserFocus size={16} /><select aria-label="Filtrar origem" value={origem} onChange={e => setOrigem(e.target.value)}><option value="">Todas as origens</option>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
+          <Selecao aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS_LEAD).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</Selecao>
+          <Selecao aria-label="Filtrar origem" value={origem} onChange={e => setOrigem(e.target.value)}><option value="">Todas as origens</option>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
           {(status || origem) && <button className="btn btn-ghost btn-sm" onClick={() => { setStatus(''); setOrigem(''); }}>Limpar filtros</button>}
           {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
         </>}
@@ -179,18 +180,18 @@ export default function Leads() {
         <div className="field"><label htmlFor="lead-nome">Nome <span className="required">*</span></label><input id="lead-nome" required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder="Nome completo" /></div>
         <div className="field"><label htmlFor="lead-tel">Telefone</label><input id="lead-tel" value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} placeholder="(21) 99999-0000" /></div>
         <div className="field"><label htmlFor="lead-email">E-mail</label><input id="lead-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} placeholder="email@exemplo.com" /></div>
-        <div className="field"><label htmlFor="lead-origem">Origem</label><select id="lead-origem" value={form.origem} onChange={e => setForm({ ...form, origem: e.target.value })}>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+        <div className="field"><label htmlFor="lead-origem">Origem</label><Selecao id="lead-origem" value={form.origem} onChange={e => setForm({ ...form, origem: e.target.value })}>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao></div>
         <div className="field"><label htmlFor="lead-interesse">Interesse</label><input id="lead-interesse" value={form.interesse} onChange={e => setForm({ ...form, interesse: e.target.value })} placeholder="Ex.: loja em Madureira" /></div>
-        <div className="field"><label htmlFor="lead-status">Status</label><select id="lead-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{Object.entries(STATUS_LEAD).filter(([k]) => k !== 'convertido' || modal?.lead?.empresaId).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select>{!modal?.lead?.empresaId && <small className="collection-optional">“Convertido” é definido pelo fluxo de conversão.</small>}</div>
+        <div className="field"><label htmlFor="lead-status">Status</label><Selecao id="lead-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}>{Object.entries(STATUS_LEAD).filter(([k]) => k !== 'convertido' || modal?.lead?.empresaId).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</Selecao>{!modal?.lead?.empresaId && <small className="collection-optional">“Convertido” é definido pelo fluxo de conversão.</small>}</div>
         <div className="field"><label htmlFor="lead-obs">Observações <span className="collection-optional">Opcional</span></label><textarea id="lead-obs" rows={3} value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} placeholder="Contexto da ligação..." /></div>
-        <div className="field"><label htmlFor="lead-resp">Responsável</label><select id="lead-resp" value={form.responsavelId} onChange={e => setForm({ ...form, responsavelId: e.target.value })}><option value="">Sem responsável</option>{responsaveis.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</select></div>
+        <div className="field"><label htmlFor="lead-resp">Responsável</label><Selecao id="lead-resp" value={form.responsavelId} onChange={e => setForm({ ...form, responsavelId: e.target.value })}><option value="">Sem responsável</option>{responsaveis.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}</Selecao></div>
         <div className="field"><label htmlFor="lead-prox">Próxima ação</label><input id="lead-prox" value={form.proximaAcao} onChange={e => setForm({ ...form, proximaAcao: e.target.value })} placeholder="Ex.: retornar ligação" /></div>
         <div className="field"><label htmlFor="lead-proxem">Prazo da próxima ação</label><input id="lead-proxem" type="date" value={form.proximaAcaoEm} onChange={e => setForm({ ...form, proximaAcaoEm: e.target.value })} /></div>
       </form>
       {modal?.type === 'edit' && <div className="collection-modal-form" style={{ marginTop: 14 }}>
         <h3 style={{ fontSize: 14, margin: '0 0 8px' }}>Atividades</h3>
         <div style={{ display: 'flex', gap: 8, marginBottom: 10 }}>
-          <select aria-label="Tipo de atividade" value={novaAtividade.tipo} onChange={e => setNovaAtividade({ ...novaAtividade, tipo: e.target.value })}>{TIPOS_ATIVIDADE.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select>
+          <Selecao aria-label="Tipo de atividade" value={novaAtividade.tipo} onChange={e => setNovaAtividade({ ...novaAtividade, tipo: e.target.value })}>{TIPOS_ATIVIDADE.map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
           <input aria-label="Texto da atividade" style={{ flex: 1 }} value={novaAtividade.texto} onChange={e => setNovaAtividade({ ...novaAtividade, texto: e.target.value })} placeholder="Descreva o contato..." />
           <button type="button" className="btn btn-ghost btn-sm" disabled={busy || !novaAtividade.texto.trim()} onClick={async () => {
             setBusy(true); setFormError('');
@@ -218,10 +219,10 @@ export default function Leads() {
     >
       <form id="lead-convert-form" className="collection-modal-form" onSubmit={converter}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
-        <div className="field"><label htmlFor="conv-empresa">Empresa existente</label><select id="conv-empresa" value={conv.empresaId} onChange={e => setConv({ ...conv, empresaId: e.target.value })}><option value="">— Criar nova empresa —</option>{empresas.map(e2 => <option key={e2.id} value={e2.id}>{e2.nome}</option>)}</select></div>
+        <div className="field"><label htmlFor="conv-empresa">Empresa existente</label><Selecao id="conv-empresa" value={conv.empresaId} onChange={e => setConv({ ...conv, empresaId: e.target.value })}><option value="">— Criar nova empresa —</option>{empresas.map(e2 => <option key={e2.id} value={e2.id}>{e2.nome}</option>)}</Selecao></div>
         {!conv.empresaId && <div className="field"><label htmlFor="conv-nome">Nome da nova empresa <span className="required">*</span></label><input id="conv-nome" required={!conv.empresaId} value={conv.empresaNome} onChange={e => setConv({ ...conv, empresaNome: e.target.value })} placeholder="Ex.: Rede de farmácias" /><small className="collection-optional">Telefone e e-mail do lead são copiados automaticamente.</small></div>}
         <div className="field"><label style={{ display: 'flex', gap: 8, alignItems: 'center' }}><input type="checkbox" checked={conv.criarOportunidade} onChange={e => setConv({ ...conv, criarOportunidade: e.target.checked })} /> Criar oportunidade vinculada</label></div>
-        {conv.criarOportunidade && <div className="field"><label htmlFor="conv-imovel">Imóvel da oportunidade <span className="required">*</span></label><select id="conv-imovel" required={conv.criarOportunidade} value={conv.imovelId} onChange={e => setConv({ ...conv, imovelId: e.target.value })}><option value="">Selecione o imóvel...</option>{imoveisDisp.map(i => <option key={i.id} value={i.id}>{i.codigo} — {i.titulo}</option>)}</select></div>}
+        {conv.criarOportunidade && <div className="field"><label htmlFor="conv-imovel">Imóvel da oportunidade <span className="required">*</span></label><Selecao id="conv-imovel" required={conv.criarOportunidade} value={conv.imovelId} onChange={e => setConv({ ...conv, imovelId: e.target.value })}><option value="">Selecione o imóvel...</option>{imoveisDisp.map(i => <option key={i.id} value={i.id}>{i.codigo} — {i.titulo}</option>)}</Selecao></div>}
       </form>
     </Modal>}
 

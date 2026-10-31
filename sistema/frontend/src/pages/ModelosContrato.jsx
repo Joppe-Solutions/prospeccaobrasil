@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import Selecao from '../components/Selecao';
 import { ArrowSquareOut, FileText, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
 import Confirmacao from '../components/Confirmacao';
 import { avisar } from '../lib/avisos';
@@ -66,7 +67,7 @@ export default function ModelosContrato() {
       <form id="modelo-form" className="collection-modal-form" onSubmit={save}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
         <div className="field"><label htmlFor="mc-nome">Nome do modelo</label><input id="mc-nome" required value={form.nome} onChange={set('nome')} placeholder="Ex.: Contrato de locação comercial" /></div>
-        <div className="field"><label htmlFor="mc-categoria">Categoria</label><select id="mc-categoria" value={form.categoria} onChange={set('categoria')}>{Object.entries(CATEGORIAS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+        <div className="field"><label htmlFor="mc-categoria">Categoria</label><Selecao id="mc-categoria" value={form.categoria} onChange={set('categoria')}>{Object.entries(CATEGORIAS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Selecao></div>
         <div className="field"><label htmlFor="mc-url">Link do arquivo</label><input id="mc-url" type="url" required value={form.url} onChange={set('url')} placeholder="https://" /></div>
         <div className="field"><label htmlFor="mc-descricao">Quando usar (opcional)</label><textarea id="mc-descricao" value={form.descricao} onChange={set('descricao')} /></div>
       </form>

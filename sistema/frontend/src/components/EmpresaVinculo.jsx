@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Selecao from './Selecao';
 import { api } from '../lib/api';
 
 const OUTRA = 'outra';
@@ -15,11 +16,11 @@ export default function EmpresaVinculo({ id, className = 'field', empresaId, emp
   }
   return <div className={className}>
     <label htmlFor={id}>Empresa</label>
-    <select id={id} value={digitando ? OUTRA : empresaId ?? ''} onChange={e => escolher(e.target.value)}>
+    <Selecao id={id} value={digitando ? OUTRA : empresaId ?? ''} onChange={e => escolher(e.target.value)}>
       <option value="">Selecione a empresa</option>
       {empresas.map(o => <option key={o.id} value={o.id}>{o.nome}</option>)}
       <option value={OUTRA}>Outra empresa (digitar o nome)</option>
-    </select>
+    </Selecao>
     {digitando && <input id={`${id}-nome`} className="empresa-vinculo-nome" aria-label="Nome da empresa" autoFocus value={empresaNome} onChange={e => onChange({ empresaId: null, empresaNome: e.target.value })} placeholder="Nome da empresa" />}
   </div>;
 }

@@ -1,0 +1,15 @@
+.wt-skeleton {
+  border-radius: 9999px;
+  background: linear-gradient(90deg, var(--wt-surface-hover) 25%, var(--wt-border) 50%, var(--wt-surface-hover) 75%);
+  background-size: 200% 100%;
+  animation: wt-skeleton-shimmer 1.4s ease-in-out infinite;
+}
+
+.wt-skeleton--circle {
+  border-radius: 50%;
+}
+
+@keyframes wt-skeleton-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}

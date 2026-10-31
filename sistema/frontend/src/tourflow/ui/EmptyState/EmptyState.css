@@ -1,0 +1,90 @@
+.wt-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 3rem 1.5rem;
+  gap: 0.35rem;
+}
+
+.wt-empty-state--compact {
+  padding: 1.75rem 1rem;
+}
+
+.wt-empty-state__icon-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 50%;
+  background: var(--wt-primary-light, rgba(26, 26, 255, 0.08));
+  margin-bottom: 0.5rem;
+}
+
+.wt-empty-state--compact .wt-empty-state__icon-wrap {
+  width: 2.75rem;
+  height: 2.75rem;
+}
+
+.wt-empty-state__icon {
+  font-size: 1.35rem;
+  color: var(--wt-primary, #12463d);
+}
+
+.wt-empty-state--compact .wt-empty-state__icon {
+  font-size: 1.1rem;
+}
+
+.wt-empty-state__title {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--wt-text, #1e293b);
+}
+
+.wt-empty-state__description {
+  margin: 0;
+  max-width: 26rem;
+  font-size: 0.8rem;
+  color: var(--wt-text-secondary, #64748b);
+  line-height: 1.5;
+}
+
+.wt-empty-state__action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.85rem;
+  padding: 0.55rem 1.1rem;
+  border: none;
+  border-radius: var(--wt-radius-sm, 8px);
+  background: var(--wt-primary, #12463d);
+  color: var(--wt-text-inverse, #fff);
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.wt-empty-state__action:hover {
+  background: var(--wt-primary-hover, #101099);
+  box-shadow: 0 4px 12px rgba(var(--wt-primary-rgb, 26 26 255), 0.28);
+}
+
+.wt-empty-state__action:focus-visible {
+  outline: 2px solid var(--wt-border-focus, var(--wt-primary, #12463d));
+  outline-offset: 2px;
+}
+
+.wt-empty-state--error .wt-empty-state__icon-wrap {
+  background: var(--wt-error-light, rgba(239, 68, 68, 0.08));
+}
+
+.wt-empty-state--error .wt-empty-state__icon {
+  color: var(--wt-error, #EF4444);
+}
+
+.wt-empty-state__action { border-radius: 9999px; }

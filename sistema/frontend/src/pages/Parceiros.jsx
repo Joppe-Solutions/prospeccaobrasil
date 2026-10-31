@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, CheckCircle, EnvelopeSimple, Handshake, Phone, Plus, Storefront, Trash, UsersThree } from '@phosphor-icons/react';
+import Selecao from '../components/Selecao';
+import { ArrowRight, EnvelopeSimple, Handshake, Phone, Plus, Storefront, Trash, UsersThree } from '@phosphor-icons/react';
 import { avisar } from '../lib/avisos';
 import { api, registroProfissional, TIPOS_PARCEIRO, UFS } from '../lib/api';
 import { mascararDocumento } from '../lib/numeros';
@@ -123,8 +124,8 @@ export default function Parceiros() {
         searchPlaceholder="Buscar parceiro, telefone ou cidade..." exportName="parceiros.csv"
         emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo parceiro</button>} emptyTitle="Nenhum parceiro encontrado" emptyDescription="Cadastre consultores, advogados, corretores, imobiliárias e indicadores."
         toolbar={<>
-          <label className="collection-select"><Storefront size={16} /><select aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
-          <label className="collection-select"><CheckCircle size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select></label>
+          <Selecao aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
+          <Selecao aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></Selecao>
           {(tipo || status) && <button className="btn btn-ghost btn-sm" onClick={() => { setTipo(''); setStatus(''); }}>Limpar filtros</button>}
           {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
         </>}
@@ -144,8 +145,8 @@ export default function Parceiros() {
         <div className="field"><label htmlFor="parc-tel">Telefone</label><input id="parc-tel" value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} /></div>
         <div className="field"><label htmlFor="parc-email">E-mail</label><input id="parc-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
         <div className="field"><label htmlFor="parc-cidade">Cidade</label><input id="parc-cidade" value={form.cidade} onChange={e => setForm({ ...form, cidade: e.target.value })} /></div>
-        <div className="field"><label htmlFor="parc-uf">UF</label><select id="parc-uf" value={form.uf} onChange={e => setForm({ ...form, uf: e.target.value })}><option value="">—</option>{UF_OPCOES}</select></div>
-        <div className="field"><label htmlFor="parc-status">Status</label><select id="parc-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+        <div className="field"><label htmlFor="parc-uf">UF</label><Selecao id="parc-uf" value={form.uf} onChange={e => setForm({ ...form, uf: e.target.value })}><option value="">—</option>{UF_OPCOES}</Selecao></div>
+        <div className="field"><label htmlFor="parc-status">Status</label><Selecao id="parc-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></Selecao></div>
         <div className="field"><label htmlFor="parc-obs">Observações <span className="collection-optional">Opcional</span></label><textarea id="parc-obs" rows={3} value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} /></div>
       </form>
     </Modal>}

@@ -1,34 +1,28 @@
-import { useEffect, useRef, useState } from 'react';
-import { flexRender, getCoreRowModel, getFilteredRowModel, getPaginationRowModel, getSortedRowModel, useReactTable } from '@tanstack/react-table';
-import { ArrowDown, ArrowUp, ArrowsDownUp, CaretLeft, CaretRight, Columns, DownloadSimple, MagnifyingGlass, X } from '@phosphor-icons/react';
-import { EmptyState, LoadingState } from './UI';
+import { useMemo, useState } from 'react';
+import TabelaTourflow from '../tourflow/ui/DataTable/DataTable';
+import Input from '../tourflow/ui/Input/Input';
 
-const normalize = value => String(value ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-export default function DataTable({ columns, data = [], loading, error, emptyTitle = 'Nenhum resultado encontrado', emptyDescription = 'Tente ajustar a busca ou os filtros.', searchPlaceholder = 'Buscar…', searchValue, onSearchChange, toolbar, pageSize = 10, pagination = true, search = true, exportName, columnVisibility: allowColumns = true, compact = false, emptyAction }) {
-  const [sorting, setSorting] = useState([]); const [query, setQuery] = useState(''); const [visibility, setVisibility] = useState({}); const [menu, setMenu] = useState(false);
-  const menuRef = useRef(); const filter = searchValue ?? query;
-  const setFilter = v => { onSearchChange ? onSearchChange(v) : setQuery(v); };
-  const table = useReactTable({ data, columns, state: { sorting, globalFilter: filter, columnVisibility: visibility }, onSortingChange: setSorting, onColumnVisibilityChange: setVisibility, onGlobalFilterChange: setFilter, getCoreRowModel: getCoreRowModel(), getSortedRowModel: getSortedRowModel(), getFilteredRowModel: getFilteredRowModel(), getPaginationRowModel: pagination ? getPaginationRowModel() : undefined, initialState: { pagination: { pageSize } }, globalFilterFn: (row, columnId, value) => normalize(row.getValue(columnId)).includes(normalize(value)) });
-  useEffect(() => { if (!menu) return; const close = e => { if (e.type === 'keydown' ? e.key === 'Escape' : !menuRef.current?.contains(e.target)) setMenu(false); }; document.addEventListener('pointerdown', close); document.addEventListener('keydown', close); return () => { document.removeEventListener('pointerdown', close); document.removeEventListener('keydown', close); }; }, [menu]);
-  const rows = table.getRowModel().rows; const total = table.getFilteredRowModel().rows.length; const { pageIndex, pageSize: size } = table.getState().pagination;
-  function exportCSV() {
-    const visible = table.getVisibleLeafColumns().filter(c => c.accessorFn);
-    const escape = v => '"' + String(v ?? '').replace(/^[=+\-@\t\r]/, "'$&").replace(/"/g, '""') + '"';
-    const head = visible.map(c => escape(c.columnDef.meta?.label || (typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id)));
-    const records = table.getSortedRowModel().rows.map(r => visible.map(c => escape(r.getValue(c.id))).join(';'));
-    const url = URL.createObjectURL(new Blob(['\uFEFF' + [head.join(';'), ...records].join('\r\n')], { type: 'text/csv;charset=utf-8;' }));
-    const a = document.createElement('a'); a.href = url; a.download = `${exportName.replace(/\.csv$/, '')}.csv`; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
-  }
+const normalizar = valor => String(valor ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const valorDaColuna = (coluna, item) => (coluna.accessorFn ? coluna.accessorFn(item) : coluna.accessorKey ? item[coluna.accessorKey] : '');
+
+// Tabela do TourFlow com a busca e os filtros das listagens em uma linha acima (FilterBar).
+export default function DataTable({ columns, data = [], loading, error, onRetry, emptyTitle = 'Nenhum resultado encontrado', emptyDescription = 'Tente ajustar a busca ou os filtros.', searchPlaceholder = 'Buscar…', searchValue, onSearchChange, toolbar, pageSize = 10, pagination = true, search = true, exportName, compact = false, emptyAction }) {
+  const [busca, setBusca] = useState('');
+  const termo = searchValue ?? busca;
+  const trocarBusca = valor => (onSearchChange ? onSearchChange(valor) : setBusca(valor));
+  const linhas = useMemo(() => {
+    const procurado = normalizar(termo).trim();
+    if (!procurado) return data;
+    return data.filter(item => normalizar(columns.map(c => valorDaColuna(c, item)).join(' ')).includes(procurado));
+  }, [data, columns, termo]);
+
   return <div className={`data-table ${compact ? 'compact' : ''}`}>
-    {(search || toolbar || exportName || (allowColumns && !compact)) && <div className="table-toolbar">
-      {search && <div className="search-field"><MagnifyingGlass size={18} /><input aria-label={searchPlaceholder} placeholder={searchPlaceholder} value={filter} onChange={e => setFilter(e.target.value)} />{filter && <button type="button" aria-label="Limpar busca" onClick={() => setFilter('')}><X size={14} /></button>}</div>}
-      <div className="table-tools">{exportName && <button type="button" className="btn btn-ghost btn-sm" onClick={exportCSV} disabled={!total || loading}><DownloadSimple size={17} />Exportar</button>}
-      {allowColumns && !compact && <div className="column-menu" ref={menuRef}><button type="button" className="btn btn-ghost btn-sm" aria-expanded={menu} onClick={() => setMenu(!menu)}><Columns size={17} />Colunas</button>{menu && <div className="column-popover"><strong>Colunas visíveis</strong>{table.getAllLeafColumns().filter(c => c.getCanHide()).map(c => <label key={c.id}><input type="checkbox" checked={c.getIsVisible()} disabled={c.getIsVisible() && table.getVisibleLeafColumns().length === 1} onChange={c.getToggleVisibilityHandler()} />{c.columnDef.meta?.label || (typeof c.columnDef.header === 'string' ? c.columnDef.header : c.id)}</label>)}</div>}</div>}</div>
+    {(search || toolbar) && <div className="wt-filterbar table-filters" role="search">
+      {search && <div className="table-busca"><Input aria-label={searchPlaceholder} placeholder={searchPlaceholder} value={termo} onChange={e => trocarBusca(e.target.value)} icon="fas fa-search" /></div>}
+      {toolbar}
     </div>}
-    {toolbar && <div className="table-filters">{toolbar}</div>}
-    {loading ? <LoadingState /> : error ? <div className="alert error" role="alert">{typeof error === 'string' ? error : 'Não foi possível carregar os dados.'}</div> : <><div className="table-scroll"><table><thead>{table.getHeaderGroups().map(group => <tr key={group.id}>{group.headers.map(h => <th key={h.id} aria-sort={h.column.getIsSorted() ? h.column.getIsSorted() === 'asc' ? 'ascending' : 'descending' : undefined} style={h.column.columnDef.meta?.style}>{h.isPlaceholder ? null : h.column.getCanSort() ? <button type="button" className="sort-button" onClick={h.column.getToggleSortingHandler()}>{flexRender(h.column.columnDef.header, h.getContext())}{h.column.getIsSorted() === 'asc' ? <ArrowUp size={13} /> : h.column.getIsSorted() === 'desc' ? <ArrowDown size={13} /> : <ArrowsDownUp size={13} className="sort-hint" />}</button> : flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>)}</thead><tbody>{rows.map(row => <tr key={row.id}>{row.getVisibleCells().map(cell => <td key={cell.id} style={cell.column.columnDef.meta?.style} data-label={cell.column.columnDef.meta?.label || (typeof cell.column.columnDef.header === 'string' ? cell.column.columnDef.header : '')}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>)}</tr>)}</tbody></table></div>
-      {!rows.length && <EmptyState title={emptyTitle} description={emptyDescription}>{emptyAction}</EmptyState>}
-      {pagination && <footer className="table-pagination"><span>{total ? `${pageIndex * size + 1}–${Math.min((pageIndex + 1) * size, total)} de ${total} registros` : '0 registros'}</span><div><label>Por página <select aria-label="Registros por página" value={size} onChange={e => table.setPageSize(Number(e.target.value))}>{[...new Set([5, 10, 20, 50, pageSize])].sort((a,b) => a-b).map(n => <option key={n} value={n}>{n}</option>)}</select></label><span className="pagination-count">{pageIndex + 1} / {Math.max(1, table.getPageCount())}</span><button className="icon-button" aria-label="Página anterior" disabled={!table.getCanPreviousPage()} onClick={() => table.previousPage()}><CaretLeft size={17} /></button><button className="icon-button" aria-label="Próxima página" disabled={!table.getCanNextPage()} onClick={() => table.nextPage()}><CaretRight size={17} /></button></div></footer>}
-    </>}
+    <TabelaTourflow columns={columns} data={linhas} loading={loading} error={error || null} onRetry={onRetry} pageSize={pageSize} showPagination={pagination}
+      emptyMessage={emptyTitle} emptyDescription={emptyDescription} emptyAction={emptyAction} emptyIcon="fas fa-inbox"
+      exportable={Boolean(exportName)} exportFilename={(exportName || '').replace(/\.csv$/, '')} stickyColumns={compact ? 0 : 'auto'} />
   </div>;
 }

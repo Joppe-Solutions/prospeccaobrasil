@@ -5,19 +5,19 @@ import { login, watchErrors, expectNoErrors } from './helpers.js';
 const MODULES = [
   { path: '/', label: 'Visão geral', marker: 'Bem-vindo' },
   { path: '/financeiro', label: 'Financeiro', marker: null },
-  { path: '/imoveis', label: 'Imóveis', navLabel: /^Imóveis/, marker: 'PB-E2E' },
-  { path: '/empresas', label: 'Clientes', navLabel: /^Clientes/, marker: 'Empresa E2E' },
-  { path: '/parceiros', label: 'Consultores', navLabel: /^Consultores/, marker: 'Parceiro E2E' },
-  { path: '/leads', label: 'Leads', navLabel: /^Leads/, marker: 'Lead E2E' },
-  { path: '/proprietarios', label: 'Proprietários e operadores', marker: 'Proprietário E2E' },
-  { path: '/glossario', label: 'Glossário de Varejo', marker: 'Glossário de Varejo' },
-  { path: '/inteligencia', label: 'Inteligência de Mercado', marker: 'Relatórios por imóvel' },
-  { path: '/benchmark', label: 'Benchmark', marker: 'Rental rate' },
-  { path: '/modelos-contratos', label: 'Modelos de contratos', marker: 'Biblioteca de modelos' },
+  { path: '/imoveis', grupo: 'Cadastros', label: 'Imóveis', marker: 'PB-E2E' },
+  { path: '/empresas', grupo: 'Cadastros', label: 'Clientes', marker: 'Empresa E2E' },
+  { path: '/parceiros', grupo: 'Cadastros', label: 'Consultores', marker: 'Parceiro E2E' },
+  { path: '/leads', grupo: 'Cadastros', label: 'Leads', marker: 'Lead E2E' },
+  { path: '/proprietarios', grupo: 'Cadastros', label: 'Proprietários e operadores', marker: 'Proprietário E2E' },
+  { path: '/glossario', grupo: 'Conhecimento', label: 'Glossário de Varejo', marker: 'Glossário de Varejo' },
+  { path: '/inteligencia', grupo: 'Conhecimento', label: 'Inteligência de Mercado', marker: 'Relatórios por imóvel' },
+  { path: '/benchmark', grupo: 'Conhecimento', label: 'Benchmark', marker: 'Rental rate' },
+  { path: '/modelos-contratos', grupo: 'Conhecimento', label: 'Modelos de contratos', marker: 'Biblioteca de modelos' },
   { path: '/oportunidades', label: 'Ações das operações', marker: null },
-  { path: '/perfil', label: 'Perfil', marker: null },
-  { path: '/usuarios', label: 'Usuários', marker: 'Admin E2E' },
-  { path: '/configuracoes', label: 'Configurações', marker: 'Parâmetros do sistema' },
+  { path: '/perfil', grupo: 'Conta', label: 'Perfil', marker: null },
+  { path: '/usuarios', grupo: 'Conta', label: 'Usuários', marker: 'Admin E2E' },
+  { path: '/configuracoes', grupo: 'Conta', label: 'Configurações', marker: 'Parâmetros do sistema' },
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -28,7 +28,7 @@ for (const mod of MODULES) {
   test(`módulo ${mod.label} carrega sem erros`, async ({ page }) => {
     const errors = watchErrors(page);
     await page.goto(mod.path);
-    await expect(page.locator('.topbar-path strong')).toHaveText(mod.label);
+    await expect(page.locator('.sidebar__link--active, .sidebar__sub-link--active')).toHaveText(mod.label);
     await expect(page.locator('#main-content')).not.toBeEmpty();
     if (mod.marker) {
       await expect(page.locator('#main-content')).toContainText(mod.marker);
@@ -41,9 +41,11 @@ for (const mod of MODULES) {
 test('navegação pela sidebar visita todos os módulos', async ({ page }) => {
   const errors = watchErrors(page);
   for (const mod of MODULES.filter((m) => m.path !== '/')) {
-    await page.locator('nav').getByRole('link', { name: mod.navLabel || mod.label, exact: true }).first().click();
+    const nav = page.getByRole('navigation', { name: 'Navegação principal' });
+    if (mod.grupo && !(await nav.getByRole('button', { name: mod.grupo }).getAttribute('aria-expanded') === 'true')) await nav.getByRole('button', { name: mod.grupo }).click();
+    await nav.getByRole('link', { name: mod.label, exact: true }).click();
     await expect(page).toHaveURL(new RegExp(mod.path.replace('/', '\\/') + '$'));
-    await expect(page.locator('.topbar-path strong')).toHaveText(mod.label);
+    await expect(page.locator('.sidebar__link--active, .sidebar__sub-link--active')).toHaveText(mod.label);
   }
   await page.waitForLoadState('networkidle');
   await expectNoErrors(errors);
@@ -87,18 +89,15 @@ test('modelos de contrato: admin cadastra e abre o link', async ({ page }) => {
   await expectNoErrors(errors);
 });
 
-test('menu: Institucional é só um grupo (sem página própria) e módulos removidos redirecionam', async ({ page }) => {
+test('menu: site institucional é link externo e módulos removidos redirecionam', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/imoveis');
   const nav = page.locator('nav');
   await expect(nav.getByRole('link', { name: 'Site institucional' })).toHaveAttribute('href', 'https://prospeccaobrasil.com.br');
-  await expect(nav.getByRole('link', { name: /^Institucional$/ })).toHaveCount(0); // o rótulo do grupo não é link
-  await nav.getByText('Institucional', { exact: true }).click();
-  await expect(page).toHaveURL(/\/imoveis$/);
   for (const antigo of ['/institucional', '/diretrizes', '/propostas']) {
     await page.goto(antigo);
     await expect(page).toHaveURL(/\/$/);
-    await expect(page.locator('.topbar-path strong')).toHaveText('Visão geral');
+    await expect(page.locator('.sidebar__link--active')).toHaveText('Visão geral');
   }
   await expect(nav.getByRole('link', { name: /Diretrizes|Carta modelo/ })).toHaveCount(0);
   await expectNoErrors(errors);

@@ -23,13 +23,16 @@
 - Apresentação `/apresentacao/:id` é pública (link para clientes); o resto exige JWT
 
 ## Convenções
-- Design: `frontend/src/tokens.css` é a fonte única de cor, tipo, raio, sombra e foco (`--brand-*`, `--gold-*`, `--fs-*`, `--r-*`);
-  nenhum CSS define cor da marca ou tamanho de fonte "na mão". Escala tipográfica fechada: 12/13/14/16/22/32 px, nada abaixo de 12.
-  Rótulos em sentence case (sem caixa alta + letter-spacing). Botão primário é sempre verde (`.btn-gold` = `.btn-primary`);
-  dourado é acento (menu ativo, selo "capa"). Hover por cor, nunca por deslocamento; `:focus-visible` com `--focus-ring`.
-- Listagens (`DataTable`): busca + Exportar/Colunas na 1ª linha, filtros (`toolbar`, sempre em `label.collection-select`)
-  na 2ª; abas só para categoria, no cabeçalho do painel. Até 640 px cada linha vira cartão com o rótulo da coluna
-  (`data-label` vem de `meta.label` ou do `header`). Trilha da barra superior = grupo do menu > página.
+- Design: o sistema usa os componentes do TourFlow (World Tour Travel), copiados em `frontend/src/tourflow/` (`ui/`, `shell/`, ícones `fas fa-*`
+  via `icones-lucide.css`, sem Font Awesome). Cores e fontes da marca ficam em `frontend/src/tokens.css` (`--wt-*`: verde `--wt-primary`, dourado
+  `--wt-accent`, Montserrat em `--wt-font-display`); troque cor só ali. Azul e limão do TourFlow não devem voltar: ao copiar um componente novo, procure `#1a1aff`.
+- Shell: `components/Layout.jsx` (classes `sidebar__*`/`app-topbar__*`), menu e trilha em `lib/menu.js`. Dourado é acento (item ativo do menu, selo "capa").
+- Listagens: `components/DataTable.jsx` adapta o DataTable do TourFlow (mesmas props de antes): busca e filtros (`toolbar`) acima da tabela; até 640 px
+  cada linha vira cartão (`data-label`). Cabeçalho de painel (`.collection-section-head`) não aparece quando o painel contém tabela.
+- Selects: sempre `components/Selecao.jsx` (API de `<select>` com `<option>`, visual do Select do TourFlow; o `<select>` real fica invisível para
+  rótulo, teclado e `required`). Exceção: `collection-stage-select` (pílula de etapa na tabela de ações).
+- Formulários: `.field`/`.wz-field` têm o campo do TourFlow (preenchido, sem borda). Modal com `<form>` abre como gaveta à direita (FormDrawer); confirmações
+  ficam centralizadas; wizard continua em `FormWizard`. Botões `.btn*` têm a medida do Button do TourFlow; `.btn-gold` = `.btn-primary`.
 - Visão geral é operacional: `GET /api/dashboard` devolve `pendencias` (disponíveis sem foto / sem análise) e `acoesAbertas`
   (etapa fora de fechado/perdido, as paradas há mais tempo primeiro). Sem banner de marketing. Detalhe do imóvel sem estilo
   embutido: formulários em linha usam `.inline-form` + `.field`; tabelas internas `.detail-table`; vínculos em `dl.detail-links`.
@@ -107,9 +110,8 @@
   `DecimalInput` (áreas e medidas) e `InteiroInput`; o valor do estado é sempre canônico ("1234.5") e a API
   não muda. Nunca use `type="number"` em formulários. Formatos nos formulários: `fmt: 'dinheiro'|'decimal'|'inteiro'`
   (wizards) ou o tipo na lista de campos do `BusinessFields`.
-- Menu lateral segue o PDF "Espaço Work" do cliente (`NAV` em `components/Layout.jsx`):
-  `sub` = linha de apoio, `children` = subitens; item sem `to` é só um grupo (rótulo sem página, caso de
-  "Institucional", que contém apenas o link externo "Site institucional"). Rotas mantidas: Clientes = `/empresas`,
+- Menu lateral segue o PDF "Espaço Work" do cliente (`MENU` em `lib/menu.js`): grupos em acordeão e "Site institucional" como link
+  externo. Rotas mantidas: Clientes = `/empresas`,
   Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários não
   estava no PDF e foi mantido em Cadastros. Os módulos Diretrizes, Demandas, Institucional, Propostas Comerciais e Documentação
   foram removidos da interface; `/diretrizes`, `/institucional`, `/propostas` e `/documentos` redirecionam para o início (`/api/documentos` segue no ar; os documentos de cada imóvel continuam no detalhe).

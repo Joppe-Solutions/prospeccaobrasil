@@ -64,3 +64,137 @@
   --green: var(--brand-900); --green-2: var(--brand-800); --teal: var(--brand-700);
   --gold: var(--gold-500); --cream: var(--surface); --radius-lg: var(--r-md);
 }
+
+:root {
+  --wt-primary: #12463d;
+  --wt-primary-rgb: 18 70 61;
+  --wt-primary-hover: #0e3f39;
+  --wt-primary-dark: #0a3431;
+  --wt-primary-light: rgb(var(--wt-primary-rgb) / 0.08);
+
+  --wt-primary-50: #eff5f1;
+  --wt-primary-50-rgb: 239 245 241;
+  --wt-primary-100: #e4efe8;
+  --wt-primary-100-rgb: 228 239 232;
+  --wt-primary-200: #c9ded1;
+  --wt-primary-200-rgb: 201 222 209;
+  --wt-primary-300: #a3c4b1;
+  --wt-primary-300-rgb: 163 196 177;
+  --wt-primary-400: #6f9f87;
+  --wt-primary-400-rgb: 111 159 135;
+  --wt-primary-500: #3f7a63;
+  --wt-primary-500-rgb: 63 122 99;
+  --wt-primary-600: var(--wt-primary);
+  --wt-primary-600-rgb: var(--wt-primary-rgb);
+  --wt-primary-700: #0e3f39;
+  --wt-primary-700-rgb: 14 63 57;
+  --wt-primary-800: #0a3431;
+  --wt-primary-800-rgb: 10 52 49;
+  --wt-primary-900: #082825;
+  --wt-primary-900-rgb: 8 40 37;
+  --wt-primary-950: #051a18;
+  --wt-primary-950-rgb: 5 26 24;
+
+  /* Accent da marca World Tour Travel (limão). Chrome da marca e “concluído”, não cor genérica. */
+  --wt-accent: #d5ad62;
+  --wt-accent-hover: #c49a4e;
+  --wt-accent-dark: #a17c35;
+  --wt-accent-light: rgba(213, 173, 98, 0.16);
+
+  --wt-success: #22C55E;
+  --wt-success-light: rgba(34, 197, 94, 0.08);
+  --wt-warning: #F59E0B;
+  --wt-warning-light: rgba(245, 158, 11, 0.08);
+  --wt-error: #EF4444;
+  --wt-error-light: rgba(239, 68, 68, 0.08);
+  --wt-info: #0EA5E9;
+  --wt-info-light: #EFF6FF;
+  --wt-bg-subtle: #faf9f5;
+
+  /* Neutros do app do motorista: cinza puro (sem tom azulado), bloco #F4F5F7 */
+  --wt-bg: #f4f2ec;
+  --wt-surface: #FFFFFF;
+  --wt-surface-hover: #faf9f5;
+  --wt-surface-raised: #FFFFFF;
+  --wt-surface-secondary: #f3f1ea;
+  --wt-field: #efece3;
+
+  --wt-border: #e3dfd2;
+  --wt-border-light: #ece9de;
+  --wt-border-strong: #c9c4b4;
+  --wt-border-focus: var(--wt-primary);
+
+  --wt-text: #1c2a28;
+  --wt-text-secondary: #5f7169;
+  --wt-text-muted: #76867e;
+  --wt-text-inverse: #FFFFFF;
+
+  --wt-font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+  --wt-font-display: 'Montserrat', 'Inter', sans-serif;
+
+  --wt-text-display: 4rem;
+  --wt-text-h1: 3rem;
+  --wt-text-h2: 2.25rem;
+  --wt-text-h3: 1.75rem;
+  --wt-text-h4: 1.375rem;
+  --wt-text-body-lg: 1.125rem;
+  --wt-text-body: 1rem;
+  --wt-text-sm: 0.875rem;
+  --wt-text-caption: 0.75rem;
+
+  --wt-font-regular: 400;
+  --wt-font-medium: 500;
+  --wt-font-semibold: 600;
+  --wt-font-bold: 700;
+  --wt-font-extrabold: 800;
+
+  --wt-space-1: 4px;
+  --wt-space-2: 8px;
+  --wt-space-3: 12px;
+  --wt-space-4: 16px;
+  --wt-space-5: 20px;
+  --wt-space-6: 24px;
+  --wt-space-8: 32px;
+  --wt-space-10: 40px;
+  --wt-space-12: 48px;
+  --wt-space-16: 64px;
+
+  --wt-radius-sm: 8px;
+  --wt-radius-md: 12px;
+  --wt-radius-lg: 16px;
+  --wt-radius-xl: 24px;
+  --wt-radius-full: 9999px;
+
+  /* Superfícies são planas (como no app); sombra só em camadas flutuantes (menus, modais). */
+  --wt-shadow-xs: none;
+  --wt-shadow-sm: none;
+  --wt-shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --wt-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --wt-shadow-xl: 0 16px 48px rgba(0, 0, 0, 0.1);
+
+  --wt-duration-fast: 150ms;
+  --wt-duration-normal: 200ms;
+  --wt-duration-slow: 250ms;
+  --wt-easing-default: cubic-bezier(0.4, 0, 0.2, 1);
+  --wt-easing-in: cubic-bezier(0.4, 0, 1, 1);
+  --wt-easing-out: cubic-bezier(0, 0, 0.2, 1);
+
+  --wt-btn-height-sm: 36px;
+  --wt-btn-height-md: 40px;
+  --wt-btn-height-lg: 48px;
+  --wt-btn-padding-x-sm: 14px;
+  --wt-btn-padding-x-md: 18px;
+  --wt-btn-padding-x-lg: 24px;
+  --wt-btn-padding-y-sm: 8px;
+  --wt-btn-padding-y-md: 10px;
+  --wt-btn-padding-y-lg: 14px;
+  --wt-btn-font-size-sm: 0.875rem;
+  --wt-btn-font-size-md: 1rem;
+  --wt-btn-font-size-lg: 1.125rem;
+  --wt-btn-radius: 9999px;
+  --wt-field-radius: 12px;
+
+  --cor-primaria: var(--wt-primary);
+  --cor-secundaria: var(--wt-primary-dark);
+}
+

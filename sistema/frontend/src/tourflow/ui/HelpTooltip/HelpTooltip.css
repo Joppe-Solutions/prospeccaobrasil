@@ -1,0 +1,116 @@
+.wt-help-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  vertical-align: middle;
+}
+
+.wt-help-tooltip__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--wt-text-muted, #94A3B8);
+  cursor: help;
+  font-size: 0.75rem;
+  line-height: 1;
+  transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.wt-help-tooltip__btn:hover,
+.wt-help-tooltip__btn:focus-visible {
+  color: var(--wt-primary, #12463d);
+  background: var(--wt-primary-light, rgba(26, 26, 255, 0.08));
+  outline: none;
+}
+
+.wt-help-tooltip__btn:focus-visible {
+  outline: 2px solid var(--wt-primary, #12463d);
+  outline-offset: 1px;
+}
+
+.wt-help-tooltip__bubble {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 9999;
+  min-width: 220px;
+  max-width: 320px;
+  padding: 10px 12px;
+  background: var(--wt-text, #1E293B);
+  color: #fff;
+  font-size: 12px;
+  line-height: 1.45;
+  font-weight: 400;
+  text-align: left;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+  white-space: normal;
+}
+
+.wt-help-tooltip__bubble--top {
+  bottom: calc(100% + 8px);
+}
+
+.wt-help-tooltip__bubble--bottom {
+  top: calc(100% + 8px);
+}
+
+.wt-help-tooltip__bubble--right {
+  top: 50%;
+  left: calc(100% + 8px);
+  transform: translateY(-50%);
+}
+
+.wt-help-tooltip__bubble--left {
+  top: 50%;
+  left: auto;
+  right: calc(100% + 8px);
+  transform: translateY(-50%);
+}
+
+.wt-help-tooltip__bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 6px solid transparent;
+}
+
+.wt-help-tooltip__bubble--top::after {
+  top: 100%;
+  border-top-color: var(--wt-text, #1E293B);
+}
+
+.wt-help-tooltip__bubble--bottom::after {
+  bottom: 100%;
+  border-bottom-color: var(--wt-text, #1E293B);
+}
+
+.wt-help-tooltip__bubble--right::after {
+  left: 0;
+  top: 50%;
+  transform: translate(-100%, -50%);
+  border-right-color: var(--wt-text, #1E293B);
+}
+
+.wt-help-tooltip__bubble--left::after {
+  left: 100%;
+  top: 50%;
+  transform: translate(0, -50%);
+  border-left-color: var(--wt-text, #1E293B);
+}
+
+@media (max-width: 640px) {
+  .wt-help-tooltip__bubble {
+    min-width: 180px;
+    max-width: 260px;
+  }
+}

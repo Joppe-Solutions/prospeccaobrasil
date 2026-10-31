@@ -1,4 +1,5 @@
 import { PESSOA_PARCEIRO, TIPOS_PARCEIRO, UFS } from '../lib/api';
+import Selecao from './Selecao';
 import { documentoValido, mascararDocumento } from '../lib/numeros';
 
 const UF_OPCOES = UFS.map(u => <option key={u} value={u}>{u}</option>);
@@ -28,9 +29,9 @@ export default function ParceiroCampos({ form, setForm, prefixo = 'parc', Campo 
   const docObrigatorio = form.tipo === 'consultor';
   return <>
     <Campo className={classe}><label htmlFor={`${prefixo}-tipo`}>Tipo de parceiro</label>
-      <select id={`${prefixo}-tipo`} value={form.tipo} onChange={e => setForm(f => mudarTipo(f, e.target.value))}>{Object.entries(TIPOS_PARCEIRO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></Campo>
+      <Selecao id={`${prefixo}-tipo`} value={form.tipo} onChange={e => setForm(f => mudarTipo(f, e.target.value))}>{Object.entries(TIPOS_PARCEIRO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao></Campo>
     {form.tipo === 'indicador' && <Campo className={classe}><label htmlFor={`${prefixo}-pessoa`}>Pessoa</label>
-      <select id={`${prefixo}-pessoa`} value={form.tipoPessoa} onChange={e => setForm(f => ({ ...f, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></Campo>}
+      <Selecao id={`${prefixo}-pessoa`} value={form.tipoPessoa} onChange={e => setForm(f => ({ ...f, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao></Campo>}
     <Campo className={classe}><label htmlFor={`${prefixo}-nome`}>{pj ? 'Razão social ou nome fantasia' : 'Nome completo'}</label>
       <input id={`${prefixo}-nome`} value={form.nome} onChange={e => set('nome', e.target.value)} /></Campo>
     <Campo className={classe}><label htmlFor={`${prefixo}-doc`}>{pj ? 'CNPJ' : 'CPF'}{!docObrigatorio && <span className="collection-optional"> Opcional</span>}</label>
@@ -39,13 +40,13 @@ export default function ParceiroCampos({ form, setForm, prefixo = 'parc', Campo 
       <Campo className={classe}><label htmlFor={`${prefixo}-creci`}>{form.tipo === 'imobiliaria' ? 'CRECI-PJ' : 'CRECI-PF'}</label>
         <input id={`${prefixo}-creci`} inputMode="numeric" autoComplete="off" value={form.creci} onChange={e => set('creci', e.target.value.replace(/\D/g, '').slice(0, 8))} placeholder="Só o número" /></Campo>
       <Campo className={classe}><label htmlFor={`${prefixo}-creci-uf`}>UF do CRECI</label>
-        <select id={`${prefixo}-creci-uf`} value={form.creciUf} onChange={e => set('creciUf', e.target.value)}>{UF_OPCOES}</select></Campo>
+        <Selecao id={`${prefixo}-creci-uf`} value={form.creciUf} onChange={e => set('creciUf', e.target.value)}>{UF_OPCOES}</Selecao></Campo>
     </>}
     {form.tipo === 'advogado' && <>
       <Campo className={classe}><label htmlFor={`${prefixo}-oab`}>Número da OAB</label>
         <input id={`${prefixo}-oab`} inputMode="numeric" autoComplete="off" value={form.oab} onChange={e => set('oab', e.target.value.replace(/\D/g, '').slice(0, 7))} placeholder="Ex.: 123456" /></Campo>
       <Campo className={classe}><label htmlFor={`${prefixo}-oab-uf`}>UF da OAB</label>
-        <select id={`${prefixo}-oab-uf`} value={form.oabUf} onChange={e => set('oabUf', e.target.value)}>{UF_OPCOES}</select></Campo>
+        <Selecao id={`${prefixo}-oab-uf`} value={form.oabUf} onChange={e => set('oabUf', e.target.value)}>{UF_OPCOES}</Selecao></Campo>
     </>}
   </>;
 }

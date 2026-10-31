@@ -1,0 +1,180 @@
+/* Login no visual do app do motorista: bloco da marca em azul + formulário em
+   branco, campos cinza sem borda, botão em pílula. Sempre claro (antes do login
+   não há preferência de tema do usuário). */
+.lg {
+  --lg-marca: var(--wt-primary, #12463d);
+  --lg-tinta: #1c2a28;
+  --lg-tinta-suave: #5f7169;
+  --lg-tinta-muda: #76867e;
+  --lg-bloco: #efece3;
+  --lg-perigo: #DC2626;
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  grid-template-columns: minmax(380px, 46%) 1fr;
+  background: #FFFFFF;
+  color: var(--lg-tinta);
+  color-scheme: light;
+}
+
+/* ── Bloco da marca ─────────────────────────────────────────────── */
+.lg-marca {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 2rem;
+  padding: 3rem 3.5rem;
+  background: var(--lg-marca);
+  color: #FFFFFF;
+}
+.lg-marca__decoracao span {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.07);
+  pointer-events: none;
+}
+.lg-marca__decoracao span:nth-child(1) { width: 520px; height: 520px; right: -200px; bottom: -180px; }
+.lg-marca__decoracao span:nth-child(2) { width: 300px; height: 300px; right: 80px; bottom: 120px; background: rgba(255, 255, 255, 0.05); }
+.lg-marca__decoracao span:nth-child(3) { width: 140px; height: 140px; left: -50px; top: 38%; background: rgba(255, 255, 255, 0.06); }
+
+.lg-marca__logo { position: relative; height: 34px; width: auto; align-self: flex-start; }
+.lg-marca__texto { position: relative; max-width: 30rem; animation: lg-surgir 0.5s ease-out both; }
+.lg-marca__titulo {
+  font-family: var(--wt-font-display, 'Montserrat', sans-serif);
+  font-weight: 800;
+  font-size: clamp(2rem, 3.2vw, 2.75rem);
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+.lg-marca__sub { margin: 0.9rem 0 0; font-size: 1rem; line-height: 1.55; color: rgba(255, 255, 255, 0.82); }
+.lg-marca__rodape { position: relative; margin: 0; font-size: 0.8rem; color: rgba(255, 255, 255, 0.6); }
+
+.lg-conta { display: flex; align-items: center; gap: 1.1rem; }
+.lg-conta__avatar {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 9999px;
+  background: #FFFFFF;
+  color: var(--lg-marca);
+  font-family: var(--wt-font-display, 'Montserrat', sans-serif);
+  font-weight: 800;
+  font-size: 1.5rem;
+}
+.lg-conta .lg-marca__titulo { font-size: clamp(1.75rem, 2.8vw, 2.4rem); }
+.lg-conta .lg-marca__sub { margin-top: 0.3rem; }
+
+/* ── Formulário ─────────────────────────────────────────────────── */
+.lg-form { display: flex; align-items: center; justify-content: center; padding: 3rem 1.5rem; }
+.lg-form__caixa { width: 100%; max-width: 400px; display: flex; flex-direction: column; gap: 1.25rem; animation: lg-surgir 0.5s 0.05s ease-out both; }
+.lg-form__titulo {
+  margin: 0;
+  font-family: var(--wt-font-display, 'Montserrat', sans-serif);
+  font-weight: 800;
+  font-size: 2rem;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+.lg-form__sub { margin: 0.4rem 0 0; font-size: 0.95rem; color: var(--lg-tinta-suave); }
+
+.lg-campo { display: flex; flex-direction: column; gap: 0.45rem; }
+.lg-campo__rotulo { font-size: 0.85rem; font-weight: 600; color: var(--lg-tinta-suave); }
+.lg-campo__caixa { position: relative; }
+.lg-campo__caixa input {
+  width: 100%;
+  height: 3.5rem;
+  padding: 0 1rem;
+  border: 2px solid transparent;
+  border-radius: 1rem;
+  background: var(--lg-bloco);
+  color: var(--lg-tinta);
+  font-size: 1rem;
+  outline: none;
+  transition: background 0.15s, border-color 0.15s;
+}
+.lg-campo__caixa input::placeholder { color: var(--lg-tinta-muda); }
+.lg-campo__caixa input:focus { background: #FFFFFF; border-color: var(--lg-marca); }
+.lg-campo__caixa input[type='password'], .lg-campo__caixa input#lg-senha { padding-right: 3.25rem; }
+.lg-campo__acao {
+  position: absolute;
+  right: 0.35rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2.75rem;
+  height: 2.75rem;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  color: var(--lg-tinta-suave);
+  cursor: pointer;
+}
+.lg-campo__acao:hover { background: rgba(17, 24, 39, 0.05); }
+.lg-campo__dica { margin: 0; font-size: 0.8rem; font-weight: 600; color: #B45309; }
+
+.lg-linha { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+.lg-link { font-size: 0.95rem; font-weight: 700; color: var(--lg-marca); text-decoration: none; }
+.lg-link:hover { text-decoration: underline; }
+
+/* Chave (switch) igual à do app */
+.lg-chave { display: inline-flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; font-weight: 500; cursor: pointer; user-select: none; }
+.lg-chave input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.lg-chave__trilho { position: relative; width: 2.75rem; height: 1.6rem; border-radius: 9999px; background: #D1D5DB; transition: background 0.2s; }
+.lg-chave__bola { position: absolute; top: 0.2rem; left: 0.2rem; width: 1.2rem; height: 1.2rem; border-radius: 9999px; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2); transition: transform 0.2s; }
+.lg-chave input:checked + .lg-chave__trilho { background: var(--lg-marca); }
+.lg-chave input:checked + .lg-chave__trilho .lg-chave__bola { transform: translateX(1.15rem); }
+.lg-chave input:focus-visible + .lg-chave__trilho { outline: 2px solid var(--lg-marca); outline-offset: 2px; }
+
+.lg-aviso, .lg-erro { margin: 0; display: flex; gap: 0.6rem; align-items: flex-start; padding: 0.8rem 1rem; border-radius: 1rem; font-size: 0.9rem; line-height: 1.45; }
+.lg-aviso { background: #f8efd9; color: #7a5a1e; }
+.lg-erro { background: #FEF2F2; color: var(--lg-perigo); font-weight: 500; }
+.lg-aviso i, .lg-erro i { margin-top: 0.15rem; }
+
+.lg-botao {
+  height: 3.5rem;
+  border: 0;
+  border-radius: 9999px;
+  background: var(--lg-marca);
+  color: #FFFFFF;
+  font-size: 1rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  transition: filter 0.15s, transform 0.05s, opacity 0.15s;
+}
+.lg-botao:hover:not(:disabled) { filter: brightness(1.08); }
+.lg-botao:active:not(:disabled) { transform: scale(0.99); }
+.lg-botao:disabled { opacity: 0.45; cursor: not-allowed; }
+.lg-botao--texto { height: auto; padding: 0.5rem; background: transparent; color: var(--lg-tinta-suave); font-weight: 600; }
+.lg-botao--texto:hover { color: var(--lg-tinta); filter: none; }
+
+@keyframes lg-surgir { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .lg-marca__texto, .lg-form__caixa { animation: none; } }
+
+/* ── Celular: igual ao app (bloco azul em cima, formulário embaixo) ── */
+@media (max-width: 900px) {
+  .lg { grid-template-columns: 1fr; grid-template-rows: auto 1fr; }
+  .lg-marca { padding: 1.75rem 1.5rem 2rem; gap: 2rem; }
+  .lg-marca__rodape { display: none; }
+  .lg-marca__decoracao span:nth-child(1) { width: 300px; height: 300px; right: -120px; bottom: -160px; }
+  .lg-marca__decoracao span:nth-child(2), .lg-marca__decoracao span:nth-child(3) { display: none; }
+  .lg-marca__titulo { font-size: 2rem; }
+  .lg-conta__avatar { width: 4rem; height: 4rem; font-size: 1.3rem; }
+  .lg-form { align-items: flex-start; padding: 1.75rem 1.5rem 2.5rem; }
+  .lg-form__titulo { font-size: 1.5rem; }
+}
+
+.lg-marca__logo { height: 52px; }
+.lg-link--botao { border: 0; background: none; padding: 0; cursor: pointer; font-family: inherit; }
+.lg-marca { background: linear-gradient(160deg, #0a3431, #071f1d); }
+.lg-marca__titulo { color: #f4f0e4; }
+.lg-conta__avatar { background: var(--wt-accent); color: #0a3431; }
+.lg-marca__decoracao { position: absolute; inset: 0; }

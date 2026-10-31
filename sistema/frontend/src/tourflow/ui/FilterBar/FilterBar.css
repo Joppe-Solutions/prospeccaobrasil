@@ -1,0 +1,49 @@
+/* Barra de filtros padrão — linha compacta, sem cartão, acima da tabela. */
+.wt-filterbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px 12px;
+  margin: 4px 0 8px;
+}
+.wt-filterbar__item { flex: 0 1 13.5rem; min-width: 11rem; max-width: 100%; }
+.wt-filterbar__item--primeiro { flex: 1 1 18rem; max-width: 26rem; }
+/* DateRange precisa caber "dd/mm/aaaa — dd/mm/aaaa" + ícones (~2× o slot padrão). */
+.wt-filterbar__item:has(.wt-daterp-container) {
+  flex: 0 1 26rem;
+  min-width: 22rem;
+}
+.wt-filterbar__acoes { display: flex; align-items: center; gap: 4px; margin-left: auto; min-height: 40px; }
+
+/* Rótulos discretos e campos na mesma altura dentro da barra */
+.wt-filterbar :is(.wt-input-label, .wt-select-label, label) { font-size: 12px; font-weight: var(--wt-font-medium); color: var(--wt-text-muted); margin-bottom: 4px; }
+.wt-filterbar :is(.wt-input, .wt-select-trigger, .wt-daterp-trigger) { min-height: 40px; }
+
+.wt-filterbar__mais,
+.wt-filterbar__limpar {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 9999px;
+  background: transparent;
+  font-size: 13px;
+  font-weight: var(--wt-font-bold);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.wt-filterbar__mais { color: var(--wt-text); background: var(--wt-field); }
+.wt-filterbar__mais:hover, .wt-filterbar__mais[aria-expanded='true'] { background: var(--wt-primary-light); color: var(--wt-primary); }
+.wt-filterbar__limpar { color: var(--wt-primary); }
+.wt-filterbar__limpar:hover { background: var(--wt-primary-light); }
+.wt-filterbar__contador {
+  display: inline-grid; place-items: center;
+  min-width: 18px; height: 18px; padding: 0 5px;
+  border-radius: 9999px; background: var(--wt-primary); color: #fff; font-size: 11px;
+}
+@media (max-width: 640px) {
+  .wt-filterbar__item, .wt-filterbar__item--primeiro { flex: 1 1 100%; max-width: none; }
+  .wt-filterbar__acoes { margin-left: 0; }
+}

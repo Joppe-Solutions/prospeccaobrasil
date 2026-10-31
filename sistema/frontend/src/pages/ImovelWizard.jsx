@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import Selecao from '../components/Selecao';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowSquareOut, Buildings, Plus, Trash } from '@phosphor-icons/react';
 import { api, enviarFotos, fmtNum, lerCoordenadas, mapsUrl, MAPS_AUTO, PADRAO_COORDENADAS, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO } from '../lib/api';
@@ -112,16 +113,16 @@ function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
   }
   return <div className="wz-field wz-full">
     <label htmlFor={`wz-vinc-${papel}`}>{rotulo} (cadastro)</label>
-    <select id={`wz-vinc-${papel}`} value={value ?? ''} onChange={e => onChange(e.target.value)}>
+    <Selecao id={`wz-vinc-${papel}`} value={value ?? ''} onChange={e => onChange(e.target.value)}>
       <option value="">Não vinculado</option>
       {lista.map(o => <option key={o.id} value={String(o.id)}>{o.nome}{operador && o.marca ? ` · ${o.marca}` : ''}</option>)}
-    </select>
+    </Selecao>
     {!criando && <small><button type="button" className="wz-link" onClick={() => setCriando(true)}>+ Cadastrar {operador ? 'novo operador' : 'novo proprietário'}</button></small>}
     {criando && <div className="wz-inline-create">
       <strong>{operador ? 'Novo operador do ponto' : 'Novo proprietário'}</strong>
       {erro && <div className="alert error" role="alert">{erro}</div>}
       <div className="wz-grid">
-        <div className="wz-field"><label htmlFor="nv-tipo">Tipo de pessoa</label><select id="nv-tipo" value={nova.tipoPessoa} onChange={e => setNova(n => ({ ...n, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></div>
+        <div className="wz-field"><label htmlFor="nv-tipo">Tipo de pessoa</label><Selecao id="nv-tipo" value={nova.tipoPessoa} onChange={e => setNova(n => ({ ...n, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao></div>
         <div className="wz-field"><label htmlFor="nv-nome">{nova.tipoPessoa === 'pj' ? 'Razão social' : 'Nome'}</label><input id="nv-nome" value={nova.nome} onChange={e => set('nome', e.target.value)} /></div>
         {operador && <div className="wz-field"><label htmlFor="nv-marca">Marca / bandeira</label><input id="nv-marca" value={nova.marca} onChange={e => set('marca', e.target.value)} placeholder="Ex.: Farmácia Exemplo" /></div>}
         <div className="wz-field"><label htmlFor="nv-doc">{nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="nv-doc" inputMode="numeric" value={nova.documento} onChange={e => set('documento', mascararDocumento(e.target.value, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica'))} /></div>
@@ -153,10 +154,10 @@ function VinculoParceiro({ value, onChange, lista, onCriado }) {
   }
   return <div className="wz-field wz-full">
     <label htmlFor="wz-parceiroId">Parceiro (quem trouxe)</label>
-    <select id="wz-parceiroId" value={value ?? ''} onChange={e => onChange(e.target.value)}>
+    <Selecao id="wz-parceiroId" value={value ?? ''} onChange={e => onChange(e.target.value)}>
       <option value="">Não vinculado</option>
       {lista.map(o => <option key={o.id} value={String(o.id)}>{[o.nome, TIPOS_PARCEIRO[o.tipo], registroProfissional(o)].filter(Boolean).join(' · ')}</option>)}
-    </select>
+    </Selecao>
     {!criando && <small><button type="button" className="wz-link" onClick={() => setCriando(true)}>+ Cadastrar novo parceiro</button></small>}
     {criando && <div className="wz-inline-create">
       <strong>Novo parceiro</strong>
@@ -177,7 +178,7 @@ function Field({ def, value, onChange, options }) {
   return <div className={`wz-field ${def.full ? 'wz-full' : ''}`}>
     <label htmlFor={`wz-${def.k}`}>{def.l}{def.req && <span className="wz-required">*</span>}</label>
     {def.type === 'select'
-      ? <select id={`wz-${def.k}`} value={value ?? ''} onChange={e => onChange(e.target.value)}>{selectOptions.map(([v, l]) => <option key={v || '_'} value={v}>{l}</option>)}</select>
+      ? <Selecao id={`wz-${def.k}`} value={value ?? ''} onChange={e => onChange(e.target.value)}>{selectOptions.map(([v, l]) => <option key={v || '_'} value={v}>{l}</option>)}</Selecao>
       : def.type === 'textarea'
         ? <textarea id={`wz-${def.k}`} value={value || ''} onChange={e => onChange(e.target.value)} />
         : def.fmt

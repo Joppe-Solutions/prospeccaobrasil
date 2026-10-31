@@ -9,6 +9,7 @@ import '@fontsource/montserrat/600.css';
 import '@fontsource/montserrat/700.css';
 import '@fontsource/cormorant-garamond/500.css';
 import '@fontsource/cormorant-garamond/500-italic.css';
+import './tourflow/icones-lucide.css';
 import './styles.css';
 import { getToken } from './lib/api';
 import Layout from './components/Layout';

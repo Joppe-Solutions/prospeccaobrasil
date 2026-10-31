@@ -7,7 +7,7 @@ test('login inválido mostra erro', async ({ page }) => {
   await page.fill('#login-email', 'admin@e2e.dev');
   await page.fill('#login-password', 'senhaerrada');
   await page.click('button[type="submit"]');
-  await expect(page.locator('.alert.error')).toBeVisible();
+  await expect(page.locator('.lg-erro')).toBeVisible();
   await expectNoErrors(errors);
 });
 

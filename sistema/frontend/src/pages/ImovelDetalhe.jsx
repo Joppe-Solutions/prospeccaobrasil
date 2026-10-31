@@ -1,4 +1,5 @@
 import { Fragment, useEffect, useRef, useState } from 'react';
+import Selecao from '../components/Selecao';
 import { useParams, Link, useLocation, useNavigate } from 'react-router-dom';
 import { listaBairros, premissasDoCliente } from '../lib/bairros';
 import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, registroProfissional, STATUS, TIPOS_IMOVEL, TIPOS_PARCEIRO, getToken, getUser, useArquivoToken } from '../lib/api';
@@ -7,6 +8,7 @@ import Modal from '../components/Modal';
 import { DinheiroInput } from '../components/NumberFields';
 import { ArrowSquareOut } from '@phosphor-icons/react';
 import Confirmacao from '../components/Confirmacao';
+import { PageHeader } from '../components/UI';
 import { avisar } from '../lib/avisos';
 
 const DOC_TIPOS = [['planta', 'Planta (PDF)'], ['dwg', 'Planta (DWG)'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
@@ -143,16 +145,13 @@ export default function ImovelDetalhe() {
             : <p>O imóvel, as fotos, os documentos e as análises serão apagados e não podem ser recuperados. Se ele já teve negociação, prefira marcá-lo como inativo.</p>}
         </div>
       </Modal>}
-      <div className="page-head">
-        <h1>{i.codigo} — {i.endereco}{i.numero ? `, ${i.numero}` : ''}</h1>
-        <div className="page-actions">
+      <PageHeader title={`${i.codigo} — ${i.endereco}${i.numero ? `, ${i.numero}` : ''}`} actions={<div className="page-actions">
           <a className="btn btn-primary" href={`/apresentacao/${i.id}`} target="_blank" rel="noopener">Apresentação</a>
           <a className="btn btn-ghost" href={`/apresentacao/${i.id}/pdf`} target="_blank" rel="noopener">PDF</a>
           <button className="btn btn-ghost" onClick={() => copiarLink()}>Copiar link</button>
           <Link className="btn btn-ghost" to={`/imoveis/${i.id}/editar`} state={{ backgroundLocation: location }}>Editar</Link>
           {isAdmin && <button className="btn btn-ghost collection-delete" onClick={() => setExcluir({})}>Excluir</button>}
-        </div>
-      </div>
+      </div>} />
 
       <div className="panel"><div className="detail-head">
         {foto ? <img className="detail-photo" src={`/uploads/${foto.arquivo}`} /> : <div className="detail-photo" />}
@@ -239,7 +238,7 @@ export default function ImovelDetalhe() {
       <div className="panel">
         <h2>Documentos</h2>
         <form onSubmit={addDoc} className="inline-form">
-          <div className="field"><label htmlFor="doc-tipo">Tipo</label><select id="doc-tipo" value={docTipo} onChange={e => setDocTipo(e.target.value)}>{DOC_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+          <div className="field"><label htmlFor="doc-tipo">Tipo</label><Selecao id="doc-tipo" value={docTipo} onChange={e => setDocTipo(e.target.value)}>{DOC_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Selecao></div>
           <div className="field grow"><label htmlFor="doc-nome">Nome <span className="collection-optional">Opcional</span></label><input id="doc-nome" value={docNome} onChange={e => setDocNome(e.target.value)} /></div>
           <div className="field grow"><label htmlFor="doc-url">Link <span className="collection-optional">Opcional</span></label><input id="doc-url" value={docUrl} onChange={e => setDocUrl(e.target.value)} placeholder="https://" /></div>
           <div className="field"><label htmlFor="doc-arquivo">Arquivo</label><input id="doc-arquivo" ref={docFileRef} type="file" /></div>
@@ -299,11 +298,11 @@ export default function ImovelDetalhe() {
               <button className="btn btn-primary btn-sm" onClick={() => addOportunidade(e.id)} aria-label={`Apresentar para ${e.nome}`}>Apresentar</button>
             </li>)}</ul> : <p className="muted">Nenhum cliente ainda não apresentado tem premissas compatíveis com este imóvel.</p>}
             <div className="inline-form">
-              <div className="field grow"><label htmlFor="apr-empresa">Apresentar para outro cliente</label><select id="apr-empresa" value={empSel} onChange={e => setEmpSel(e.target.value)}>
+              <div className="field grow"><label htmlFor="apr-empresa">Apresentar para outro cliente</label><Selecao id="apr-empresa" value={empSel} onChange={e => setEmpSel(e.target.value)}>
                 <option value="">Selecionar cliente…</option>
                 {ativos.filter(e => !apresentadas.has(e.id)).map(e => <option key={e.id} value={e.id}>{e.nome} — {e.segmento || 'sem segmento'}</option>)}
-              </select></div>
-              <div className="field"><label htmlFor="apr-modalidade">Modalidade</label><select id="apr-modalidade" value={modalidade} onChange={e => setModalidade(e.target.value)}><option value="">{{ venda: 'Ativos à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação direta'}</option><option value="locacao_direta">Locação direta</option><option value="passagem_ponto">Passagem de ponto comercial</option><option value="venda_ativo">Ativos à venda</option></select></div>
+              </Selecao></div>
+              <div className="field"><label htmlFor="apr-modalidade">Modalidade</label><Selecao id="apr-modalidade" value={modalidade} onChange={e => setModalidade(e.target.value)}><option value="">{{ venda: 'Ativos à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação direta'}</option><option value="locacao_direta">Locação direta</option><option value="passagem_ponto">Passagem de ponto comercial</option><option value="venda_ativo">Ativos à venda</option></Selecao></div>
               <button className="btn btn-primary" disabled={!empSel} onClick={() => addOportunidade()}>Registrar apresentação</button>
             </div>
           </>;

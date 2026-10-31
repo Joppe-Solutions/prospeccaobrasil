@@ -1,8 +1,12 @@
 import { Buildings, CircleNotch } from '@phosphor-icons/react';
+import { useLocation } from 'react-router-dom';
 import { STATUS } from '../lib/api';
+import { trilhaPorRota } from '../lib/menu';
+import PageHeaderTourflow from '../tourflow/ui/PageHeader/PageHeader';
 
-export function PageHeader({ eyebrow, title, description, actions }) {
-  return <header className="page-head"><div>{eyebrow && <div className="eyebrow">{eyebrow}</div>}<h1>{title}</h1>{description && <p>{description}</p>}</div>{actions && <div className="page-actions">{actions}</div>}</header>;
+export function PageHeader({ title, description, actions }) {
+  const { pathname } = useLocation();
+  return <PageHeaderTourflow trilha={trilhaPorRota(pathname)} title={title} subtitle={description} action={actions} />;
 }
 export function EmptyState({ icon: Icon = Buildings, title = 'Nada por aqui ainda', description, children }) {
   return <div className="empty-state"><span className="empty-icon"><Icon size={28} weight="duotone" /></span><h3>{title}</h3>{description && <p>{description}</p>}{children}</div>;

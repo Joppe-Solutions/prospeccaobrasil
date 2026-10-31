@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import Selecao from '../components/Selecao';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Buildings, CurrencyDollar, Paperclip, PencilSimple, Plus, Receipt, Trash, TrendUp, Wallet, Warning } from '@phosphor-icons/react';
 import Confirmacao from '../components/Confirmacao';
@@ -339,16 +340,16 @@ export default function Financeiro() {
     >
       <form id="lanc-form" className="collection-modal-form" onSubmit={save}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
-        <div className="field"><label htmlFor="l-tipo">Tipo</label><select id="l-tipo" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
-        <div className="field"><label htmlFor="l-cat">Categoria</label><select id="l-cat" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>{Object.entries(CATEGORIAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+        <div className="field"><label htmlFor="l-tipo">Tipo</label><Selecao id="l-tipo" value={form.tipo} onChange={e => setForm({ ...form, tipo: e.target.value })}>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao></div>
+        <div className="field"><label htmlFor="l-cat">Categoria</label><Selecao id="l-cat" value={form.categoria} onChange={e => setForm({ ...form, categoria: e.target.value })}>{Object.entries(CATEGORIAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao></div>
         <div className="field"><label htmlFor="l-desc">Descrição <span className="required">*</span></label><input id="l-desc" required value={form.descricao} onChange={e => setForm({ ...form, descricao: e.target.value })} placeholder="Ex.: Comissão locação PB-001" /></div>
         <div className="field"><label htmlFor="l-valor">Valor (R$) <span className="required">*</span></label><DinheiroInput id="l-valor" required value={form.valor} onChange={v => setForm({ ...form, valor: v })} /></div>
         <div className="field"><label htmlFor="l-comp">Competência</label><input id="l-comp" type="date" value={form.competencia} onChange={e => setForm({ ...form, competencia: e.target.value })} /></div>
         <div className="field"><label htmlFor="l-venc">Vencimento</label><input id="l-venc" type="date" value={form.vencimento} onChange={e => setForm({ ...form, vencimento: e.target.value })} /></div>
         <div className="field"><label htmlFor="l-pagador">Pagador</label><input id="l-pagador" value={form.pagador} onChange={e => setForm({ ...form, pagador: e.target.value })} placeholder="Quem paga / é cobrado" /></div>
         <div className="field"><label htmlFor="l-benef">Beneficiário</label><input id="l-benef" value={form.beneficiario} onChange={e => setForm({ ...form, beneficiario: e.target.value })} placeholder="Quem recebe o valor" /></div>
-        <div className="field"><label htmlFor="l-imovel">Imóvel</label><select id="l-imovel" value={form.imovelId} onChange={e => setForm({ ...form, imovelId: e.target.value })}><option value="">Nenhum</option>{imoveis.map(i => <option key={i.id} value={i.id}>{i.codigo} — {i.titulo || i.endereco}</option>)}</select></div>
-        <div className="field"><label htmlFor="l-empresa">Empresa</label><select id="l-empresa" value={form.empresaId} onChange={e => setForm({ ...form, empresaId: e.target.value })}><option value="">Nenhuma</option>{empresas.map(em => <option key={em.id} value={em.id}>{em.nome}</option>)}</select></div>
+        <div className="field"><label htmlFor="l-imovel">Imóvel</label><Selecao id="l-imovel" value={form.imovelId} onChange={e => setForm({ ...form, imovelId: e.target.value })}><option value="">Nenhum</option>{imoveis.map(i => <option key={i.id} value={i.id}>{i.codigo} — {i.titulo || i.endereco}</option>)}</Selecao></div>
+        <div className="field"><label htmlFor="l-empresa">Empresa</label><Selecao id="l-empresa" value={form.empresaId} onChange={e => setForm({ ...form, empresaId: e.target.value })}><option value="">Nenhuma</option>{empresas.map(em => <option key={em.id} value={em.id}>{em.nome}</option>)}</Selecao></div>
       </form>
     </Modal>}
 
@@ -362,7 +363,7 @@ export default function Financeiro() {
         {formError && <div className="alert error" role="alert">{formError}</div>}
         <div className="field"><label htmlFor="b-data">Data do pagamento</label><input id="b-data" type="date" value={baixaForm.pagoEm} onChange={e => setBaixaForm({ ...baixaForm, pagoEm: e.target.value })} /><small className="collection-optional">Em branco = hoje</small></div>
         <div className="field"><label htmlFor="b-valor">Valor pago (R$)</label><DinheiroInput id="b-valor" value={baixaForm.valorPago} onChange={v => setBaixaForm({ ...baixaForm, valorPago: v })} /></div>
-        <div className="field"><label htmlFor="b-forma">Forma</label><select id="b-forma" value={baixaForm.formaPagamento} onChange={e => setBaixaForm({ ...baixaForm, formaPagamento: e.target.value })}>{Object.entries(FORMAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></div>
+        <div className="field"><label htmlFor="b-forma">Forma</label><Selecao id="b-forma" value={baixaForm.formaPagamento} onChange={e => setBaixaForm({ ...baixaForm, formaPagamento: e.target.value })}>{Object.entries(FORMAS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao></div>
       </form>
     </Modal>}
   </div>;

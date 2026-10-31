@@ -27,28 +27,6 @@
 
 .empresa-vinculo-nome{margin-top:8px}
 
-/* Tabelas no celular: cada linha vira um cartão com o rótulo da coluna */
-@media (max-width:640px){
-  .data-table{padding:0 14px}
-  .recent-panel .data-table{padding:0 16px}
-  .recent-panel .table-scroll{margin:0}
-  .recent-panel .data-table table{min-width:0}
-  .data-table table{min-width:0;display:block}
-  .data-table thead{display:none}
-  .data-table tbody{display:flex;flex-direction:column;gap:10px;padding:12px 0}
-  .data-table tbody tr{display:grid;grid-template-columns:1fr;gap:6px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-md);background:#fff}
-  .data-table tbody tr:hover td{background:transparent}
-  .data-table td{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:4px 0;border:0;text-align:right}
-  .data-table td:first-child{display:block;padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--line);text-align:left}
-  .data-table td:not(:first-child)[data-label]:not([data-label=""])::before{content:attr(data-label);flex:none;font-size:var(--fs-xs);color:var(--muted);text-align:left}
-  .data-table td:last-child:not([data-label]),.data-table td[data-label=""]{justify-content:flex-end;padding-top:8px}
-  .collection-row-actions{justify-content:flex-end}
-  .search-field{max-width:none}
-  .collection-select{flex:1;min-width:0}
-  .collection-select select{width:100%}
-  .table-pagination{flex-wrap:wrap;gap:10px}
-}
-
 /* Painel: ações em andamento e pendências */
 .agenda-list{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-direction:column}
 .agenda-list li{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:14px;align-items:center;padding:12px 0;border-top:1px solid var(--line)}
@@ -83,3 +61,24 @@
 @media (max-width:640px){.agenda-list li{grid-template-columns:minmax(0,1fr) auto}.agenda-meta{grid-column:1/-1;align-items:flex-start;text-align:left}.rules-grid{padding:0 14px}.bench-intro{padding:0 14px}}
 /* As páginas importam este arquivo depois de styles.css, então as quebras de grade ficam aqui */
 @media (max-width:900px){.dashboard-grid{grid-template-columns:1fr}.opportunity-pipeline{grid-template-columns:repeat(3,1fr)}.collection-stats{grid-template-columns:1fr}}
+
+/* Listagens no padrão TourFlow: filtros direto sobre a tabela, sem painel em volta */
+.collection-panel:has(> .data-table) { padding: 0; margin-bottom: 0; background: transparent; border: 0; box-shadow: none; overflow: visible; }
+.collection-panel:has(> .data-table) > .collection-section-head { display: none; }
+.data-table { padding: 0; }
+.data-table table { min-width: 0; }
+.collection-stats { gap: 12px; margin: 0 0 16px; }
+.collection-stats > div { border-radius: 12px; box-shadow: none; padding: var(--wt-space-4); gap: var(--wt-space-3); min-width: 0; }
+.collection-stat-icon { width: 36px; height: 36px; border-radius: 10px; }
+.collection-stats strong { font-size: 22px; font-weight: 800; white-space: nowrap; }
+.collection-tag { background: var(--wt-surface-secondary); color: var(--wt-text-secondary); }
+@media (max-width:640px){
+  .dt-scroll{overflow:visible}
+  .dt-table,.dt-table tbody{display:block;width:100%}
+  .dt-table thead{display:none}
+  .dt-table tbody tr.dt-tr{display:grid;gap:6px;padding:12px 14px;margin-bottom:10px;border:1px solid var(--wt-border);border-radius:12px;background:var(--wt-surface)}
+  .dt-table td.dt-td{display:flex;justify-content:space-between;align-items:center;gap:12px;position:static;left:auto!important;padding:4px 0;border:0;background:transparent;box-shadow:none;text-align:right;white-space:normal}
+  .dt-table td.dt-td:first-child{display:block;padding-bottom:8px;margin-bottom:4px;border-bottom:1px solid var(--wt-border);text-align:left}
+  .dt-table td.dt-td:not(:first-child)[data-label]:not([data-label=""])::before{content:attr(data-label);flex:none;font-size:var(--fs-xs);color:var(--wt-text-secondary);text-align:left}
+  .table-filters .table-busca,.table-filters .selecao{flex:1 1 100%;max-width:none}
+}

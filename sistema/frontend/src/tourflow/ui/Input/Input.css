@@ -1,0 +1,118 @@
+.wt-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-space-1);
+}
+
+.wt-input-label {
+  font-size: var(--wt-text-sm);
+  font-weight: var(--wt-font-semibold);
+  color: var(--wt-text);
+  margin-bottom: var(--wt-space-1);
+}
+
+.wt-input-required {
+  color: var(--wt-error, #EF4444);
+  margin-left: 2px;
+}
+
+.wt-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.wt-input {
+  width: 100%;
+  padding: var(--wt-space-2) var(--wt-space-4);
+  font-family: var(--wt-font-sans);
+  font-size: var(--wt-text-sm);
+  color: var(--wt-text);
+  background: var(--wt-field);
+  border: 2px solid transparent;
+  border-radius: var(--wt-field-radius);
+  min-height: 40px;
+  transition: all var(--wt-duration-fast) var(--wt-easing-default);
+  outline: none;
+}
+
+.wt-input::placeholder {
+  color: var(--wt-text-muted);
+}
+
+.wt-input:focus {
+  background: var(--wt-surface);
+  border-color: var(--wt-border-focus);
+}
+
+.wt-input-error .wt-input {
+  border-color: var(--wt-error);
+}
+
+.wt-input-error .wt-input:focus {
+  box-shadow: 0 0 0 3px var(--wt-error-light);
+}
+
+.wt-input-has-icon .wt-input {
+  padding-left: var(--wt-space-10);
+}
+
+.wt-input-has-right .wt-input {
+  padding-right: var(--wt-space-10);
+}
+
+.wt-input-left-icon,
+.wt-input-right-icon {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--wt-text-muted);
+  font-size: var(--wt-text-sm);
+  pointer-events: none;
+}
+
+.wt-input-left-icon {
+  left: var(--wt-space-3);
+}
+
+.wt-input-right-icon {
+  right: var(--wt-space-3);
+}
+
+.wt-input-right-slot {
+  position: absolute;
+  right: var(--wt-space-1);
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+}
+
+.wt-input-right-action {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: transparent;
+  color: var(--wt-text-muted);
+  cursor: pointer;
+  border-radius: var(--wt-radius-sm);
+  font-size: var(--wt-text-sm);
+}
+
+.wt-input-right-action:hover {
+  color: var(--wt-text);
+  background: var(--wt-surface-hover, #F1F5F9);
+}
+
+.wt-input-helper {
+  font-size: var(--wt-text-caption);
+  color: var(--wt-text-muted);
+  margin-top: 2px;
+}
+
+.wt-input-error-text {
+  color: var(--wt-error);
+}

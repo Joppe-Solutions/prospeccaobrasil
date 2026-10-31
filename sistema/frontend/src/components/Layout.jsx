@@ -1,142 +1,74 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
-import {
-  ArrowSquareOut, BookOpen, ChartBar, FileText, Brain, Buildings, CaretRight, CurrencyDollar, GearSix, Handshake, IdentificationCard,
-  List, MapPinArea, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
-} from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
+import { grupoAtivo, MENU, subitemAtivo } from '../lib/menu';
 import Snackbar from './Snackbar';
-import { Avatar } from './UI';
+import '../tourflow/shell/Sidebar.css';
+import '../tourflow/shell/AppTopbar.css';
 
-// Estrutura do menu lateral "Espaço Work" definida pelo cliente (PDF Espaco_Work_Menu_Lateral).
-// `sub` é a linha de apoio sob o rótulo; `children` são os subitens (com `href` para links externos).
-const NAV = [
-  {
-    caption: 'Principal',
-    items: [
-      { to: '/', label: 'Visão geral', icon: SquaresFour },
-      // Grupo sem página própria: só agrupa os links
-      { label: 'Institucional', icon: Buildings, children: [{ href: 'https://prospeccaobrasil.com.br', label: 'Site institucional' }] },
-      { to: '/financeiro', label: 'Financeiro', icon: CurrencyDollar, admin: true },
-    ],
-  },
-  {
-    caption: 'Cadastros',
-    items: [
-      { to: '/imoveis', label: 'Imóveis', sub: 'Pontos comerciais', icon: MapPinArea },
-      { to: '/empresas', label: 'Clientes', sub: 'Redes e operadoras', icon: Storefront },
-      { to: '/parceiros', label: 'Consultores', sub: 'Parceiros comerciais', icon: UsersThree },
-      { to: '/leads', label: 'Leads', sub: 'Sites e portais', icon: UserFocus },
-      // Fora da lista do cliente, mantidos por serem usados no cadastro de imóveis
-      { to: '/proprietarios', label: 'Proprietários e operadores', icon: IdentificationCard },
-    ],
-  },
-  {
-    caption: 'Conhecimento',
-    items: [
-      { to: '/glossario', label: 'Glossário de Varejo', icon: BookOpen },
-      { to: '/inteligencia', label: 'Inteligência de Mercado', icon: Brain },
-      { to: '/benchmark', label: 'Benchmark', icon: ChartBar, children: [{ to: '/benchmark', label: 'Rental rate (R$/m²)' }] },
-      { to: '/modelos-contratos', label: 'Modelos de contratos', icon: FileText },
-    ],
-  },
-  {
-    caption: 'Relacionamento comercial',
-    items: [
-      { to: '/oportunidades', label: 'Ações das operações', icon: Handshake },
-    ],
-  },
-  {
-    caption: 'Conta',
-    items: [
-      { to: '/perfil', label: 'Perfil', icon: UserCircle },
-      { to: '/usuarios', label: 'Usuários', icon: UsersThree, admin: true },
-      { to: '/configuracoes', label: 'Configurações', icon: GearSix, admin: true },
-    ],
-  },
-];
-
-// Título da barra superior: o caminho mais específico vence (subitens antes do item pai)
-const ALL_ITEMS = NAV.flatMap(g => g.items.flatMap(i => [i, ...(i.children || []).filter(c => c.to && c.to !== i.to)]))
-  .filter(i => i.to)
-  .sort((a, b) => b.to.length - a.to.length);
+const CHAVE_RECOLHIDA = 'pb_menu_recolhido';
+const lerRecolhida = () => { try { return localStorage.getItem(CHAVE_RECOLHIDA) === '1'; } catch { return false; } };
 
 export default function Layout() {
   const u = getUser();
-  const location = useLocation();
-  const [open, setOpen] = useState(false);
-  useEffect(() => { setOpen(false); }, [location.pathname]);
+  const { pathname } = useLocation();
+  const permitido = i => !i.admin || u?.role === 'admin';
+  const [recolhida, setRecolhida] = useState(lerRecolhida);
+  const [aberto, setAberto] = useState(false);
+  const [grupos, setGrupos] = useState({});
+  useEffect(() => { setAberto(false); setGrupos(atual => ({ ...atual, ...Object.fromEntries(MENU.filter(i => i.tipo === 'grupo').map(i => [i.rotulo, grupoAtivo(i, pathname)])) })); }, [pathname]);
   useEffect(() => {
-    if (!open) return;
-    const close = e => { if (e.key === 'Escape') setOpen(false); };
-    document.addEventListener('keydown', close);
-    return () => document.removeEventListener('keydown', close);
-  }, [open]);
+    if (!aberto) return undefined;
+    const fechar = e => { if (e.key === 'Escape') setAberto(false); };
+    document.addEventListener('keydown', fechar);
+    return () => document.removeEventListener('keydown', fechar);
+  }, [aberto]);
+  function alternarRecolhida() {
+    setRecolhida(!recolhida);
+    try { localStorage.setItem(CHAVE_RECOLHIDA, recolhida ? '0' : '1'); } catch { /* preferência só desta sessão */ }
+  }
+  const partes = (u?.nome || 'Minha conta').trim().split(/\s+/);
+  const iniciais = (partes.length > 1 ? partes[0][0] + partes[partes.length - 1][0] : partes[0].slice(0, 2)).toUpperCase();
 
-  const atual = ALL_ITEMS.find(item => item.to !== '/' && location.pathname.startsWith(item.to));
-  const title = atual?.title || atual?.label || 'Visão geral';
-  const grupo = NAV.find(g => g.items.some(i => i === atual || (i.children || []).includes(atual)))?.caption || 'Principal';
-
-  const item = ({ to, label, sub, icon: Icon, children }) => (
-    <div key={to || label} className="nav-item">
-      {to
-        ? <NavLink to={to} end={to === '/'}>
-          <Icon size={18} weight="duotone" />
-          <span className="nav-text"><span>{label}</span>{sub && <small>{sub}</small>}</span>
-        </NavLink>
-        : <div className="nav-grupo"><Icon size={18} weight="duotone" /><span className="nav-text"><span>{label}</span></span></div>}
-      {children && <div className="nav-children">{children.map(child => child.href
-        ? <a key={child.href} href={child.href} target="_blank" rel="noopener noreferrer">{child.label} <ArrowSquareOut size={11} /></a>
-        : <NavLink key={child.label} to={child.to}>{child.label}</NavLink>)}</div>}
-    </div>
-  );
-
-  return <div className="shell">
+  return <div className={`app-shell app-shell--com-topbar ${recolhida ? 'app-shell--recolhida' : ''}`}>
     <a className="skip-link" href="#main-content">Ir para o conteúdo</a>
-    {open && <button className="sidebar-scrim" aria-label="Fechar navegação" onClick={() => setOpen(false)} />}
-    <aside className={`sidebar ${open ? 'is-open' : ''}`}>
-      <div className="sidebar-brand">
-        <Link to="/" aria-label="Prospecção Brasil — início"><img src="/images/logo-wide.png" alt="Prospecção Brasil" /></Link>
-        <button className="icon-button mobile-close" aria-label="Fechar navegação" onClick={() => setOpen(false)}><X size={20} /></button>
+    <header className={`app-topbar ${recolhida ? 'app-topbar--recolhida' : ''}`}>
+      <div className="app-topbar__esquerda">
+        <button type="button" className="app-topbar__menu" onClick={() => setAberto(!aberto)} aria-label="Abrir navegação" aria-expanded={aberto} aria-controls="sidebar-principal"><i className="fas fa-bars" /></button>
+        <Link to="/" aria-label="Prospecção Brasil, início"><img src="/images/logo-wide.png" alt="Prospecção Brasil" className="app-topbar__logo" /></Link>
+        <button type="button" className="app-topbar__recolher" onClick={alternarRecolhida} aria-label={recolhida ? 'Expandir menu lateral' : 'Recolher menu lateral'}><i className={`fas ${recolhida ? 'fa-angles-right' : 'fa-angles-left'}`} /></button>
       </div>
-      <div className="workspace-label">
-        <span className="workspace-symbol"><Buildings size={16} /></span>
-        <div><strong>Espaço de trabalho</strong><span>Gestão & expansão</span></div>
-        <span className="workspace-dot" />
+      <div className="app-topbar__centro" />
+      <div className="app-topbar__direita">
+        <span className="topbar-data">{new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</span>
+        <Link className="app-topbar__icone-circulo" to="/perfil" aria-label="Abrir meu perfil">{iniciais}</Link>
       </div>
-      <div className="sidebar-scroll">
-        <nav aria-label="Navegação principal">
-          {NAV.map(group => (
-            <div key={group.caption} className="nav-group">
-              <span className="nav-caption">{group.caption}</span>
-              {group.items.filter((navItem) => !navItem.admin || u?.role === 'admin').map(navItem => item(navItem))}
-            </div>
-          ))}
-        </nav>
-      </div>
-      <div className="sidebar-footer">
-        <div className="sidebar-user">
-          <Avatar name={u?.nome} size={34} />
-          <Link to="/perfil"><strong>{u?.nome || 'Minha conta'}</strong><span>{u?.role === 'admin' ? 'Administrador' : 'Equipe comercial'}</span></Link>
-          <button className="icon-button" onClick={logout} aria-label="Sair da conta" title="Sair da conta"><SignOut size={18} /></button>
-        </div>
+    </header>
+    {aberto && <button type="button" className="sidebar__overlay" aria-label="Fechar navegação" onClick={() => setAberto(false)} />}
+    <aside id="sidebar-principal" className={`sidebar no-print ${recolhida ? 'sidebar--recolhida' : 'sidebar--expandida'} ${aberto ? 'is-aberta' : ''}`}>
+      <nav className="sidebar__nav" aria-label="Navegação principal">
+        {MENU.filter(permitido).map(item => {
+          if (item.href) return <a key={item.href} href={item.href} target="_blank" rel="noopener noreferrer" title={recolhida ? item.rotulo : undefined} className={`sidebar__link ${recolhida ? 'sidebar__link--icon-only' : ''}`}><i className={`fas ${item.icone} sidebar__icon`} />{!recolhida && <span className="sidebar__label">{item.rotulo}</span>}</a>;
+          if (item.tipo === 'link') return <NavLink key={item.caminho} to={item.caminho} end={item.caminho === '/'} title={recolhida ? item.rotulo : undefined} className={({ isActive }) => `sidebar__link ${recolhida ? 'sidebar__link--icon-only' : ''} ${isActive ? 'sidebar__link--active' : ''}`}><i className={`fas ${item.icone} sidebar__icon`} />{!recolhida && <span className="sidebar__label">{item.rotulo}</span>}</NavLink>;
+          const estaAberto = !!grupos[item.rotulo];
+          const ativo = grupoAtivo(item, pathname);
+          if (recolhida) return <button key={item.rotulo} type="button" title={item.rotulo} aria-label={item.rotulo} className={`sidebar__group-icon-btn ${ativo ? 'sidebar__group-icon-btn--active' : ''}`} onClick={alternarRecolhida}><i className={`fas ${item.icone} sidebar__icon`} /></button>;
+          return <div key={item.rotulo} className={`sidebar__secao ${estaAberto ? 'sidebar__secao--aberta' : ''}`}>
+            <button type="button" aria-expanded={estaAberto} onClick={() => setGrupos(g => ({ ...g, [item.rotulo]: !estaAberto }))} className={`sidebar__secao-titulo ${ativo ? 'sidebar__secao-titulo--ativa' : ''}`}>
+              <span className="sidebar__secao-titulo__esquerda"><i className={`fas ${item.icone} sidebar__icon`} /><span className="sidebar__label">{item.rotulo}</span></span>
+              <i className={`fas fa-chevron-down sidebar__secao-chevron ${estaAberto ? 'is-aberto' : ''}`} />
+            </button>
+            {estaAberto && <div className="sidebar__secao-itens">{item.subitens.filter(permitido).map(sub => <NavLink key={sub.caminho} to={sub.caminho} className={`sidebar__sub-link ${subitemAtivo(sub, pathname) ? 'sidebar__sub-link--active' : ''}`}><i className={`fas ${sub.icone} sidebar__icon`} /><span className="sidebar__label">{sub.rotulo}</span></NavLink>)}</div>}
+          </div>;
+        })}
+      </nav>
+      <div className="sidebar__footer">
+        <button type="button" onClick={logout} aria-label="Sair da conta" title={recolhida ? 'Sair' : undefined} className={`sidebar__logout ${recolhida ? 'sidebar__logout--icon-only' : ''}`}><i className="fas fa-sign-out-alt" />{!recolhida && <span>Sair</span>}</button>
       </div>
     </aside>
-    <div className="workspace-main">
-      <header className="topbar">
-        <div className="topbar-path">
-          <button className="icon-button mobile-menu" aria-label="Abrir navegação" aria-expanded={open} onClick={() => setOpen(true)}><List size={22} /></button>
-          <span>{grupo}</span><CaretRight size={12} /><strong>{title}</strong>
-        </div>
-        <div className="topbar-right">
-          <span className="workspace-date">{new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</span>
-          <span className="topbar-divider" />
-          <Link className="profile-shortcut" to="/perfil" aria-label="Abrir meu perfil"><Avatar name={u?.nome} size={32} /></Link>
-        </div>
-      </header>
-      <main className="main" id="main-content" tabIndex={-1}><Outlet /></main>
-      <Snackbar />
-      <footer className="workspace-footer"><span>© {new Date().getFullYear()} Prospecção Brasil</span><span>Inteligência para conectar bons negócios.</span></footer>
-    </div>
+    <main id="main-content" tabIndex={-1} className={`app-shell__main ${recolhida ? 'app-shell__main--collapsed' : 'app-shell__main--expanded'}`}>
+      <div className="app-shell__content app-shell__content--dense"><Outlet /></div>
+    </main>
+    <Snackbar />
   </div>;
 }

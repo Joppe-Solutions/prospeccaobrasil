@@ -1,0 +1,196 @@
+.wt-select-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-space-1);
+}
+
+.wt-select-label {
+  font-size: var(--wt-text-sm);
+  font-weight: var(--wt-font-semibold);
+  color: var(--wt-text);
+}
+
+.wt-select-required {
+  color: var(--wt-error, #EF4444);
+  margin-left: 2px;
+}
+
+.wt-select-trigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--wt-space-2) var(--wt-space-4);
+  background: var(--wt-field);
+  border: 2px solid transparent;
+  border-radius: var(--wt-field-radius);
+  cursor: pointer;
+  transition: all var(--wt-duration-fast) var(--wt-easing-default);
+  min-height: 40px;
+}
+
+.wt-select-trigger:hover {
+  background: var(--wt-border);
+}
+
+.wt-select-open .wt-select-trigger {
+  background: var(--wt-surface);
+  border-color: var(--wt-border-focus);
+}
+
+.wt-select-error .wt-select-trigger {
+  border-color: var(--wt-error);
+}
+
+.wt-select-disabled .wt-select-trigger {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--wt-surface-hover);
+}
+
+.wt-select-value {
+  font-size: var(--wt-text-sm);
+  color: var(--wt-text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wt-select-placeholder {
+  color: var(--wt-text-muted);
+}
+
+.wt-select-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--wt-space-2);
+  margin-left: var(--wt-space-2);
+}
+
+.wt-select-clear {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: var(--wt-surface-hover);
+  border-radius: 50%;
+  cursor: pointer;
+  color: var(--wt-text-muted);
+  font-size: 10px;
+  transition: background var(--wt-duration-fast);
+}
+
+.wt-select-clear:hover {
+  background: var(--wt-border);
+}
+
+.wt-select-arrow {
+  font-size: 12px;
+  color: var(--wt-text-muted);
+  transition: transform var(--wt-duration-fast);
+}
+
+.wt-select-arrow-up {
+  transform: rotate(180deg);
+}
+
+.wt-select-dropdown {
+  /* Posição vem do portal (position:fixed + top/left/width inline).
+     NÃO usar left/right aqui — conflita com width e corta o texto das opções. */
+  z-index: 9999;
+  box-sizing: border-box;
+  background: var(--wt-surface);
+  border: 1px solid var(--wt-border);
+  border-radius: var(--wt-radius-md);
+  box-shadow: var(--wt-shadow-lg);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.wt-select-search {
+  display: flex;
+  align-items: center;
+  padding: var(--wt-space-2);
+  border-bottom: 1px solid var(--wt-border);
+  gap: var(--wt-space-2);
+}
+
+.wt-select-search-icon {
+  color: var(--wt-text-muted);
+  font-size: var(--wt-text-sm);
+}
+
+.wt-select-search-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-family: var(--wt-font-sans);
+  font-size: var(--wt-text-sm);
+  color: var(--wt-text);
+  background: transparent;
+}
+
+.wt-select-options {
+  overflow-x: hidden;
+  overflow-y: auto;
+  flex: 1;
+  width: 100%;
+  min-width: 0;
+}
+
+.wt-select-option {
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--wt-space-2) var(--wt-space-4);
+  font-size: var(--wt-text-sm);
+  color: var(--wt-text);
+  cursor: pointer;
+  transition: background var(--wt-duration-fast);
+  /* Descrições longas quebram em várias linhas; title no elemento cobre o texto integral. */
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  line-height: 1.35;
+}
+
+.wt-select-option:hover {
+  background: var(--wt-primary-light);
+}
+
+.wt-select-option-active {
+  background: var(--wt-primary-light);
+  color: var(--wt-primary);
+  font-weight: var(--wt-font-semibold);
+}
+
+.wt-select-group-label {
+  padding: var(--wt-space-1) var(--wt-space-4);
+  font-size: var(--wt-text-caption);
+  color: var(--wt-text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-weight: var(--wt-font-semibold);
+  background: var(--wt-surface-hover);
+  position: sticky;
+  top: 0;
+}
+
+.wt-select-empty {
+  padding: var(--wt-space-4);
+  text-align: center;
+  color: var(--wt-text-muted);
+  font-size: var(--wt-text-sm);
+}
+
+.wt-select-helper {
+  font-size: var(--wt-text-caption);
+  color: var(--wt-text-muted);
+}
+
+.wt-select-error-text {
+  color: var(--wt-error);
+}

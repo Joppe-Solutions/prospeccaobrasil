@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ArrowRight, Buildings, CheckCircle, EnvelopeSimple, IdentificationCard, Phone, Plus, Trash, User, UsersThree } from '@phosphor-icons/react';
+import Selecao from '../components/Selecao';
+import { ArrowRight, Buildings, EnvelopeSimple, IdentificationCard, Phone, Plus, Trash, User, UsersThree } from '@phosphor-icons/react';
 import { avisar } from '../lib/avisos';
 import { api } from '../lib/api';
 import DataTable from '../components/DataTable';
@@ -121,9 +122,9 @@ export default function Proprietarios() {
         searchPlaceholder="Buscar nome, empresa, documento ou cidade..." exportName="proprietarios.csv"
         emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo cadastro</button>} emptyTitle="Nenhum proprietário encontrado" emptyDescription="Cadastre PF ou PJ donos dos imóveis."
         toolbar={<>
-          <label className="collection-select"><UsersThree size={16} /><select aria-label="Filtrar papel" value={papel} onChange={e => setPapel(e.target.value)}><option value="">Todos os papéis</option><option value="proprietario">Proprietários</option><option value="operador">Operadores</option></select></label>
-          <label className="collection-select"><User size={16} /><select aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">PF e PJ</option><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></label>
-          <label className="collection-select"><CheckCircle size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select></label>
+          <Selecao aria-label="Filtrar papel" value={papel} onChange={e => setPapel(e.target.value)}><option value="">Todos os papéis</option><option value="proprietario">Proprietários</option><option value="operador">Operadores</option></Selecao>
+          <Selecao aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">PF e PJ</option><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao>
+          <Selecao aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></Selecao>
           {(papel || tipo || status) && <button className="btn btn-ghost btn-sm" onClick={() => { setPapel(''); setTipo(''); setStatus(''); }}>Limpar filtros</button>}
           {error && <button className="btn btn-ghost btn-sm" onClick={load}>Tentar novamente</button>}
         </>}
@@ -138,9 +139,9 @@ export default function Proprietarios() {
     >
       <form id="prop-form" className="collection-modal-form" onSubmit={save}>
         {formError && <div className="alert error" role="alert">{formError}</div>}
-        <div className="field"><label htmlFor="prop-papel">Papel</label><select id="prop-papel" value={form.papel} onChange={e => setForm({ ...form, papel: e.target.value })}><option value="proprietario">Proprietário</option><option value="operador">Operador do ponto</option></select></div>
+        <div className="field"><label htmlFor="prop-papel">Papel</label><Selecao id="prop-papel" value={form.papel} onChange={e => setForm({ ...form, papel: e.target.value })}><option value="proprietario">Proprietário</option><option value="operador">Operador do ponto</option></Selecao></div>
         {form.papel === 'operador' && <div className="field"><label htmlFor="prop-marca">Marca / bandeira</label><input id="prop-marca" value={form.marca} onChange={e => setForm({ ...form, marca: e.target.value })} /></div>}
-        <div className="field"><label htmlFor="prop-tipo">Tipo de pessoa</label><select id="prop-tipo" value={form.tipoPessoa} onChange={e => setForm({ ...form, tipoPessoa: e.target.value })}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></div>
+        <div className="field"><label htmlFor="prop-tipo">Tipo de pessoa</label><Selecao id="prop-tipo" value={form.tipoPessoa} onChange={e => setForm({ ...form, tipoPessoa: e.target.value })}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao></div>
         <div className="field"><label htmlFor="prop-nome">Nome <span className="required">*</span></label><input id="prop-nome" required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={form.tipoPessoa === 'pj' ? 'Razão social' : 'Nome completo'} /></div>
         <div className="field"><label htmlFor="prop-doc">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="prop-doc" value={form.documento} onChange={e => setForm({ ...form, documento: e.target.value })} /></div>
         {form.tipoPessoa === 'pj' && <EmpresaVinculo id="prop-empresa" empresaId={form.empresaId} empresaNome={form.empresaNome} onChange={v => setForm({ ...form, ...v })} />}
@@ -148,7 +149,7 @@ export default function Proprietarios() {
         <div className="field"><label htmlFor="prop-email">E-mail</label><input id="prop-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
         <div className="field"><label htmlFor="prop-cidade">Cidade</label><input id="prop-cidade" value={form.cidade} onChange={e => setForm({ ...form, cidade: e.target.value })} /></div>
         <div className="field"><label htmlFor="prop-uf">UF</label><input id="prop-uf" maxLength={2} value={form.uf} onChange={e => setForm({ ...form, uf: e.target.value.toUpperCase() })} /></div>
-        <div className="field"><label htmlFor="prop-status">Status</label><select id="prop-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></select></div>
+        <div className="field"><label htmlFor="prop-status">Status</label><Selecao id="prop-status" value={form.status} onChange={e => setForm({ ...form, status: e.target.value })}><option value="ativo">Ativo</option><option value="inativo">Inativo</option></Selecao></div>
         <div className="field"><label htmlFor="prop-obs">Observações <span className="collection-optional">Opcional</span></label><textarea id="prop-obs" rows={3} value={form.observacoes} onChange={e => setForm({ ...form, observacoes: e.target.value })} /></div>
       </form>
     </Modal>}
