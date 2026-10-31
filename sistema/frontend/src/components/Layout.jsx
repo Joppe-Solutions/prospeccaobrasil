@@ -75,6 +75,7 @@ export default function Layout() {
 
   const atual = ALL_ITEMS.find(item => item.to !== '/' && location.pathname.startsWith(item.to));
   const title = atual?.title || atual?.label || 'Visão geral';
+  const grupo = NAV.find(g => g.items.some(i => i === atual || (i.children || []).includes(atual)))?.caption || 'Principal';
 
   const item = ({ to, label, sub, icon: Icon, children }) => (
     <div key={to || label} className="nav-item">
@@ -124,7 +125,7 @@ export default function Layout() {
       <header className="topbar">
         <div className="topbar-path">
           <button className="icon-button mobile-menu" aria-label="Abrir navegação" aria-expanded={open} onClick={() => setOpen(true)}><List size={22} /></button>
-          <span>Workspace</span><CaretRight size={12} /><strong>{title}</strong>
+          <span>{grupo}</span><CaretRight size={12} /><strong>{title}</strong>
         </div>
         <div className="topbar-right">
           <span className="workspace-date">{new Intl.DateTimeFormat('pt-BR', { day: 'numeric', month: 'long', year: 'numeric' }).format(new Date())}</span>

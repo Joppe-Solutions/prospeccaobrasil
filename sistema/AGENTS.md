@@ -27,6 +27,9 @@
   nenhum CSS define cor da marca ou tamanho de fonte "na mão". Escala tipográfica fechada: 12/13/14/16/22/32 px, nada abaixo de 12.
   Rótulos em sentence case (sem caixa alta + letter-spacing). Botão primário é sempre verde (`.btn-gold` = `.btn-primary`);
   dourado é acento (menu ativo, selo "capa"). Hover por cor, nunca por deslocamento; `:focus-visible` com `--focus-ring`.
+- Listagens (`DataTable`): busca + Exportar/Colunas na 1ª linha, filtros (`toolbar`, sempre em `label.collection-select`)
+  na 2ª; abas só para categoria, no cabeçalho do painel. Até 640 px cada linha vira cartão com o rótulo da coluna
+  (`data-label` vem de `meta.label` ou do `header`). Trilha da barra superior = grupo do menu > página.
 - Campos em pt-BR camelCase no Prisma, `@map` snake_case no banco
 - Rotas Express montadas como fábrica `(prisma) => Router`
 - Acesso teste: admin@prospeccaobrasil.com.br / prospeccao123 (trocar em prod)
