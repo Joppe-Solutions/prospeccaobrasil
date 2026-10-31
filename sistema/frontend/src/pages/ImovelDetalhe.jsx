@@ -5,6 +5,7 @@ import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, registroProfissional, STAT
 import PhotoUploader from '../components/PhotoUploader';
 import Modal from '../components/Modal';
 import { DinheiroInput } from '../components/NumberFields';
+import { ArrowSquareOut } from '@phosphor-icons/react';
 
 const DOC_TIPOS = [['planta', 'Planta (PDF)'], ['dwg', 'Planta (DWG)'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
@@ -143,8 +144,8 @@ export default function ImovelDetalhe() {
       </Modal>}
       <div className="page-head">
         <h1>{i.codigo} — {i.endereco}{i.numero ? `, ${i.numero}` : ''}</h1>
-        <div style={{ display: 'flex', gap: 8 }}>
-          <a className="btn btn-gold" href={`/apresentacao/${i.id}`} target="_blank" rel="noopener">Apresentação</a>
+        <div className="page-actions">
+          <a className="btn btn-primary" href={`/apresentacao/${i.id}`} target="_blank" rel="noopener">Apresentação</a>
           <a className="btn btn-ghost" href={`/apresentacao/${i.id}/pdf`} target="_blank" rel="noopener">PDF</a>
           <button className="btn btn-ghost" onClick={() => copiarLink()}>Copiar link</button>
           <Link className="btn btn-ghost" to={`/imoveis/${i.id}/editar`} state={{ backgroundLocation: location }}>Editar</Link>
@@ -163,11 +164,13 @@ export default function ImovelDetalhe() {
             {i.categoria && <span className="badge apresentado">{CATEGORIAS[i.categoria] || i.categoria}</span>}
             {i.periodoContrato && <span className="badge negociacao">{i.periodoContrato}</span>}
           </div>
-          <p style={{ marginTop: 14, fontSize: 14 }}>
-            ABL <b>{fmtNum(i.areaTotal, 'm²')}</b> · Custo total <b>{fmtMoney(custo)}</b>{i.tipo === 'venda' && <> · Venda <b>{fmtMoney(i.precoVenda)}</b></>}
-          </p>
-          {mapa && <p style={{ marginTop: 8 }}><a href={mapa} target="_blank" rel="noopener noreferrer">Ver no Google Maps ↗</a></p>}
-          {i.descricao && <p className="muted" style={{ marginTop: 10 }}>{i.descricao}</p>}
+          <dl className="detail-summary">
+            <div><dt>ABL</dt><dd>{fmtNum(i.areaTotal, 'm²')}</dd></div>
+            <div><dt>Custo mensal total</dt><dd>{fmtMoney(custo)}</dd></div>
+            {i.tipo === 'venda' && <div><dt>Venda</dt><dd>{fmtMoney(i.precoVenda)}</dd></div>}
+          </dl>
+          {mapa && <a className="text-link" href={mapa} target="_blank" rel="noopener noreferrer">Ver no Google Maps <ArrowSquareOut size={14} /></a>}
+          {i.descricao && <p className="detail-description">{i.descricao}</p>}
         </div>
       </div></div>
 
@@ -182,55 +185,49 @@ export default function ImovelDetalhe() {
 
       <div className="panel">
         <h2>Vínculos</h2>
-        <div className="form-grid">
-          <div className="field">
-            <label>{i.tipo === 'passagem_ponto' ? 'Operador do ponto' : 'Proprietário'}</label>
-            <div style={{ fontWeight: 700 }}>
-              {i.tipo === 'passagem_ponto'
-                ? <>{i.operador?.nome || '—'}{i.operador ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{[i.operador.marca, i.operador.telefone].filter(Boolean).join(' · ')}</div> : null}</>
-                : <>{i.proprietarioRel?.nome || i.proprietario || '—'}{i.proprietarioRel?.telefone || i.telProprietario ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.proprietarioRel?.telefone || i.telProprietario}</div> : null}</>}
-            </div>
+        <dl className="detail-links">
+          <div>
+            <dt>{i.tipo === 'passagem_ponto' ? 'Operador do ponto' : 'Proprietário'}</dt>
+            {i.tipo === 'passagem_ponto'
+              ? <dd><strong>{i.operador?.nome || '—'}</strong>{i.operador && <small>{[i.operador.marca, i.operador.telefone].filter(Boolean).join(' · ')}</small>}</dd>
+              : <dd><strong>{i.proprietarioRel?.nome || i.proprietario || '—'}</strong>{(i.proprietarioRel?.telefone || i.telProprietario) && <small>{i.proprietarioRel?.telefone || i.telProprietario}</small>}</dd>}
           </div>
-          <div className="field">
-            <label>Parceiro</label>
-            <div style={{ fontWeight: 700 }}>
-              {i.parceiro?.nome || '—'}
-              {i.parceiro ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{[TIPOS_PARCEIRO[i.parceiro.tipo], registroProfissional(i.parceiro)].filter(Boolean).join(' · ')}</div> : null}
-              {i.parceiro?.telefone ? <div className="muted" style={{ fontWeight: 400, marginTop: 4 }}>{i.parceiro.telefone}</div> : null}
-            </div>
+          <div>
+            <dt>Parceiro</dt>
+            <dd><strong>{i.parceiro?.nome || '—'}</strong>{i.parceiro && <small>{[TIPOS_PARCEIRO[i.parceiro.tipo], registroProfissional(i.parceiro), i.parceiro.telefone].filter(Boolean).join(' · ')}</small>}</dd>
           </div>
-          {i.observacoes && <div className="field" style={{ gridColumn: 'span 2' }}><label>Observações internas</label><div style={{ whiteSpace: 'pre-wrap' }}>{i.observacoes}</div></div>}
-        </div>
+          {i.observacoes && <div className="detail-links-wide"><dt>Observações internas</dt><dd className="detail-prewrap">{i.observacoes}</dd></div>}
+        </dl>
       </div>
 
       {isAdmin && <div className="panel">
         <h2>Despesas do imóvel</h2>
-        <form onSubmit={addDespesa} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-          <input placeholder="Descrição" required value={despesaForm.descricao} onChange={e => setDespesaForm({ ...despesaForm, descricao: e.target.value })} style={{ flex: 2, minWidth: 160 }} />
-          <DinheiroInput aria-label="Valor da despesa" required value={despesaForm.valor} onChange={v => setDespesaForm({ ...despesaForm, valor: v })} style={{ width: 150 }} />
-          <input type="date" value={despesaForm.data} onChange={e => setDespesaForm({ ...despesaForm, data: e.target.value })} />
-          <button className="btn btn-ghost btn-sm" type="submit">Adicionar</button>
+        <form onSubmit={addDespesa} className="inline-form">
+          <div className="field grow"><label htmlFor="desp-descricao">Descrição</label><input id="desp-descricao" required value={despesaForm.descricao} onChange={e => setDespesaForm({ ...despesaForm, descricao: e.target.value })} placeholder="Ex.: chaveiro, limpeza" /></div>
+          <div className="field"><label htmlFor="desp-valor">Valor</label><DinheiroInput id="desp-valor" required value={despesaForm.valor} onChange={v => setDespesaForm({ ...despesaForm, valor: v })} /></div>
+          <div className="field"><label htmlFor="desp-data">Data</label><input id="desp-data" type="date" value={despesaForm.data} onChange={e => setDespesaForm({ ...despesaForm, data: e.target.value })} /></div>
+          <button className="btn btn-ghost" type="submit">Adicionar despesa</button>
         </form>
         {(i.despesas || []).length > 0 ? (
-          <table><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th style={{ width: 80 }} /></tr></thead>
+          <table className="detail-table"><thead><tr><th>Descrição</th><th>Valor</th><th>Data</th><th className="col-acoes" /></tr></thead>
             <tbody>{i.despesas.map(d => (
-              <tr key={d.id} style={d.estornada ? { opacity: 0.5, textDecoration: 'line-through' } : undefined}>
-                <td>{d.descricao}{d.estornada && <span className="badge perdido" style={{ marginLeft: 8 }}>Estornada</span>}</td>
+              <tr key={d.id} className={d.estornada ? 'is-estornada' : undefined}>
+                <td>{d.descricao}{d.estornada && <span className="badge perdido">Estornada</span>}</td>
                 <td>{fmtMoney(d.valor)}</td>
                 <td>{d.data ? String(d.data).slice(0, 10).split('-').reverse().join('/') : '—'}</td>
-                <td>{!d.estornada && <button className="btn btn-danger btn-sm" onClick={() => estornarDespesa(d.id)}>Estornar</button>}</td>
+                <td>{!d.estornada && <button className="btn btn-ghost btn-sm collection-delete" onClick={() => estornarDespesa(d.id)}>Estornar</button>}</td>
               </tr>
             ))}</tbody>
             <tfoot><tr><td><b>Total</b></td><td colSpan={3}><b>{fmtMoney(i.despesas.filter(d => !d.estornada).reduce((s, d) => s + Number(d.valor || 0), 0))}</b></td></tr></tfoot>
           </table>
-        ) : <div className="empty">Nenhuma despesa registrada.</div>}
+        ) : <p className="muted">Nenhuma despesa registrada.</p>}
       </div>}
 
       <div className="panel">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-          <h2 style={{ margin: 0 }}>Fotos</h2>
-          {i.fotos.length > 0 && <div style={{ display: 'flex', gap: 8 }}>
-            <a className="btn btn-ghost btn-sm" href={`/apresentacao/${i.id}/fotos`} target="_blank" rel="noopener noreferrer">Abrir galeria pública ↗</a>
+        <div className="panel-head">
+          <h2>Fotos</h2>
+          {i.fotos.length > 0 && <div className="page-actions">
+            <a className="btn btn-ghost btn-sm" href={`/apresentacao/${i.id}/fotos`} target="_blank" rel="noopener noreferrer">Abrir galeria pública <ArrowSquareOut size={14} /></a>
             <button className="btn btn-ghost btn-sm" onClick={() => copiarLink('/fotos', 'Link da galeria copiado')}>Copiar link da galeria</button>
           </div>}
         </div>
@@ -240,50 +237,49 @@ export default function ImovelDetalhe() {
 
       <div className="panel">
         <h2>Documentos</h2>
-        <form onSubmit={addDoc} style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 14 }}>
-          <select value={docTipo} onChange={e => setDocTipo(e.target.value)}>{DOC_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-          <input placeholder="Nome (opcional)" value={docNome} onChange={e => setDocNome(e.target.value)} />
-          <input placeholder="URL (opcional)" value={docUrl} onChange={e => setDocUrl(e.target.value)} />
-          <input ref={docFileRef} type="file" />
-          <button className="btn btn-ghost btn-sm">Adicionar</button>
+        <form onSubmit={addDoc} className="inline-form">
+          <div className="field"><label htmlFor="doc-tipo">Tipo</label><select id="doc-tipo" value={docTipo} onChange={e => setDocTipo(e.target.value)}>{DOC_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select></div>
+          <div className="field grow"><label htmlFor="doc-nome">Nome <span className="collection-optional">Opcional</span></label><input id="doc-nome" value={docNome} onChange={e => setDocNome(e.target.value)} /></div>
+          <div className="field grow"><label htmlFor="doc-url">Link <span className="collection-optional">Opcional</span></label><input id="doc-url" value={docUrl} onChange={e => setDocUrl(e.target.value)} placeholder="https://" /></div>
+          <div className="field"><label htmlFor="doc-arquivo">Arquivo</label><input id="doc-arquivo" ref={docFileRef} type="file" /></div>
+          <button className="btn btn-ghost">Adicionar documento</button>
         </form>
-        <table><tbody>
+        {i.documentos.length === 0 && <p className="muted">Nenhum documento anexado.</p>}
+        <table className="detail-table"><tbody>
           {i.documentos.map(d => (
             <tr key={d.id}>
               <td><b>{DOC_TIPOS.find(t => t[0] === d.tipo)?.[1] || d.tipo}</b></td>
               <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer">{d.nome}</a> : d.nome}</td>
-              <td style={{ width: 60 }}><button className="btn btn-danger btn-sm" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
+              <td className="col-acoes"><button className="btn btn-ghost btn-sm collection-delete" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
             </tr>
           ))}
         </tbody></table>
       </div>
 
       <div className="panel ai-box">
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16 }}>
+        <div className="panel-head">
           <h2>Inteligência de mercado</h2>
-          <div style={{ display: 'flex', gap: 8 }}>
-            {analise && <a className="btn btn-ghost btn-sm" href={`/inteligencia/${analise.id}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer">Documento completo ↗</a>}
+          <div className="page-actions">
+            {analise && <a className="btn btn-ghost btn-sm" href={`/inteligencia/${analise.id}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer">Documento completo <ArrowSquareOut size={14} /></a>}
             <button className="btn btn-gold btn-sm" onClick={gerarIA} disabled={gerando}>{gerando ? 'Gerando…' : analise ? 'Regenerar análise' : 'Gerar análise'}</button>
           </div>
         </div>
         {analise ? (
-          <div style={{ display: 'flex', gap: 22, marginTop: 16 }}>
-            <div className="score-ring" style={{ background: `conic-gradient(#e8b84b ${analise.score}%, rgba(255,255,255,.15) 0)` }}>
-              <span style={{ background: '#12312d', width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{analise.score}</span>
-            </div>
-            <div style={{ flex: 1 }}>
-              {ai.aviso && <p className="muted" style={{ fontSize: 12, fontStyle: 'italic' }}>{ai.aviso}</p>}
+          <div className="ai-body">
+            <div className="score-ring" style={{ '--score': `${analise.score}%` }}><span>{analise.score}</span></div>
+            <div className="ai-text">
+              {ai.aviso && <p className="ai-aviso">{ai.aviso}</p>}
               <p>{analise.resumo}</p>
-              <h4 style={{ marginTop: 12, color: '#8fd8b8' }}>Pontos fortes</h4>
+              <h4>Pontos fortes</h4>
               <ul>{ai.pontosFortes.map((p, x) => <li key={x}>{p}</li>)}</ul>
-              <h4 style={{ color: '#f2c96d' }}>Atenção</h4>
+              <h4 className="is-atencao">Atenção</h4>
               <ul>{ai.pontosAtencao.map((p, x) => <li key={x}>{p}</li>)}</ul>
-              <h4 style={{ color: '#8fd8b8' }}>Segmentos recomendados</h4>
+              <h4>Segmentos recomendados</h4>
               <div>{ai.segmentosRecomendados.map((s, x) => <span className="tag" key={x}>{s}</span>)}</div>
-              <p style={{ marginTop: 12, fontSize: 13, opacity: .85 }}>{ai.recomendacao} · <i>modelo: {analise.modelo}</i></p>
+              <p className="ai-rodape">{ai.recomendacao} · modelo: {analise.modelo}</p>
             </div>
           </div>
-        ) : <p className="muted" style={{ marginTop: 10, color: '#9fbfb1' }}>Gere a análise automática deste ponto — score, pontos fortes e segmentos recomendados.</p>}
+        ) : <p className="ai-vazio">Gere a análise automática deste ponto: score, pontos fortes e segmentos recomendados.</p>}
       </div>
 
       <div className="panel">
@@ -300,26 +296,25 @@ export default function ImovelDetalhe() {
               <span><strong>{e.nome}</strong><small>{[e.segmento, listaBairros(e.regioesInteresse).join(', ')].filter(Boolean).join(' · ') || 'Sem premissas'}</small></span>
               <span className="match-crits"><span className={`badge ${p.nivel === 'compativel' ? 'disponivel' : 'negociacao'}`}>{p.nivel === 'compativel' ? 'Compatível' : 'Parcial'}</span>{marca(p.bairro, 'Bairro')}{marca(p.area, 'Área')}</span>
               <button className="btn btn-primary btn-sm" onClick={() => addOportunidade(e.id)} aria-label={`Apresentar para ${e.nome}`}>Apresentar</button>
-            </li>)}</ul> : <p className="muted" style={{ margin: '4px 0 14px' }}>Nenhum cliente ainda não apresentado tem premissas compatíveis com este imóvel.</p>}
-            <h3 style={{ fontSize: 13, margin: '16px 0 8px' }}>Apresentar para outro cliente</h3>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10 }}>
-              <select value={empSel} aria-label="Empresa para apresentação" onChange={e => setEmpSel(e.target.value)} style={{ flex: 1, padding: 11, borderRadius: 10, border: '1px solid var(--line)' }}>
+            </li>)}</ul> : <p className="muted">Nenhum cliente ainda não apresentado tem premissas compatíveis com este imóvel.</p>}
+            <div className="inline-form">
+              <div className="field grow"><label htmlFor="apr-empresa">Apresentar para outro cliente</label><select id="apr-empresa" value={empSel} onChange={e => setEmpSel(e.target.value)}>
                 <option value="">Selecionar cliente…</option>
                 {ativos.filter(e => !apresentadas.has(e.id)).map(e => <option key={e.id} value={e.id}>{e.nome} — {e.segmento || 'sem segmento'}</option>)}
-              </select>
-          <select aria-label="Modalidade da apresentação" value={modalidade} onChange={e => setModalidade(e.target.value)}><option value="">{{ venda: 'Ativos à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação direta'}</option><option value="locacao_direta">Locação direta</option><option value="passagem_ponto">Passagem de ponto comercial</option><option value="venda_ativo">Ativos à venda</option></select>
-          <button className="btn btn-primary btn-sm" disabled={!empSel} onClick={() => addOportunidade()}>Registrar apresentação</button>
+              </select></div>
+              <div className="field"><label htmlFor="apr-modalidade">Modalidade</label><select id="apr-modalidade" value={modalidade} onChange={e => setModalidade(e.target.value)}><option value="">{{ venda: 'Ativos à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação direta'}</option><option value="locacao_direta">Locação direta</option><option value="passagem_ponto">Passagem de ponto comercial</option><option value="venda_ativo">Ativos à venda</option></select></div>
+              <button className="btn btn-primary" disabled={!empSel} onClick={() => addOportunidade()}>Registrar apresentação</button>
             </div>
           </>;
         })()}
         {i.oportunidades.length > 0 && (
-          <table style={{ marginTop: 14 }}><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Proposta</th><th>Apresentação</th><th>Data</th></tr></thead>
+          <table className="detail-table"><thead><tr><th>Empresa</th><th>Contato</th><th>Etapa</th><th>Proposta</th><th>Apresentação</th><th>Data</th></tr></thead>
             <tbody>{i.oportunidades.map(o => (
               <tr key={o.id}>
                 <td><Link to={`/oportunidades?empresaId=${o.empresaId}`}>{o.empresa.nome}</Link></td>
                 <td>{[o.empresa.contatoNome, o.empresa.telefone || o.empresa.email].filter(Boolean).join(' · ') || '—'}</td>
                 <td><span className={`badge ${o.etapa}`}>{ETAPAS[o.etapa] || o.etapa}</span></td>
-                <td>{{ sem_proposta: '—', em_elaboracao: 'Em elaboração', enviada: 'Enviada', em_analise: 'Em análise', contraproposta: 'Contraproposta', aceita: 'Aceita', recusada: 'Recusada' }[o.propostaStatus || 'sem_proposta']}{o.propostaEnviadaEm && <small className="muted" style={{ display: 'block' }}>{new Date(`${o.propostaEnviadaEm}T12:00:00`).toLocaleDateString('pt-BR')}</small>}</td>
+                <td>{{ sem_proposta: '—', em_elaboracao: 'Em elaboração', enviada: 'Enviada', em_analise: 'Em análise', contraproposta: 'Contraproposta', aceita: 'Aceita', recusada: 'Recusada' }[o.propostaStatus || 'sem_proposta']}{o.propostaEnviadaEm && <small className="detail-sub">{new Date(`${o.propostaEnviadaEm}T12:00:00`).toLocaleDateString('pt-BR')}</small>}</td>
                 <td><a href={`/apresentacao/${i.id}`} target="_blank" rel="noreferrer">Abrir</a></td>
                 <td>{new Date(o.criadoEm).toLocaleDateString('pt-BR')}</td>
               </tr>
