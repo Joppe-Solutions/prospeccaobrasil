@@ -8,7 +8,7 @@ const setores = require('../services/setores');
 const { PARCEIRO_PUBLICO } = require('../lib/parceiros');
 const { entorno } = require('../services/entorno');
 const { gerarPdf } = require('../services/pdf');
-const { renderApresentacao, renderGaleria, locationUrl } = require('../templates/apresentacao');
+const { renderApresentacao, renderGaleria, locationUrl, whatsappUrl } = require('../templates/apresentacao');
 
 const limite = (promessa, ms) => Promise.race([promessa.catch(() => null), new Promise((resolve) => setTimeout(resolve, ms, null))]);
 
@@ -27,6 +27,7 @@ module.exports = (prisma) => {
     const qrData = await QRCode.toDataURL(locationUrl(imovel), {
       margin: 4, width: 240, color: { dark: '#153c34', light: '#ffffff' },
     });
+    const qrVisita = await QRCode.toDataURL(whatsappUrl(imovel), { margin: 1, width: 200, color: { dark: '#153c34', light: '#ffffff' } });
     // Mapa ao lado da foto: coordenadas do cadastro ou geocodificação (com cache). Se o
     // serviço demorar ou falhar, a apresentação sai só com a foto.
     // Nos testes só vale coordenada cadastrada (sem chamada externa), salvo com a chave do Google simulada.
@@ -49,6 +50,7 @@ module.exports = (prisma) => {
       completa: req.query.formato !== 'resumo',
       mapa: mapaDoc,
       contexto,
+      qrVisita,
     }));
   }));
   // PDF em A4 exato gerado no servidor (Chromium): imprimir pelo navegador pode partir as folhas

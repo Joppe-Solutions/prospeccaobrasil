@@ -23,6 +23,8 @@ function safeUrl(value) {
 const address = i => [i.endereco, i.numero].filter(Boolean).join(', ') + (i.complemento ? ` - ${i.complemento}` : '');
 const MAPS_AUTO = 'https://www.google.com/maps/search/?api=1&query=';
 // Link manual (colado no cadastro) vence; depois as coordenadas exatas; por fim o endereço.
+// Conversa no WhatsApp já com o imóvel identificado (QR do cartão de visita na 2ª folha)
+const whatsappUrl = i => `https://wa.me/5521998423232?text=${encodeURIComponent(`Olá! Tenho interesse no imóvel ${i.codigo}${i.titulo ? ` (${i.titulo})` : ''} e gostaria de agendar uma visita.`)}`;
 function locationUrl(i) {
   const manual = safeUrl(i.googleMapsUrl);
   if (manual && !manual.startsWith(MAPS_AUTO)) return manual;
@@ -89,7 +91,7 @@ function entornoSection(contexto) {
   const resto = cats.slice(5).reduce((n, l) => n + l.r1000, 0);
   if (resto) fatias.push({ rotulo: 'Demais categorias', valor: resto, cor: cores[5] });
   return `<section class="entorno1km"><h3>Comércio, serviços e transporte em 1 km</h3><div class="entorno1km-grid">
-<table class="transporte"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${(e.transporte || []).map(l => `<tr><td>${esc(l.rotulo)}</td><td>${int(l.r1000)}</td></tr>`).join('')}</tbody></table>
+<div class="transporte-box"><table class="transporte"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${(e.transporte || []).map(l => `<tr><td>${esc(l.rotulo)}</td><td>${int(l.r1000)}</td></tr>`).join('')}</tbody></table></div>
 ${fatias.length > 1 ? `<figure class="composicao"><figcaption>Composição do comércio e serviços</figcaption>${G.rosca({ fatias, centro: { valor: int(e.total1000), titulo: 'estabelecimentos' }, largura: 400, altura: 170, descricao: 'Composição do comércio e serviços em 1 km' })}</figure>` : ''}
 </div><p class="fine-print">Fonte: OpenStreetMap · mapeamento colaborativo: as contagens indicam o mínimo existente.</p></section>`;
 }
@@ -121,7 +123,7 @@ const icone = nome => `<i class="ico" aria-hidden="true"><svg viewBox="0 0 24 24
 // [ícone, rótulo, subtítulo, valor] → cartão com ícone, rótulo e valor
 const linhaFicha = ([ic, rotulo, sub, valor]) => `<li>${icone(ic)}<span class="rot"><b>${esc(rotulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><strong class="val">${esc(valor)}</strong></li>`;
 
-function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto = null } = {}) {
+function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto = null, qrVisita = null } = {}) {
   const sale = i.tipo === 'venda';
   const deal = { venda: 'Ativo comercial à venda', passagem_ponto: 'Passagem de ponto comercial' }[i.tipo] || 'Locação';
   const photos = (i.fotos || []).filter(f => f.arquivo);
@@ -166,7 +168,7 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
   const hasDetails = Boolean(i.descricao?.trim() || docs.length || infra || entorno1km);
   const footer = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
-  const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>`;
+  const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p>${qrVisita && cls === '' ? `<a class="qr-visita" href="${esc(whatsappUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrVisita)}" alt="QR code para falar no WhatsApp sobre o imóvel"><span>Falar no WhatsApp</span></a>` : ''}</div></section>`;
   const footerBand = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const title = i.titulo || address(i);
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
@@ -218,4 +220,4 @@ img{display:block;width:100%;height:230px;object-fit:cover}figcaption{padding:9p
 <footer>Prospecção Brasil · Retail &amp; Real Estate · prospeccaobrasil.com.br</footer></body></html>`;
 }
 
-module.exports = { renderApresentacao, renderGaleria, locationUrl };
+module.exports = { renderApresentacao, renderGaleria, locationUrl, whatsappUrl };

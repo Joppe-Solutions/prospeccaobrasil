@@ -136,9 +136,11 @@ function rosca({ fatias, centro = {}, largura = 330, altura = 230, descricao = '
     const y = cy - (fatias.length * passo) / 2 + n * passo + passo / 2 - 4;
     const lx = cx + r + esp / 2 + 28;
     const resumo = `${pt(f.valor)} · ${pt((Number(f.valor) / total) * 100, 1)}%`;
+    // A legenda não pode sair do desenho: rótulo encurtado pela largura que sobra (≈ 0,55 em por caractere)
+    const cabe = (texto, tam, reservado = 0) => { const max = Math.floor((largura - lx - 17 - reservado) / (tam * 0.55)); return texto.length > max ? `${texto.slice(0, Math.max(3, max - 1)).trimEnd()}…` : texto; };
     corpo += passo >= 30
-      ? `<rect x="${lx}" y="${y - 6}" width="11" height="11" rx="2" fill="${f.cor}"/>${txt(lx + 17, y + 3, f.rotulo, { tam: 12, cor: COR.verde, peso: 700 })}${txt(lx + 17, y + 17, resumo, { tam: 10.5, cor: COR.texto })}`
-      : `<rect x="${lx}" y="${y - 4}" width="10" height="10" rx="2" fill="${f.cor}"/>${txt(lx + 16, y + 5, `${f.rotulo} — ${resumo}`, { tam: 10.5, cor: COR.verde })}`;
+      ? `<rect x="${lx}" y="${y - 6}" width="11" height="11" rx="2" fill="${f.cor}"/>${txt(lx + 17, y + 3, cabe(f.rotulo, 12), { tam: 12, cor: COR.verde, peso: 700 })}${txt(lx + 17, y + 17, resumo, { tam: 10.5, cor: COR.texto })}`
+      : `<rect x="${lx}" y="${y - 4}" width="10" height="10" rx="2" fill="${f.cor}"/>${txt(lx + 16, y + 5, `${cabe(f.rotulo, 10.5, (resumo.length + 3) * 10.5 * 0.55)} — ${resumo}`, { tam: 10.5, cor: COR.verde })}`;
   });
   return svg(largura, altura, corpo, descricao);
 }
