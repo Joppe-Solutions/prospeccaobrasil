@@ -30,14 +30,19 @@ const CATEGORIAS = [
   ['Estacionamentos', { amenity: ['parking'] }],
 ];
 const OUTRAS_LOJAS = 'Outras lojas e serviços';
+// BRT no OSM: estação (amenity=bus_station) ou parada com a rede/nome do sistema (BRT, TransOeste, Transcarioca,
+// TransOlímpica, TransBrasil). Só paradas e estações: a via do corredor (highway=busway) também leva o nome do sistema.
+const brt = (t) => (t.highway === 'bus_stop' || t.amenity === 'bus_station' || Boolean(t.public_transport))
+  && /\b(BRT|Trans(Oeste|Carioca|Ol[ií]mpica|Brasil))\b/i.test([t.name, t.network, t.operator].filter(Boolean).join(' '));
+const estacao = (t) => ['station', 'tram_stop'].includes(t.railway) || brt(t);
 const TRANSPORTE = [
-  ['Pontos de ônibus', (t) => t.highway === 'bus_stop'],
-  ['Estações de metrô, trem ou VLT', (t) => ['station', 'tram_stop'].includes(t.railway)],
+  ['Pontos de ônibus', (t) => t.highway === 'bus_stop' && !brt(t)],
+  ['Estações de metrô, trem, BRT ou VLT', estacao],
   ['Terminais de barcas', (t) => t.amenity === 'ferry_terminal'],
 ];
 // Geradores de fluxo: o mais próximo de cada tipo entra na lista de destaques
 const DESTAQUES = [
-  ['Estação (metrô, trem ou VLT)', (t) => ['station', 'tram_stop'].includes(t.railway)],
+  ['Estação (metrô, trem, BRT ou VLT)', estacao],
   ['Shopping', (t) => t.shop === 'mall'],
   ['Supermercado', (t) => t.shop === 'supermarket'],
   ['Banco', (t) => t.amenity === 'bank'],

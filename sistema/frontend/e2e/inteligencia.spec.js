@@ -18,7 +18,7 @@ const uf = { nome: 'Rio de Janeiro', anos: [2026, 2028, 2030], serie: serie(1740
 const linhas = ['Shoppings e lojas de departamento', 'Supermercados e conveniência', 'Alimentação (restaurantes, bares, cafés)', 'Farmácias e saúde', 'Bancos e serviços financeiros', 'Moda, calçados e acessórios', 'Educação', 'Academias', 'Hotéis', 'Estacionamentos', 'Outras lojas e serviços'].map((rotulo, n) => ({ rotulo, r500: 3 + n * 2, r1000: 8 + n * 5 }));
 const entorno = {
   linhas, total500: 120, total1000: 340, consultadoEm: Date.now(),
-  transporte: [{ rotulo: 'Pontos de ônibus', r500: 8, r1000: 21 }, { rotulo: 'Estações de metrô, trem ou VLT', r500: 1, r1000: 3 }, { rotulo: 'Terminais de barcas', r500: 0, r1000: 0 }],
+  transporte: [{ rotulo: 'Pontos de ônibus', r500: 8, r1000: 21 }, { rotulo: 'Estações de metrô, trem, BRT ou VLT', r500: 1, r1000: 3 }, { rotulo: 'Terminais de barcas', r500: 0, r1000: 0 }],
   destaques: ['Estação', 'Shopping', 'Supermercado', 'Banco', 'Farmácia', 'Hospital', 'Universidade'].map((rotulo, n) => ({ rotulo, nome: `Equipamento de exemplo número ${n + 1} com nome extenso`, dist: 80 + n * 60 })),
   naRua: Array.from({ length: 10 }, (_, n) => ({ nome: `Estabelecimento vizinho ${n + 1}`, categoria: 'Outras lojas e serviços', dist: 30 })),
   via: { nome: 'Avenida Cônego Vasconcelos', tipo: 'Via arterial principal', faixas: '3', maoUnica: 'Mão dupla', velocidade: '60 km/h' },
