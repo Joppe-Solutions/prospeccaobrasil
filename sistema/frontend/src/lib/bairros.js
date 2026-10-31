@@ -6,6 +6,14 @@ export const juntarBairros = (lista) => lista.map(s => s.trim()).filter(Boolean)
 const norm = (v) => String(v ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim();
 const bate = (a, b) => a === b || (a.length > 3 && b.length > 3 && (a.includes(b) || b.includes(a)));
 
+// Texto do aviso ao salvar o imóvel; sem cliente que combine, não há aviso.
+export function avisoClientes({ compativeis = 0, parciais = 0 } = {}) {
+  const c = `${compativeis} ${compativeis === 1 ? 'cliente compatível' : 'clientes compatíveis'}`;
+  const p = compativeis ? `${parciais} ${parciais === 1 ? 'parcial' : 'parciais'}` : `${parciais} ${parciais === 1 ? 'cliente parcial' : 'clientes parciais'}`;
+  if (!compativeis && !parciais) return null;
+  return `Imóvel salvo: ${[compativeis && c, parciais && p].filter(Boolean).join(' e ')} para este ponto.`;
+}
+
 // Cruza as premissas do cliente (bairros e faixa de área) com o imóvel.
 // compativel: bairro bate e a área não fica fora da faixa; parcial: só um dos dois; fora: nenhum.
 export function premissasDoCliente(cliente, imovel) {

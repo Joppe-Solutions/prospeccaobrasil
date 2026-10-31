@@ -10,6 +10,8 @@ import { CampoNumerico, DecimalInput } from '../components/NumberFields';
 import { documentoValido, mascararDocumento } from '../lib/numeros';
 import ParceiroCampos, { validarParceiro } from '../components/ParceiroCampos';
 import EmpresaVinculo from '../components/EmpresaVinculo';
+import { avisar } from '../lib/avisos';
+import { avisoClientes } from '../lib/bairros';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -344,6 +346,10 @@ export default function ImovelWizard() {
       const originais = id ? (await api(`/imoveis/${saved.id}`)).fotos : [];
       await salvarFotos(saved.id, originais);
       nav(`/imoveis/${saved.id}`, { replace: true });
+      // Clientes que combinam com o imóvel: o aviso não atrasa nem impede o salvamento; a lista fica no detalhe
+      api(`/imoveis/${saved.id}/clientes-compativeis`)
+        .then(r => { const texto = avisoClientes(r); if (texto) avisar(texto, { duracao: 9000 }); })
+        .catch(() => {});
     } catch (e) { setErr(e.message); setSaving(false); throw e; }
   }
 

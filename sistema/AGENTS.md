@@ -186,6 +186,7 @@
   Chromium, uma geração por vez). O botão da página aponta para ele: imprimir pelo navegador quebra folhas no
   Safari/Firefox (ignoram `@page size`). O deploy instala o Chromium em `/opt/prospeccao-sistema/.browsers`.
 - Status do imóvel: disponível, em análise (cadastro parcial, faltam documentos), concluído e inativo. Locado/vendido viraram concluído (o `tipo` diz qual foi o negócio) e em negociação voltou a disponível; a negociação vive nas etapas das ações.
+- Clientes compatíveis: `GET /api/imoveis/:id/clientes-compativeis` (`lib/compatibilidade.js`, mesma regra de `premissasDoCliente` no frontend: mudar nos dois) ignora clientes inativos e quem já tem ação com o imóvel. Ao salvar o imóvel, o wizard mostra o total no snackbar; a lista fica no detalhe.
 - Exclusões: imóvel (detalhe, admin; 409 com ações/despesas diz o que bloqueia e oferece "Marcar como inativo", exceto se já estiver inativo), cliente (lista, admin;
   409 com ações das operações), termo do glossário (admin) e lançamento financeiro só "previsto" (pago/estornado
   ficam no histórico; usa-se estorno). Benchmark não tem exclusão (tabela fixa de referências).
