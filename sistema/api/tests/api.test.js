@@ -1381,3 +1381,26 @@ test('apresentação: indicadores do rodapé usam o raio de 1 km e trazem o bair
   assert.match(html, new RegExp(raio.populacao.toLocaleString('pt-BR').replace('.', '\\.')));
   assert.match(renderApresentacao(base, 'data:image/png;base64,AAAA', { contexto: { bairro: { nome: 'Méier', populacao: 49828 } } }), /Moradores no bairro/);
 });
+
+test('imóvel: clientes compatíveis por bairro e área, sem quem já recebeu a apresentação', async () => {
+  const empresa = async (nome, extra) => (await req('POST', '/api/empresas', { token, body: { nome, ...extra } })).body;
+  const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Compatível', bairro: 'Vila Compatível', cidade: 'Rio de Janeiro', areaTotal: 400 } })).body;
+  const total = await empresa('Compat Total', { regioesInteresse: 'Tijuca; Vila Compativel', areaMinima: 300, areaMaxima: 500 });
+  const soBairro = await empresa('Compat Bairro', { regioesInteresse: 'Vila Compatível', areaMinima: 800 });
+  const jaVisto = await empresa('Compat Já Apresentado', { regioesInteresse: 'Vila Compatível' });
+  await empresa('Compat Inativo', { regioesInteresse: 'Vila Compatível', status: 'inativo' });
+  await empresa('Compat Fora', { regioesInteresse: 'Bairro Distante Demais', areaMinima: 900 });
+  await req('POST', '/api/oportunidades', { token, body: { imovelId: imovel.id, empresaId: jaVisto.id } });
+
+  const r = await req('GET', `/api/imoveis/${imovel.id}/clientes-compativeis`, { token });
+  assert.equal(r.status, 200);
+  const nomes = r.body.clientes.filter(c => c.nome.startsWith('Compat ')).map(c => [c.nome, c.nivel]);
+  assert.deepEqual(nomes, [['Compat Total', 'compativel'], ['Compat Bairro', 'parcial']]);
+  assert.ok(r.body.compativeis >= 1 && r.body.parciais >= 1);
+  assert.equal(r.body.clientes[0].id, total.id);
+  assert.ok(r.body.clientes.some(c => c.id === soBairro.id));
+
+  await req('PUT', `/api/imoveis/${imovel.id}`, { token, body: { status: 'concluido' } });
+  assert.deepEqual((await req('GET', `/api/imoveis/${imovel.id}/clientes-compativeis`, { token })).body, { compativeis: 0, parciais: 0, clientes: [] });
+  assert.equal((await req('GET', '/api/imoveis/999999/clientes-compativeis', { token })).status, 404);
+});

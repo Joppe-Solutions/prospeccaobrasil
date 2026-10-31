@@ -10,6 +10,7 @@ const paginate = require('../lib/paginate');
 const { gerarAnalise } = require('../services/inteligencia');
 const { fail, urlHttp } = require('../lib/validar');
 const { aquecerLocalizacao } = require('../services/aquecer');
+const { premissasDoCliente } = require('../lib/compatibilidade');
 
 const ALLOWED_MIME = new Set([
   'image/jpeg',
@@ -196,6 +197,32 @@ module.exports = (prisma) => {
     });
     if (!i) return res.status(404).json({ error: 'Não encontrado' });
     res.json(i);
+  }));
+
+  // Clientes ativos cujas premissas batem com o imóvel e que ainda não receberam a apresentação dele.
+  // Imóvel concluído ou inativo não gera sugestão.
+  r.get('/:id/clientes-compativeis', asyncHandler(async (req, res) => {
+    const imovel = await prisma.imovel.findUnique({
+      where: { id: +req.params.id },
+      select: { status: true, bairro: true, cidade: true, areaTotal: true, areaUtil: true, oportunidades: { select: { empresaId: true } } },
+    });
+    if (!imovel) return res.status(404).json({ error: 'Imóvel não encontrado' });
+    if (!['disponivel', 'em_analise'].includes(imovel.status)) return res.json({ compativeis: 0, parciais: 0, clientes: [] });
+    const apresentados = new Set(imovel.oportunidades.map((o) => o.empresaId));
+    const empresas = await prisma.empresa.findMany({
+      where: { status: { not: 'inativo' } },
+      select: { id: true, nome: true, regioesInteresse: true, areaMinima: true, areaMaxima: true },
+    });
+    const clientes = empresas
+      .filter((e) => !apresentados.has(e.id))
+      .map((e) => ({ id: e.id, nome: e.nome, ...premissasDoCliente(e, imovel) }))
+      .filter((c) => ['compativel', 'parcial'].includes(c.nivel))
+      .sort((a, b) => (a.nivel === b.nivel ? a.nome.localeCompare(b.nome, 'pt-BR') : a.nivel === 'compativel' ? -1 : 1));
+    res.json({
+      compativeis: clientes.filter((c) => c.nivel === 'compativel').length,
+      parciais: clientes.filter((c) => c.nivel === 'parcial').length,
+      clientes,
+    });
   }));
 
   let seqInit;
