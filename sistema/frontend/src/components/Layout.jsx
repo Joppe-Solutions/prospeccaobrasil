@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  ArrowSquareOut, BookOpen, ChartBar, FileText, Brain, Buildings, CaretRight, CurrencyDollar, FolderOpen, GearSix, Handshake, IdentificationCard,
+  ArrowSquareOut, BookOpen, ChartBar, FileText, Brain, Buildings, CaretRight, CurrencyDollar, GearSix, Handshake, IdentificationCard,
   List, MapPinArea, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
@@ -29,7 +29,6 @@ const NAV = [
       { to: '/leads', label: 'Leads', sub: 'Sites e portais', icon: UserFocus },
       // Fora da lista do cliente, mantidos por serem usados no cadastro de imóveis
       { to: '/proprietarios', label: 'Proprietários e operadores', icon: IdentificationCard },
-      { to: '/documentos', label: 'Documentação', icon: FolderOpen },
     ],
   },
   {

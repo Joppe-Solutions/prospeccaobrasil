@@ -16,7 +16,7 @@ const trunc = (texto, n) => { const t = String(texto ?? ''); return t.length > n
 const address = (i) => [i.endereco, i.numero].filter(Boolean).join(', ') + (i.complemento ? ` - ${i.complemento}` : '');
 const TIPOS = { locacao: 'Locação', passagem_ponto: 'Passagem de ponto comercial', venda: 'Ativo comercial à venda' };
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Imóvel comercial' };
-const STATUS = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido' };
+const STATUS = { disponivel: 'Disponível', em_analise: 'Em análise', concluido: 'Concluído' };
 const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 const SM = SALARIO_MINIMO_2022;
 

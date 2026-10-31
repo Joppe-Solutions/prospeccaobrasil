@@ -1319,8 +1319,15 @@ test('exclusões: imóvel, cliente, termo do glossário e lançamento previsto; 
   const usado = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Histórico', cidade: 'Rio de Janeiro' } })).body;
   const cliente = (await req('POST', '/api/empresas', { token, body: { nome: 'Cliente com histórico' } })).body;
   await req('POST', '/api/oportunidades', { token, body: { imovelId: usado.id, empresaId: cliente.id } });
-  assert.equal((await req('DELETE', `/api/imoveis/${usado.id}`, { token })).status, 409);
+  const bloqueado = await req('DELETE', `/api/imoveis/${usado.id}`, { token });
+  assert.equal(bloqueado.status, 409);
+  assert.match(bloqueado.body.error, /tem 1 ação da operação no histórico\. Marque-o como inativo/);
   assert.equal((await req('PUT', `/api/imoveis/${usado.id}`, { token, body: { status: 'inativo' } })).body.status, 'inativo');
+  // já inativo, a mensagem não manda fazer de novo o que já foi feito
+  assert.match((await req('DELETE', `/api/imoveis/${usado.id}`, { token })).body.error, /Ele já está inativo/);
+  // status: em análise e concluído valem; os antigos não
+  for (const status of ['em_analise', 'concluido']) assert.equal((await req('PUT', `/api/imoveis/${usado.id}`, { token, body: { status } })).body.status, status);
+  for (const status of ['negociacao', 'locado', 'vendido']) assert.equal((await req('PUT', `/api/imoveis/${usado.id}`, { token, body: { status } })).status, 400);
 
   // cliente: com ação das operações não sai; sem vínculo, sai
   const bloqueio = await req('DELETE', `/api/empresas/${cliente.id}`, { token });

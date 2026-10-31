@@ -21,7 +21,7 @@ export async function api(path, opts = {}) {
 
 export const fmtMoney = (v) => v == null || Number(v) === 0 ? '—' : 'R$ ' + Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2 });
 export const fmtNum = (v, u = '') => v == null ? '—' : Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) + (u ? ' ' + u : '');
-export const STATUS = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido', inativo: 'Inativo' };
+export const STATUS = { disponivel: 'Disponível', em_analise: 'Em análise', concluido: 'Concluído', inativo: 'Inativo' };
 // A ordem das chaves é a ordem do campo "Tipo" no formulário
 export const TIPOS_IMOVEL = { locacao: 'Locação', passagem_ponto: 'Passagem de ponto comercial', venda: 'Ativo comercial à venda' };
 

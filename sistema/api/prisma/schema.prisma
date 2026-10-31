@@ -177,7 +177,7 @@ model Imovel {
   titulo          String?
   tipo            String   @default("locacao") // locacao | venda (venda direta) | passagem_ponto
   categoria       String?  @default("loja") // loja | predio | terreno | outro
-  status          String   @default("disponivel") // disponivel | negociacao | locado | vendido | inativo
+  status          String   @default("disponivel") // disponivel | em_analise | concluido | inativo
   endereco        String
   numero          String?
   complemento     String?

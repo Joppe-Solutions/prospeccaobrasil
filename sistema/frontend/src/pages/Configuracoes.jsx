@@ -5,7 +5,7 @@ import './collections.css';
 
 // Regras vigentes do sistema, só para consulta: quem altera é a equipe técnica.
 const PARAMS = [
-  { group: 'Imóveis', icon: MapPinArea, items: ['Status: disponível, em negociação, locado, vendido, inativo', 'Categorias: loja, prédio, terreno, outro', 'Código automático na sequência PB-xxx'] },
+  { group: 'Imóveis', icon: MapPinArea, items: ['Status: disponível, em análise, concluído, inativo', 'Categorias: loja, prédio, terreno, outro', 'Código automático na sequência PB-xxx'] },
   { group: 'Financeiro', icon: CurrencyDollar, items: ['Categorias: aluguel, comissão, repasse, imposto, condomínio, IPTU, taxa, deslocamento, documentação, anúncio, planta', 'Status: previsto, pago, estornado', 'Comissão líquida = receita bruta − despesas − impostos − repasses'] },
   { group: 'Relacionamentos comerciais', icon: Handshake, items: ['Modalidades: expansão de redes, locação direta, passagem de ponto, ativos à venda', 'Etapas: apresentado, visita, proposta, negociação, fechado, perdido'] },
   { group: 'Clientes', icon: Storefront, items: ['Premissas do cliente: faixa de área e bairros de interesse', 'O detalhe do imóvel indica os clientes compatíveis e registra a apresentação como ação da operação'] },

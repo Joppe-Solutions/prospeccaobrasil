@@ -10,7 +10,6 @@ const MODULES = [
   { path: '/parceiros', label: 'Consultores', navLabel: /^Consultores/, marker: 'Parceiro E2E' },
   { path: '/leads', label: 'Leads', navLabel: /^Leads/, marker: 'Lead E2E' },
   { path: '/proprietarios', label: 'Proprietários e operadores', marker: 'Proprietário E2E' },
-  { path: '/documentos', label: 'Documentação', marker: null },
   { path: '/glossario', label: 'Glossário de Varejo', marker: 'Glossário de Varejo' },
   { path: '/inteligencia', label: 'Inteligência de Mercado', marker: 'Relatórios por imóvel' },
   { path: '/benchmark', label: 'Benchmark', marker: 'Rental rate' },

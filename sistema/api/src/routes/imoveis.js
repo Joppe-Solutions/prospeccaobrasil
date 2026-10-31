@@ -39,7 +39,7 @@ const INT_FIELDS = new Set(['vagas', 'carenciaMeses']);
 const ENUMS = {
   tipo: ['locacao', 'venda', 'passagem_ponto'],
   categoria: ['loja', 'predio', 'terreno', 'outro'],
-  status: ['disponivel', 'negociacao', 'locado', 'vendido', 'inativo'],
+  status: ['disponivel', 'em_analise', 'concluido', 'inativo'],
 };
 const URL_FIELDS = new Set(['googleMapsUrl', 'googleDriveUrl']);
 const semAcento = (v) => String(v).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
@@ -283,8 +283,15 @@ module.exports = (prisma) => {
       prisma.oportunidade.count({ where: { imovelId: id } }),
     ]);
     if (despesas > 0 || oportunidades > 0) {
+      const { status } = await prisma.imovel.findUnique({ where: { id }, select: { status: true } }) || {};
+      const vinculos = [
+        despesas && `${despesas} ${despesas > 1 ? 'despesas' : 'despesa'}`,
+        oportunidades && `${oportunidades} ${oportunidades > 1 ? 'ações da operação' : 'ação da operação'}`,
+      ].filter(Boolean).join(' e ');
       return res.status(409).json({
-        error: 'Imóvel possui despesas ou oportunidades vinculadas. Use o status "inativo" para arquivar sem perder o histórico.',
+        error: `Este imóvel não pode ser excluído porque tem ${vinculos} no histórico. ${status === 'inativo'
+          ? 'Ele já está inativo: a apresentação pública não abre mais e o histórico fica preservado.'
+          : 'Marque-o como inativo: a apresentação pública deixa de abrir e o histórico fica preservado.'}`,
       });
     }
     const arquivos = await prisma.imovel.findUnique({

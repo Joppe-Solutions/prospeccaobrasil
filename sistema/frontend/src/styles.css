@@ -79,8 +79,8 @@ tr:hover td { background: var(--surface-2); }
 .badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: var(--r-pill); font-size: var(--fs-xs); font-weight: 600; line-height: 1.3; white-space: nowrap; }
 .status-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .badge.disponivel, .badge.ativo, .badge.proposta { background: var(--success-bg); color: var(--success); }
-.badge.negociacao, .badge.inativo, .badge.visita { background: var(--warning-bg); color: var(--warning); }
-.badge.locado, .badge.vendido, .badge.fechado { background: var(--info-bg); color: var(--info); }
+.badge.negociacao, .badge.em_analise, .badge.inativo, .badge.visita { background: var(--warning-bg); color: var(--warning); }
+.badge.concluido, .badge.fechado { background: var(--info-bg); color: var(--info); }
 .badge.apresentado { background: var(--accent-purple-bg); color: var(--accent-purple); }
 .badge.perdido { background: var(--danger-bg); color: var(--danger); }
 .chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }

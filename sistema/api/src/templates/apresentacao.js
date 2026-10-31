@@ -37,7 +37,7 @@ const labels = {
   planta: 'Planta do imóvel', inteligencia: 'Inteligência de mercado', rgi: 'RGI / Habite-se',
   avcb: 'AVCB', convencao: 'Convenção de condomínio', regimento: 'Regimento interno', iptu_doc: 'IPTU',
 };
-const statuses = { disponivel: 'Disponível', negociacao: 'Em negociação', locado: 'Locado', vendido: 'Vendido' };
+const statuses = { disponivel: 'Disponível', em_analise: 'Em análise', concluido: 'Concluído' };
 const categories = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Imóvel comercial' };
 
 // Mapa do endereço, centralizado no ponto do imóvel, com marcador. `m` é a imagem do Google

@@ -14,7 +14,7 @@ const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro:
 
 const SELECTS = {
   tipo: Object.entries(TIPOS_IMOVEL),
-  status: [['disponivel', 'Disponível'], ['negociacao', 'Em negociação'], ['locado', 'Locado'], ['vendido', 'Vendido'], ['inativo', 'Inativo']],
+  status: [['disponivel', 'Disponível'], ['em_analise', 'Em análise'], ['concluido', 'Concluído'], ['inativo', 'Inativo']],
   categoria: Object.entries(CATEGORIAS),
 };
 

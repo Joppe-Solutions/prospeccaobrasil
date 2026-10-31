@@ -58,7 +58,7 @@ export default function Imoveis() {
     <div className="collection-stats">
       <div><span className="collection-stat-icon"><Buildings size={21} /></span><span><small>Imóveis no portfólio</small><strong>{count(list.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><CheckCircle size={21} /></span><span><small>Disponíveis</small><strong>{count(list.filter(i => i.status === 'disponivel').length)}</strong></span></div>
-      <div><span className="collection-stat-icon is-gold"><Handshake size={21} /></span><span><small>Em negociação</small><strong>{count(list.filter(i => i.status === 'negociacao').length)}</strong></span></div>
+      <div><span className="collection-stat-icon is-gold"><Handshake size={21} /></span><span><small>Em análise</small><strong>{count(list.filter(i => i.status === 'em_analise').length)}</strong></span></div>
     </div>
     <section className="panel collection-panel">
       <div className="collection-section-head">

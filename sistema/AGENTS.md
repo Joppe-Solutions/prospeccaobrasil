@@ -110,9 +110,9 @@
 - Menu lateral segue o PDF "Espaço Work" do cliente (`NAV` em `components/Layout.jsx`):
   `sub` = linha de apoio, `children` = subitens; item sem `to` é só um grupo (rótulo sem página, caso de
   "Institucional", que contém apenas o link externo "Site institucional"). Rotas mantidas: Clientes = `/empresas`,
-  Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários e Documentação não
-  estavam no PDF e foram mantidos em Cadastros. Os módulos Diretrizes, Demandas, Institucional e Propostas Comerciais
-  foram removidos da interface; `/diretrizes`, `/institucional` e `/propostas` redirecionam para o início.
+  Consultores = `/parceiros`, Ações das operações = `/oportunidades`. Proprietários não
+  estava no PDF e foi mantido em Cadastros. Os módulos Diretrizes, Demandas, Institucional, Propostas Comerciais e Documentação
+  foram removidos da interface; `/diretrizes`, `/institucional`, `/propostas` e `/documentos` redirecionam para o início (`/api/documentos` segue no ar; os documentos de cada imóvel continuam no detalhe).
   A API de propostas (`/api/propostas`, `/proposta/:id`, `templates/proposta.js`) e a tabela
   `propostas_servico` continuam no sistema, sem tela, para não perder dados.
 - Conhecimento: `/inteligencia` (um relatório por imóvel), `/benchmark` (rental rate),
@@ -183,7 +183,8 @@
 - PDF da apresentação no servidor: `GET /apresentacao/:id/pdf[?formato=resumo]` (`services/pdf.js`, playwright-core +
   Chromium, uma geração por vez). O botão da página aponta para ele: imprimir pelo navegador quebra folhas no
   Safari/Firefox (ignoram `@page size`). O deploy instala o Chromium em `/opt/prospeccao-sistema/.browsers`.
-- Exclusões: imóvel (detalhe, admin; 409 com ações/despesas → oferece "Marcar como inativo"), cliente (lista, admin;
+- Status do imóvel: disponível, em análise (cadastro parcial, faltam documentos), concluído e inativo. Locado/vendido viraram concluído (o `tipo` diz qual foi o negócio) e em negociação voltou a disponível; a negociação vive nas etapas das ações.
+- Exclusões: imóvel (detalhe, admin; 409 com ações/despesas diz o que bloqueia e oferece "Marcar como inativo", exceto se já estiver inativo), cliente (lista, admin;
   409 com ações das operações), termo do glossário (admin) e lançamento financeiro só "previsto" (pago/estornado
   ficam no histórico; usa-se estorno). Benchmark não tem exclusão (tabela fixa de referências).
 - PDF da inteligência: `GET /inteligencia/:id/pdf` (mesma sessão/?token= do documento), A4 paisagem pelo Chromium.
