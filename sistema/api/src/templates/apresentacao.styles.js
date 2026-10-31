@@ -100,49 +100,31 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
 .highlights>div { text-align:center; }
 .highlights .small-label { color:#c46a1c; font-weight:800; font-size:11px; letter-spacing:1.4px; }
 .highlights .card-name { font-weight:600; }
-/* Termos comerciais e Dimensões: ficha com ícone em círculo, rótulo sublinhado e valor em caixa */
-.ficha { display:grid; grid-template-columns:1fr 1fr; gap:0; margin-top:4px; }
-.ficha .bloco { padding-right:22px; }
-.ficha .bloco.espelho { padding:0 0 0 22px; border-left:1.5px solid var(--ink); }
-.caixa { display:block; width:max-content; min-width:62%; margin:0 auto 14px; padding:7px 22px; border:1.5px solid var(--ink); text-align:center; font:700 12px Arial,sans-serif; letter-spacing:3px; text-transform:uppercase; color:var(--ink); }
-.linhas { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:9px; }
-.linhas li { display:grid; grid-template-columns:34px 1fr 1.15fr; align-items:center; gap:10px; }
-.espelho .linhas li { grid-template-columns:1.15fr 1fr 34px; }
-.espelho .linhas li .val { order:1; } .espelho .linhas li .rot { order:2; text-align:center; } .espelho .linhas li .ico { order:3; }
-.ico { display:grid; place-items:center; width:34px; height:34px; border-radius:50%; background:#eef2ee; border:1px solid #d6dfd8; color:var(--ink); }
-.ico svg { width:19px; height:19px; }
-.rot { text-align:center; min-width:0; }
-.rot b { display:block; padding-bottom:3px; border-bottom:1.5px solid var(--ink); font-size:10.5px; letter-spacing:1.4px; text-transform:uppercase; }
-.rot small { display:block; margin-top:2px; font-size:7.5px; letter-spacing:1px; text-transform:uppercase; color:var(--muted); font-weight:700; }
-.val { display:block; padding:7px 8px; border:1.5px solid var(--ink); border-radius:2px; text-align:center; font-size:13.5px; font-weight:700; letter-spacing:.4px; white-space:nowrap; color:var(--ink); }
-.ficha .fine-print,.ficha .contract { margin-top:10px; }
-@media screen and (max-width:720px) { .ficha { grid-template-columns:1fr; gap:24px; } .ficha .bloco.espelho { padding:0; border-left:0; } .espelho .linhas li { grid-template-columns:34px 1fr 1.15fr; } .espelho .linhas li .val { order:3; } .espelho .linhas li .ico { order:1; } }
-/* Painel premium (verde da marca, como na landing page): cards de KPI + Termos comerciais e Dimensões */
-.painel { --dourado:#e8b84b; --claro:#dcebe4; --suave:#9fbfb1; margin:16px 0 14px; padding:20px 24px 18px; border-radius:8px;
-  background:radial-gradient(circle at 85% 0%, #8bb59d22, transparent 42%), linear-gradient(135deg,#0a3431 0%,#0d4a43 60%,#12312d 100%); color:var(--claro); break-inside:avoid; }
-.painel .highlights { margin:0 0 20px; padding:4px 0 18px; border-top:0; border-bottom:1px solid #ffffff26; gap:0; }
-.painel .highlights>div { padding:0 14px; }
-.painel .highlights>div+div { border-left:1px solid #ffffff26; }
-.painel .highlights .small-label { color:var(--dourado); font-size:11.5px; letter-spacing:2.6px; }
-.painel .highlights .card-name { color:var(--claro); font-size:10px; letter-spacing:.6px; text-transform:uppercase; margin-top:2px; }
-.painel .highlights strong { color:#fff; font-size:30px; margin:8px 0 4px; }
+/* Painel premium: bloco verde arredondado com camadas à esquerda, destaques em creme e cartões sálvia */
+.painel { --creme:#f7f2e7; --salvia:#cfdfd5; --suave:#b4cdc0; --tinta:#15382f; margin:16px 0 14px 14px; padding:24px 26px; border-radius:26px; background:linear-gradient(135deg,#2c6753 0%,#1f5244 55%,#163f35 100%); box-shadow:-15px 0 0 -8px #2c675399,-32px 0 0 -18px #2c675359; color:var(--creme); break-inside:avoid; }
+.painel .highlights { margin:0 0 20px; padding:0; border:0; gap:12px; }
+.painel .highlights>div { padding:0; border:0; text-align:center; }
+.painel .highlights .small-label { color:var(--salvia); font-weight:800; font-size:11px; letter-spacing:2.2px; }
+.painel .highlights .card-name { color:var(--suave); font-weight:600; font-size:9.5px; letter-spacing:.3px; text-transform:uppercase; margin-top:2px; }
+.painel .highlights strong { color:var(--creme); font-size:32px; letter-spacing:-.5px; margin:6px 0 2px; }
 .painel .highlights small { color:var(--suave); }
-.painel .ficha { margin-top:0; }
-.painel .ficha .bloco.espelho { border-left:1px solid #ffffff33; }
-.painel .caixa { border:1px solid var(--dourado); color:var(--dourado); margin-bottom:18px; padding:8px 24px; letter-spacing:3.5px; }
-.painel .linhas { gap:14px; }
-.painel .ico { width:38px; height:38px; background:#ffffff14; border:1px solid #e8b84b80; color:var(--dourado); }
-.painel .ico svg { width:20px; height:20px; }
-.painel .linhas li { grid-template-columns:38px 1fr 1.15fr; gap:12px; }
-.painel .espelho .linhas li { grid-template-columns:1.15fr 1fr 38px; }
-.painel .rot b { color:#fff; border-bottom:1px solid #e8b84b99; padding-bottom:4px; }
-.painel .rot small { color:var(--suave); margin-top:3px; }
-.painel .val { border:1px solid #ffffff59; background:#ffffff0d; color:#fff; padding:9px 8px; font-size:14px; border-radius:4px; }
+.ficha { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+.caixa { margin:0 0 12px; text-align:center; font:700 17px Arial,sans-serif; color:var(--creme); }
+.linhas { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
+.linhas li { display:grid; grid-template-columns:22px 1fr auto; align-items:center; gap:9px; padding:9px 13px; border-radius:11px; background:var(--salvia); color:var(--tinta); }
+.ico { display:grid; place-items:center; color:var(--tinta); }
+.ico svg { width:20px; height:20px; }
+.rot { min-width:0; }
+.rot b { display:block; font-size:12px; line-height:1.25; }
+.rot small { display:block; font-size:9px; line-height:1.25; color:#3d5f53; }
+.val { font-size:13.5px; font-weight:700; white-space:nowrap; }
+.ficha .fine-print,.ficha .contract { margin-top:10px; }
 .painel .fine-print { color:var(--suave); }
-.painel .contract { color:var(--claro); }
+.painel .contract { color:var(--salvia); text-align:center; }
+@media screen and (max-width:720px) { .ficha { grid-template-columns:1fr; gap:20px; } }
 @media print {
- .painel { margin:10px 0 8px; padding:13px 16px 11px; } .painel .highlights { margin:0 0 12px; padding:2px 0 11px; } .painel .highlights strong { font-size:23px; margin:5px 0 2px; } .painel .highlights .small-label { font-size:10px; } .painel .highlights .card-name { font-size:8.5px; }
- .ficha .bloco { padding-right:16px; } .ficha .bloco.espelho { padding-left:16px; } .painel .linhas { gap:8px; } .painel .caixa { margin-bottom:11px; padding:5px 18px; font-size:10px; } .painel .ico { width:28px; height:28px; } .painel .ico svg { width:15px; height:15px; } .painel .linhas li { grid-template-columns:28px 1fr 1.15fr; gap:9px; } .painel .espelho .linhas li { grid-template-columns:1.15fr 1fr 28px; } .rot b { font-size:8.5px; padding-bottom:2px; } .rot small { font-size:6.5px; margin-top:1px; } .painel .val { padding:5.5px 6px; font-size:11.5px; } .ficha .fine-print { margin-top:6px; } .ficha .contract { margin-top:7px; }
+ .painel { margin:10px 0 8px 10px; padding:14px 18px; border-radius:20px; box-shadow:-11px 0 0 -6px #2c675399,-23px 0 0 -13px #2c675359; } .painel .highlights { margin:0 0 11px; gap:8px; } .painel .highlights strong { font-size:23px; margin:3px 0 1px; } .painel .highlights .small-label { font-size:10px; } .painel .highlights .card-name { font-size:8.5px; }
+ .ficha { gap:12px; } .linhas { gap:5px; } .caixa { margin-bottom:7px; font-size:13px; } .linhas li { grid-template-columns:17px 1fr auto; gap:7px; padding:5px 10px; border-radius:8px; } .ico svg { width:15px; height:15px; } .rot b { font-size:9.5px; } .rot small { font-size:7.5px; } .val { font-size:11px; } .ficha .fine-print { margin-top:6px; } .ficha .contract { margin-top:6px; }
  .compact .details,.digital-only,.viewer { display:none!important; }.print-only { display:block; }
  .compact .visit-resumo { display:flex; }
  /* Visita no papel: faixa de uma linha (rótulo e título à esquerda, contatos à direita) */
@@ -150,7 +132,7 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
  .visit-resumo .small-label,.details .contact .small-label { grid-area:1/1; }.visit-resumo h2,.details .contact h2 { grid-area:2/1; margin:0; font-size:17px; }
  .visit-resumo p:first-of-type,.details .contact p:first-of-type { grid-area:1/2; justify-self:end; font-size:10px; }.visit-resumo .email,.details .contact .email { grid-area:2/2; justify-self:end; font-size:10px; }.visit-resumo .fine-print,.details .contact .fine-print { display:none; }
  .banner .qr img { width:40px; height:40px; }.banner .qr { padding:3px 3px 2px; }
- .hero img,.map,.hero-row.has-map .no-photo { height:52mm; }.compact .hero img,.compact .map,.compact .hero-row.has-map .no-photo { height:38mm; }.complete .hero img,.complete .map,.complete .hero-row.has-map .no-photo { height:52mm; }.complete .painel { padding:16px 18px 14px; }.complete .painel .linhas { gap:7.5px; }.complete .painel .val { padding:6.5px 6px; }.complete .painel .highlights { margin-bottom:15px; padding-bottom:13px; }.intro { padding:12px 0; } h1 { font-size:25px; }
+ .hero img,.map,.hero-row.has-map .no-photo { height:52mm; }.compact .hero img,.compact .map,.compact .hero-row.has-map .no-photo { height:38mm; }.complete .hero img,.complete .map,.complete .hero-row.has-map .no-photo { height:52mm; }.complete .painel { padding:17px 20px; }.complete .linhas { gap:7px; }.complete .linhas li { padding:7px 11px; }.complete .painel .highlights { margin-bottom:14px; }.intro { padding:12px 0; } h1 { font-size:25px; }
  .highlights { margin:12px 0; padding:10px 0; }.highlights strong { font-size:24px; }.highlights.three strong { font-size:21px; }.context { margin-bottom:8px; }.context-grid strong { font-size:15px; }.first-foot { padding-top:8px; }
  .facts>div { padding:7px 9px; font-size:10.5px; }.contact { margin-top:12px; padding:10px 0; }.contact h2 { font-size:21px; }
  .document-header { padding-bottom:10px; }.document-footer { padding-top:7px; }.disclaimer { margin:4px 0 10px; }
