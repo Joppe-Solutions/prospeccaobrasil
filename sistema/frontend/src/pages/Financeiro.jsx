@@ -207,7 +207,7 @@ export default function Financeiro() {
 
   return <div className="collection-page">
     <PageHeader
-      eyebrow="CONTROLE FINANCEIRO"
+      eyebrow="Controle financeiro"
       title="Financeiro"
       description="Receitas, despesas, vencimentos e resultado por negócio."
       actions={<div style={{ display: 'flex', gap: 10 }}>

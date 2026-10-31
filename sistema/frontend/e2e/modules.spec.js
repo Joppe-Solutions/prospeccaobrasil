@@ -3,7 +3,7 @@ import { login, watchErrors, expectNoErrors } from './helpers.js';
 
 // label = título na barra superior; navLabel = nome do link na sidebar quando difere (itens com linha de apoio)
 const MODULES = [
-  { path: '/', label: 'Visão geral', marker: 'BEM-VINDO' },
+  { path: '/', label: 'Visão geral', marker: 'Bem-vindo' },
   { path: '/financeiro', label: 'Financeiro', marker: null },
   { path: '/imoveis', label: 'Imóveis', navLabel: /^Imóveis/, marker: 'PB-E2E' },
   { path: '/empresas', label: 'Clientes', navLabel: /^Clientes/, marker: 'Empresa E2E' },

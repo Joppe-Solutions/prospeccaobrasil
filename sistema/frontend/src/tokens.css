@@ -1,0 +1,66 @@
+/* ============================================================
+   Prospecção Brasil — tokens do sistema
+   Fonte única de cor, tipo, raio, sombra e foco. Todo o CSS do
+   sistema lê daqui; nenhum arquivo define cor da marca "na mão".
+   ============================================================ */
+:root {
+  /* Marca */
+  --brand-900: #0a3431;   /* verde da marca: sidebar, títulos, texto forte sobre creme */
+  --brand-800: #0e3f39;   /* hover do primário */
+  --brand-700: #12463d;   /* botão primário, links, ícones de ação */
+  --brand-100: #e4efe8;   /* fundo de chip/ícone verde */
+  --gold-500: #d5ad62;    /* dourado: item ativo do menu, selo "capa", destaque único por tela */
+  --gold-700: #a17c35;    /* dourado em texto sobre fundo claro (contraste AA) */
+  --gold-100: #f8efd9;    /* fundo de chip/ícone dourado */
+
+  /* Superfícies */
+  --surface: #f4f2ec;     /* fundo da área de trabalho */
+  --surface-2: #faf9f5;   /* rodapé de modal, linhas alternadas */
+  --card: #ffffff;
+  --line: #e3dfd2;
+  --line-strong: #c9c4b4;
+
+  /* Texto */
+  --ink: #1c2a28;
+  --ink-2: #3d534b;       /* rótulos e texto secundário */
+  --muted: #5f7169;       /* legendas (4,6:1 sobre branco) */
+  --on-brand: #ffffff;
+  --on-brand-muted: #b9cec1;
+
+  /* Semânticos */
+  --success: #2c7549; --success-bg: #e2f2e5;
+  --warning: #8a6116; --warning-bg: #fcf0d6;
+  --danger: #a7443a;  --danger-bg: #fff2ef; --danger-line: #efd2cb;
+  --info: #35628d;    --info-bg: #e0ebf5;
+  --accent-purple: #62528f; --accent-purple-bg: #ece8fa;
+
+  /* Tipografia */
+  --font-body: 'Inter', 'Segoe UI', Arial, sans-serif;
+  --font-title: 'Montserrat', 'Inter', sans-serif;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --fs-xs: 12px;   /* legendas, badges, texto auxiliar: nunca menor */
+  --fs-sm: 13px;   /* tabelas, menus, campos compactos */
+  --fs-md: 14px;   /* corpo e formulários */
+  --fs-lg: 16px;   /* título de painel */
+  --fs-xl: 22px;   /* título de página */
+  --fs-kpi: 32px;  /* número de KPI */
+  --lh-tight: 1.25; --lh-body: 1.55; --lh-loose: 1.7;
+
+  /* Forma */
+  --r-sm: 6px;    /* campos, chips, botões pequenos */
+  --r-md: 12px;   /* cartões, painéis, botões */
+  --r-lg: 20px;   /* modais, banner */
+  --r-pill: 999px;
+
+  /* Elevação (2 níveis) */
+  --shadow-1: 0 1px 2px rgba(16, 42, 40, .06), 0 1px 8px rgba(16, 42, 40, .04);
+  --shadow-2: 0 12px 32px rgba(16, 42, 40, .16);
+
+  /* Foco e movimento */
+  --focus-ring: 0 0 0 3px rgba(18, 70, 61, .28);
+  --motion: 150ms ease;
+
+  /* Compatibilidade com nomes antigos ainda usados em CSS de componentes */
+  --green: var(--brand-900); --green-2: var(--brand-800); --teal: var(--brand-700);
+  --gold: var(--gold-500); --cream: var(--surface); --radius-lg: var(--r-md);
+}

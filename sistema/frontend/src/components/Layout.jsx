@@ -11,7 +11,7 @@ import { Avatar } from './UI';
 // `sub` é a linha de apoio sob o rótulo; `children` são os subitens (com `href` para links externos).
 const NAV = [
   {
-    caption: 'PRINCIPAL',
+    caption: 'Principal',
     items: [
       { to: '/', label: 'Visão geral', icon: SquaresFour },
       // Grupo sem página própria: só agrupa os links
@@ -20,7 +20,7 @@ const NAV = [
     ],
   },
   {
-    caption: 'CADASTROS',
+    caption: 'Cadastros',
     items: [
       { to: '/imoveis', label: 'Imóveis', sub: 'Pontos comerciais', icon: MapPinArea },
       { to: '/empresas', label: 'Clientes', sub: 'Redes e operadoras', icon: Storefront },
@@ -32,7 +32,7 @@ const NAV = [
     ],
   },
   {
-    caption: 'KNOWLEDGE (CONHECIMENTO)',
+    caption: 'Conhecimento',
     items: [
       { to: '/glossario', label: 'Glossário de Varejo', icon: BookOpen },
       { to: '/inteligencia', label: 'Inteligência de Mercado', icon: Brain },
@@ -41,13 +41,13 @@ const NAV = [
     ],
   },
   {
-    caption: 'RELACIONAMENTO COMERCIAL',
+    caption: 'Relacionamento comercial',
     items: [
       { to: '/oportunidades', label: 'Ações das operações', icon: Handshake },
     ],
   },
   {
-    caption: 'CONTA',
+    caption: 'Conta',
     items: [
       { to: '/perfil', label: 'Perfil', icon: UserCircle },
       { to: '/usuarios', label: 'Usuários', icon: UsersThree, admin: true },

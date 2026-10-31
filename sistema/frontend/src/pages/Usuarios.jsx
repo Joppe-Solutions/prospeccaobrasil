@@ -51,7 +51,7 @@ export default function Usuarios() {
   ];
   const count = value => loading || error ? '—' : value;
   return <div className="collection-page">
-    <PageHeader eyebrow="ADMINISTRAÇÃO" title="Usuários" description="Uma equipe conectada. Cada pessoa com o acesso certo." actions={<button className="btn btn-gold" onClick={() => { setFormError(''); setForm(EMPTY); setOpen(true); }}><Plus size={18} weight="bold" /> Novo usuário</button>} />
+    <PageHeader eyebrow="Administração" title="Usuários" description="Uma equipe conectada. Cada pessoa com o acesso certo." actions={<button className="btn btn-gold" onClick={() => { setFormError(''); setForm(EMPTY); setOpen(true); }}><Plus size={18} weight="bold" /> Novo usuário</button>} />
     {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
     {actionError && <div className="alert error" role="alert">{actionError}</div>}
     <div className="collection-stats"><div><span className="collection-stat-icon"><UsersThree size={21} /></span><span><small>Pessoas na equipe</small><strong>{count(list.length)}</strong></span></div><div><span className="collection-stat-icon is-green"><CheckCircle size={21} /></span><span><small>Acessos ativos</small><strong>{count(list.filter(u => u.ativo).length)}</strong></span></div><div><span className="collection-stat-icon is-gold"><ShieldCheck size={21} /></span><span><small>Administradores</small><strong>{count(list.filter(u => u.role === 'admin').length)}</strong></span></div></div>

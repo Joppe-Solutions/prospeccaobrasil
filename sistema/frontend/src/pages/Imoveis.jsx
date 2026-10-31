@@ -54,7 +54,7 @@ export default function Imoveis() {
   const count = value => loading || error ? '—' : value;
 
   return <div className="collection-page">
-    <PageHeader eyebrow="PORTFÓLIO IMOBILIÁRIO" title="Imóveis" description="Os melhores endereços para o próximo grande negócio." actions={<Link className="btn btn-gold" to="/imoveis/novo" state={{ backgroundLocation: location }}><Plus size={18} weight="bold" /> Novo imóvel</Link>} />
+    <PageHeader eyebrow="Portfólio imobiliário" title="Imóveis" description="Os melhores endereços para o próximo grande negócio." actions={<Link className="btn btn-gold" to="/imoveis/novo" state={{ backgroundLocation: location }}><Plus size={18} weight="bold" /> Novo imóvel</Link>} />
     <div className="collection-stats">
       <div><span className="collection-stat-icon"><Buildings size={21} /></span><span><small>Imóveis no portfólio</small><strong>{count(list.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><CheckCircle size={21} /></span><span><small>Disponíveis</small><strong>{count(list.filter(i => i.status === 'disponivel').length)}</strong></span></div>

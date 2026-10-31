@@ -120,7 +120,7 @@ export default function FormWizard({
                 {steps.map((step, index) => (
                   <section key={step.id || index} ref={element => { sections.current[index] = element; }} className="wz-step-content" hidden={currentStep !== index || loading} aria-labelledby={`${id}-step-${index}`}>
                     <header className="wz-content-header">
-                      <span className="wz-eyebrow">ETAPA {String(index + 1).padStart(2, '0')} / {String(steps.length).padStart(2, '0')}</span>
+                      <span className="wz-eyebrow">Etapa {index + 1} de {steps.length}</span>
                       <h2 id={`${id}-step-${index}`}>{step.heading || step.title}</h2>
                       {step.description && <p>{step.description}</p>}
                     </header>

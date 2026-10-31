@@ -23,6 +23,10 @@
 - Apresentação `/apresentacao/:id` é pública (link para clientes); o resto exige JWT
 
 ## Convenções
+- Design: `frontend/src/tokens.css` é a fonte única de cor, tipo, raio, sombra e foco (`--brand-*`, `--gold-*`, `--fs-*`, `--r-*`);
+  nenhum CSS define cor da marca ou tamanho de fonte "na mão". Escala tipográfica fechada: 12/13/14/16/22/32 px, nada abaixo de 12.
+  Rótulos em sentence case (sem caixa alta + letter-spacing). Botão primário é sempre verde (`.btn-gold` = `.btn-primary`);
+  dourado é acento (menu ativo, selo "capa"). Hover por cor, nunca por deslocamento; `:focus-visible` com `--focus-ring`.
 - Campos em pt-BR camelCase no Prisma, `@map` snake_case no banco
 - Rotas Express montadas como fábrica `(prisma) => Router`
 - Acesso teste: admin@prospeccaobrasil.com.br / prospeccao123 (trocar em prod)
@@ -151,6 +155,8 @@
   `proprietarioId` e `operadorId` (relações nomeadas). Imóvel de tipo `passagem_ponto` usa operador no lugar do
   proprietário (a API valida o papel do cadastro; trocar o papel de quem já tem imóveis dá 409). No wizard,
   `VinculoPessoa` seleciona ou cria o cadastro ali mesmo. Menu: "Proprietários e operadores".
+- Empresa do proprietário/operador PJ: `empresaId` (vínculo com Clientes) ou `empresaNome` (texto, sem cadastro); a API limpa os dois em
+  PF. `components/EmpresaVinculo.jsx` é um dropdown com os clientes e "Outra empresa" para digitar (cadastro e wizard); a lista mostra a empresa na coluna Nome.
 - Apresentação impressa: `@page { size:A4; margin:0 }` e cada `.sheet` com 210 × 296,8 mm (overflow oculto), faixas verdes
   sangrando até a borda. Padrão = as duas folhas; `?formato=resumo` mostra/imprime só a primeira. O e2e confere
   MediaBox A4, altura de cada folha e conteúdo sem corte. Cards: "OPEX · Custo total de ocupação" e "ABL · Área bruta locável".

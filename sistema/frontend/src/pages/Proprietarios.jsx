@@ -2,13 +2,15 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Buildings, CheckCircle, EnvelopeSimple, IdentificationCard, Phone, Plus, Trash, User, UsersThree } from '@phosphor-icons/react';
 import { api } from '../lib/api';
 import DataTable from '../components/DataTable';
+import EmpresaVinculo from '../components/EmpresaVinculo';
 import Modal from '../components/Modal';
 import { Avatar, PageHeader, StatusBadge } from '../components/UI';
 import './collections.css';
 
 const TIPOS = { pf: 'Pessoa física', pj: 'Pessoa jurídica' };
 const PAPEIS = { proprietario: 'Proprietário', operador: 'Operador do ponto' };
-const EMPTY = { papel: 'proprietario', marca: '', tipoPessoa: 'pf', nome: '', documento: '', telefone: '', email: '', cidade: '', uf: '', observacoes: '', status: 'ativo' };
+const EMPTY = { papel: 'proprietario', marca: '', tipoPessoa: 'pf', nome: '', documento: '', empresaId: null, empresaNome: '', telefone: '', email: '', cidade: '', uf: '', observacoes: '', status: 'ativo' };
+const empresaDe = p => p.empresa?.nome || p.empresaNome || '';
 
 export default function Proprietarios() {
   const [list, setList] = useState([]);
@@ -36,6 +38,7 @@ export default function Proprietarios() {
   function openEdit(p) {
     setForm({
       papel: p.papel || 'proprietario', marca: p.marca || '', tipoPessoa: p.tipoPessoa || 'pf', nome: p.nome || '', documento: p.documento || '',
+      empresaId: p.empresaId ?? null, empresaNome: empresaDe(p),
       telefone: p.telefone || '', email: p.email || '', cidade: p.cidade || '', uf: p.uf || '',
       observacoes: p.observacoes || '', status: p.status || 'ativo',
     });
@@ -65,11 +68,12 @@ export default function Proprietarios() {
   ), [list, papel, tipo, status]);
 
   const columns = [
-    { accessorKey: 'nome', header: 'Nome', cell: ({ row }) => (
+    { id: 'nome', header: 'Nome', accessorFn: p => [p.nome, empresaDe(p)].filter(Boolean).join(' · '), cell: ({ row }) => (
       <div className="collection-identity">
         <Avatar name={row.original.nome} />
         <span className="collection-cell-stack">
           <strong>{row.original.nome}</strong>
+          {empresaDe(row.original) && <span className="collection-contact"><Buildings size={14} />{empresaDe(row.original)}</span>}
           <small>{PAPEIS[row.original.papel] || 'Proprietário'} · {TIPOS[row.original.tipoPessoa] || row.original.tipoPessoa}{row.original.marca ? ` · ${row.original.marca}` : ''}</small>
         </span>
       </div>
@@ -97,7 +101,7 @@ export default function Proprietarios() {
 
   return <div className="collection-page">
     <PageHeader
-      eyebrow="RELACIONAMENTOS"
+      eyebrow="Relacionamentos"
       title="Proprietários e operadores"
       description="Donos dos imóveis e operadores de pontos comerciais (passagem de ponto)."
       actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo cadastro</button>}
@@ -115,7 +119,7 @@ export default function Proprietarios() {
       </div>
       <DataTable
         columns={columns} data={filtered} loading={loading} error={error}
-        searchPlaceholder="Buscar nome, documento ou cidade..." exportName="proprietarios.csv"
+        searchPlaceholder="Buscar nome, empresa, documento ou cidade..." exportName="proprietarios.csv"
         emptyTitle="Nenhum proprietário encontrado" emptyDescription="Cadastre PF ou PJ donos dos imóveis."
         toolbar={<>
           <label className="collection-select"><UsersThree size={16} /><select aria-label="Filtrar papel" value={papel} onChange={e => setPapel(e.target.value)}><option value="">Todos os papéis</option><option value="proprietario">Proprietários</option><option value="operador">Operadores</option></select></label>
@@ -140,6 +144,7 @@ export default function Proprietarios() {
         <div className="field"><label htmlFor="prop-tipo">Tipo de pessoa</label><select id="prop-tipo" value={form.tipoPessoa} onChange={e => setForm({ ...form, tipoPessoa: e.target.value })}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></div>
         <div className="field"><label htmlFor="prop-nome">Nome <span className="required">*</span></label><input id="prop-nome" required value={form.nome} onChange={e => setForm({ ...form, nome: e.target.value })} placeholder={form.tipoPessoa === 'pj' ? 'Razão social' : 'Nome completo'} /></div>
         <div className="field"><label htmlFor="prop-doc">{form.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="prop-doc" value={form.documento} onChange={e => setForm({ ...form, documento: e.target.value })} /></div>
+        {form.tipoPessoa === 'pj' && <EmpresaVinculo id="prop-empresa" empresaId={form.empresaId} empresaNome={form.empresaNome} onChange={v => setForm({ ...form, ...v })} />}
         <div className="field"><label htmlFor="prop-tel">Telefone</label><input id="prop-tel" value={form.telefone} onChange={e => setForm({ ...form, telefone: e.target.value })} /></div>
         <div className="field"><label htmlFor="prop-email">E-mail</label><input id="prop-email" type="email" value={form.email} onChange={e => setForm({ ...form, email: e.target.value })} /></div>
         <div className="field"><label htmlFor="prop-cidade">Cidade</label><input id="prop-cidade" value={form.cidade} onChange={e => setForm({ ...form, cidade: e.target.value })} /></div>

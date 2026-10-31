@@ -73,7 +73,7 @@ export default function Inteligencia() {
 
   const count = v => loading ? '—' : v;
   return <div className="collection-page">
-    <PageHeader eyebrow="CONHECIMENTO" title="Inteligência de Mercado" description="Um relatório por imóvel, com o perfil do bairro, o entorno da rua e a triagem do ponto." />
+    <PageHeader eyebrow="Conhecimento" title="Inteligência de Mercado" description="Um relatório por imóvel, com o perfil do bairro, o entorno da rua e a triagem do ponto." />
     <div className="collection-stats">
       <div><span className="collection-stat-icon"><Brain size={21} /></span><span><small>Imóveis no portfólio</small><strong>{count(linhas.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><CheckCircle size={21} /></span><span><small>Com relatório</small><strong>{count(comRelatorio)}</strong></span></div>

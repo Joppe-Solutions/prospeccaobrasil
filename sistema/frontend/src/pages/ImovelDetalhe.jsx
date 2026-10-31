@@ -159,7 +159,7 @@ export default function ImovelDetalhe() {
           <div className="sub">{[i.bairro, i.cidade].filter(Boolean).join(' – ')} – {i.uf}{i.cep ? ` · CEP ${i.cep}` : ''}</div>
           <div className="chips">
             <span className={`badge ${i.status}`}>{STATUS[i.status]}</span>
-            <span className="badge disponivel">{(TIPOS_IMOVEL[i.tipo] || i.tipo).toUpperCase()}</span>
+            <span className="badge disponivel">{TIPOS_IMOVEL[i.tipo] || i.tipo}</span>
             {i.categoria && <span className="badge apresentado">{CATEGORIAS[i.categoria] || i.categoria}</span>}
             {i.periodoContrato && <span className="badge negociacao">{i.periodoContrato}</span>}
           </div>

@@ -23,7 +23,7 @@ export default function Perfil() {
     catch (e) { setErr(e.message); } finally { setBusy(false); }
   }
   return <div className="collection-page profile-page">
-    <PageHeader eyebrow="SUA CONTA" title="Meu perfil" description="Seu espaço na Prospecção Brasil. Cuide dos seus dados e do seu acesso." />
+    <PageHeader eyebrow="Sua conta" title="Meu perfil" description="Seu espaço na Prospecção Brasil. Cuide dos seus dados e do seu acesso." />
     {msg && <div className="alert success" role="status"><CheckCircle size={18} />{msg}</div>}
     <div className="profile-layout">
       <aside className="profile-identity-card"><div className="profile-monogram">PB</div><div className="profile-avatar"><Avatar name={user?.nome || 'Usuário'} size={76} /></div><span className="profile-brand-label">PROSPECÇÃO BRASIL</span><h2>{user?.nome}</h2><p>{user?.email}</p><span className="profile-role"><ShieldCheck size={16} />{user?.role === 'admin' ? 'Administrador' : 'Comercial'}</span><div className="profile-identity-footer"><span />Seu espaço de trabalho</div></aside>

@@ -140,7 +140,7 @@ export default function Leads() {
 
   return <div className="collection-page">
     <PageHeader
-      eyebrow="RELACIONAMENTOS"
+      eyebrow="Relacionamentos"
       title="Leads"
       description="Quem liga do site ou anúncio — acompanhe o primeiro contato."
       actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo lead</button>}

@@ -103,7 +103,7 @@ export default function Parceiros() {
 
   return <div className="collection-page">
     <PageHeader
-      eyebrow="RELACIONAMENTOS"
+      eyebrow="Relacionamentos"
       title="Consultores"
       description="Corretores e quem traz imóveis para o portfólio."
       actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo parceiro</button>}

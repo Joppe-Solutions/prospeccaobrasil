@@ -10,7 +10,6 @@ import '@fontsource/montserrat/700.css';
 import '@fontsource/cormorant-garamond/500.css';
 import '@fontsource/cormorant-garamond/500-italic.css';
 import './styles.css';
-import './system.css';
 import { getToken } from './lib/api';
 import Layout from './components/Layout';
 import Login from './pages/Login';

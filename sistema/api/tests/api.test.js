@@ -1187,6 +1187,35 @@ test('apresentação: o vínculo do parceiro (corretor, imobiliária, advogado) 
   assert.doesNotMatch(html, /Maria Corretora|CRECI|class="partner"|99999-0000|segredo@parceiro/);
 });
 
+test('proprietário CNPJ: empresa vinculada ao cadastro ou digitada; CPF não guarda empresa', async () => {
+  const criar = (body) => req('POST', '/api/proprietarios', { token, body });
+  const empresa = (await req('POST', '/api/empresas', { token, body: { nome: 'Grupo Vinculado' } })).body;
+
+  assert.equal((await criar({ nome: 'X', tipoPessoa: 'pj', empresaId: 999999 })).body.error, 'Empresa não encontrada');
+  assert.equal((await criar({ nome: 'X', tipoPessoa: 'pj', empresaId: 'abc' })).body.error, 'Empresa inválida');
+
+  const vinculada = (await criar({ nome: 'Resp. Um', tipoPessoa: 'pj', empresaId: empresa.id, empresaNome: 'Grupo Vinculado' })).body;
+  assert.deepEqual([vinculada.empresaId, vinculada.empresaNome, vinculada.empresa.nome], [empresa.id, null, 'Grupo Vinculado']);
+
+  const digitada = (await criar({ nome: 'Resp. Dois', tipoPessoa: 'pj', empresaId: null, empresaNome: ' Grupo Avulso ' })).body;
+  assert.deepEqual([digitada.empresaId, digitada.empresaNome, digitada.empresa], [null, 'Grupo Avulso', null]);
+
+  const pf = (await criar({ nome: 'Pessoa', tipoPessoa: 'pf', empresaId: empresa.id, empresaNome: 'Ignorada' })).body;
+  assert.deepEqual([pf.empresaId, pf.empresaNome], [null, null]);
+
+  const lista = (await req('GET', '/api/proprietarios?q=Grupo%20Vinculado', { token })).body;
+  assert.ok(lista.some(p => p.id === vinculada.id && p.empresa.nome === 'Grupo Vinculado'));
+  assert.ok((await req('GET', '/api/proprietarios?q=Grupo%20Avulso', { token })).body.some(p => p.id === digitada.id));
+
+  const virouPf = (await req('PUT', `/api/proprietarios/${vinculada.id}`, { token, body: { tipoPessoa: 'pf' } })).body;
+  assert.deepEqual([virouPf.empresaId, virouPf.empresa], [null, null]);
+
+  // Excluir a empresa não apaga o cadastro: só desfaz o vínculo
+  const outra = (await criar({ nome: 'Resp. Três', tipoPessoa: 'pj', empresaId: empresa.id })).body;
+  assert.equal((await req('DELETE', `/api/empresas/${empresa.id}`, { token })).status, 200);
+  assert.equal((await req('GET', `/api/proprietarios/${outra.id}`, { token })).body.empresaId, null);
+});
+
 test('operador do ponto: mesmo cadastro dos proprietários, com papel, e vínculo próprio no imóvel', async () => {
   const criar = (body) => req('POST', '/api/proprietarios', { token, body });
   assert.equal((await criar({ nome: 'X', papel: 'inventado' })).status, 400);

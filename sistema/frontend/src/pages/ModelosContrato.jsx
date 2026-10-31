@@ -48,7 +48,7 @@ export default function ModelosContrato() {
   ];
 
   return <div className="collection-page">
-    <PageHeader eyebrow="CONHECIMENTO" title="Modelos de contratos" description="Minutas e modelos-padrão para as operações da Prospecção Brasil."
+    <PageHeader eyebrow="Conhecimento" title="Modelos de contratos" description="Minutas e modelos-padrão para as operações da Prospecção Brasil."
       actions={isAdmin && <button className="btn btn-gold" onClick={() => { setFormError(''); setForm(VAZIO); }}><Plus size={18} weight="bold" /> Novo modelo</button>} />
     <section className="panel collection-panel">
       <div className="collection-section-head">

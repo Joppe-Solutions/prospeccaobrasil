@@ -47,7 +47,7 @@ export default function Documentos() {
 
   return <div className="collection-page">
     <PageHeader
-      eyebrow="CADASTROS"
+      eyebrow="Cadastros"
       title="Documentação"
       description="RGI, IPTU, plantas, contratos, propostas, certidões e anexos dos imóveis."
     />

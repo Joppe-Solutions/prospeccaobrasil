@@ -8,6 +8,7 @@ import MapaPonto from '../components/MapaPonto';
 import { CampoNumerico, DecimalInput } from '../components/NumberFields';
 import { documentoValido, mascararDocumento } from '../lib/numeros';
 import ParceiroCampos, { validarParceiro } from '../components/ParceiroCampos';
+import EmpresaVinculo from '../components/EmpresaVinculo';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -88,7 +89,7 @@ function Dimensoes({ form, setForm, ablAuto, setAblAuto }) {
   </>;
 }
 
-const PESSOA_VAZIA = { tipoPessoa: 'pf', nome: '', documento: '', telefone: '', email: '', marca: '' };
+const PESSOA_VAZIA = { tipoPessoa: 'pf', nome: '', documento: '', empresaId: null, empresaNome: '', telefone: '', email: '', marca: '' };
 
 // Seleciona um cadastro existente (proprietário ou operador do ponto) ou cria um novo ali mesmo.
 function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
@@ -124,6 +125,7 @@ function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
         <div className="wz-field"><label htmlFor="nv-nome">{nova.tipoPessoa === 'pj' ? 'Razão social' : 'Nome'}</label><input id="nv-nome" value={nova.nome} onChange={e => set('nome', e.target.value)} /></div>
         {operador && <div className="wz-field"><label htmlFor="nv-marca">Marca / bandeira</label><input id="nv-marca" value={nova.marca} onChange={e => set('marca', e.target.value)} placeholder="Ex.: Farmácia Exemplo" /></div>}
         <div className="wz-field"><label htmlFor="nv-doc">{nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="nv-doc" inputMode="numeric" value={nova.documento} onChange={e => set('documento', mascararDocumento(e.target.value, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica'))} /></div>
+        {nova.tipoPessoa === 'pj' && <EmpresaVinculo id="nv-empresa" className="wz-field" empresaId={nova.empresaId} empresaNome={nova.empresaNome} onChange={v => setNova(n => ({ ...n, ...v }))} />}
         <div className="wz-field"><label htmlFor="nv-tel">Telefone</label><input id="nv-tel" value={nova.telefone} onChange={e => set('telefone', e.target.value)} /></div>
         <div className="wz-field"><label htmlFor="nv-email">E-mail</label><input id="nv-email" type="email" value={nova.email} onChange={e => set('email', e.target.value)} /></div>
       </div>

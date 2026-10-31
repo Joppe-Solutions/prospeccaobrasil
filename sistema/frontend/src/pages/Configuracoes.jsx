@@ -16,7 +16,7 @@ export default function Configuracoes() {
   const u = getUser();
   return <div className="collection-page">
     <PageHeader
-      eyebrow="CONTA"
+      eyebrow="Conta"
       title="Configurações"
       description="Parâmetros gerais, categorias, status e opções do sistema."
     />
