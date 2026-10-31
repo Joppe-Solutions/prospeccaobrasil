@@ -61,7 +61,7 @@ module.exports = (prisma) => {
     if (!imovel || imovel.status === 'inativo') return res.status(404).send('Imóvel não encontrado');
     const resumo = req.query.formato === 'resumo';
     try {
-      const pdf = await gerarPdf(`http://127.0.0.1:${req.socket.localPort}/apresentacao/${id}${resumo ? '?formato=resumo' : ''}`);
+      const pdf = await gerarPdf(`http://127.0.0.1:${req.socket.localPort}/apresentacao/${id}${resumo ? '?formato=resumo' : ''}`, { origem: `${req.protocol}://${req.get('host')}` });
       const nome = `Apresentacao-${String(imovel.codigo || id).replace(/[^\w.-]+/g, '-')}${resumo ? '-resumo' : ''}.pdf`;
       res.set({ 'Content-Type': 'application/pdf', 'Content-Disposition': `inline; filename="${nome}"`, 'Cache-Control': 'no-store' }).send(pdf);
     } catch (e) {

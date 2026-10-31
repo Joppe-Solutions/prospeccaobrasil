@@ -146,7 +146,7 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const updated = Number.isNaN(date.getTime()) ? 'Data não informada' : date.toLocaleDateString('pt-BR', { timeZone: 'America/Sao_Paulo' });
   const subtitle = [i.bairro, [i.cidade, i.uf].filter(Boolean).join(' / '), i.cep ? `CEP ${i.cep}` : ''].filter(Boolean).join(' · ');
   const termos = [
-    ...(present(i.cdu) ? [['cdu', 'CDU', 'Cessão de direito de uso · CAPEX', money(i.cdu)]] : []),
+    ...(present(i.cdu) ? [['cdu', 'CDU', 'Direito de uso · CAPEX', money(i.cdu)]] : []),
     sale ? ['venda', 'Valor de venda', '', money(i.precoVenda)] : ['aluguel', 'Aluguel', 'Mensal', money(i.aluguel)],
     ['iptu', 'IPTU / Cota', String(new Date().getFullYear()), money(i.iptu)],
     ['condominio', 'Condomínio', 'Mensal', money(i.condominio)],
@@ -186,7 +186,7 @@ ${hasDetails ? `<article class="sheet details" aria-label="Informações complem
 ${i.descricao?.trim() ? `<section class="description"><h3>Sobre o imóvel</h3><p class="digital-only">${esc(i.descricao)}</p><p class="print-only">${esc(i.descricao.slice(0, 600))}${i.descricao.length > 600 ? '… Descrição completa na versão digital.' : ''}</p></section>` : ''}
 ${infra}
 ${entorno1km}
-${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul class="doc-grid" style="--docs:${Math.min(docs.length, 7)}">${docs.map((d, n) => `<li class="${n > 6 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer">${docIcone(d.tipo)}<strong>${esc(d.titulo)}</strong>${d.generico ? '' : `<small>${esc(labels[d.tipo])}</small>`}</a></li>`).join('')}</ul>${docs.length > 7 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
+${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print digital-only">Toque ou clique em um documento para abri-lo em uma nova aba. Reunimos aqui os arquivos liberados para a sua análise.</p><p class="fine-print print-only">No PDF, clique no documento para abri-lo. Na versão impressa, solicite os arquivos à nossa equipe comercial.</p><ul class="doc-grid" style="--docs:${Math.min(docs.length, 7)}">${docs.map((d, n) => `<li class="${n > 6 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir ${esc(d.titulo)} em uma nova aba">${docIcone(d.tipo)}<strong>${esc(d.titulo)}</strong>${d.generico ? '' : `<small>${esc(labels[d.tipo])}</small>`}<span class="doc-abrir digital-only" aria-hidden="true">Abrir ↗</span></a></li>`).join('')}</ul>${docs.length > 7 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
 ${visita()}
 ${footerBand}</article>` : ''}
 </main>${photos.length > 1 ? `<div class="viewer" hidden role="dialog" aria-modal="true" aria-label="Fotos do imóvel"><button type="button" class="viewer-close" aria-label="Fechar">×</button><button type="button" class="viewer-nav prev" aria-label="Foto anterior">‹</button><figure><img alt=""><figcaption></figcaption></figure><button type="button" class="viewer-nav next" aria-label="Próxima foto">›</button></div>

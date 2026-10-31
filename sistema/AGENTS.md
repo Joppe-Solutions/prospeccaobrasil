@@ -30,6 +30,9 @@
 - Listagens (`DataTable`): busca + Exportar/Colunas na 1ª linha, filtros (`toolbar`, sempre em `label.collection-select`)
   na 2ª; abas só para categoria, no cabeçalho do painel. Até 640 px cada linha vira cartão com o rótulo da coluna
   (`data-label` vem de `meta.label` ou do `header`). Trilha da barra superior = grupo do menu > página.
+- Visão geral é operacional: `GET /api/dashboard` devolve `pendencias` (disponíveis sem foto / sem análise) e `acoesAbertas`
+  (etapa fora de fechado/perdido, as paradas há mais tempo primeiro). Sem banner de marketing. Detalhe do imóvel sem estilo
+  embutido: formulários em linha usam `.inline-form` + `.field`; tabelas internas `.detail-table`; vínculos em `dl.detail-links`.
 - Campos em pt-BR camelCase no Prisma, `@map` snake_case no banco
 - Rotas Express montadas como fábrica `(prisma) => Router`
 - Acesso teste: admin@prospeccaobrasil.com.br / prospeccao123 (trocar em prod)
@@ -160,6 +163,7 @@
   `VinculoPessoa` seleciona ou cria o cadastro ali mesmo. Menu: "Proprietários e operadores".
 - Empresa do proprietário/operador PJ: `empresaId` (vínculo com Clientes) ou `empresaNome` (texto, sem cadastro); a API limpa os dois em
   PF. `components/EmpresaVinculo.jsx` é um dropdown com os clientes e "Outra empresa" para digitar (cadastro e wizard); a lista mostra a empresa na coluna Nome.
+- Apresentação: tipografia por papel (Cormorant Garamond em títulos, Montserrat em rótulos, Inter em texto e dados; algarismos tabulares só nos valores) e campos de Termos/Dimensões com altura fixa (rótulo longo vira reticências). O PDF troca os links relativos pela origem pública (`origem` em `gerarPdf`), senão apontariam para 127.0.0.1.
 - Apresentação impressa: `@page { size:A4; margin:0 }` e cada `.sheet` com 210 × 296,8 mm (overflow oculto), faixas verdes
   sangrando até a borda. Padrão = as duas folhas; `?formato=resumo` mostra/imprime só a primeira. O e2e confere
   MediaBox A4, altura de cada folha e conteúdo sem corte. Cards: "OPEX · Custo total de ocupação" e "ABL · Área bruta locável".

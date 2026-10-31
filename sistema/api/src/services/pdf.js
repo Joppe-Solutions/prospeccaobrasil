@@ -20,13 +20,15 @@ async function abrir() {
 }
 
 /** Renderiza a URL (servida por este mesmo processo) em PDF. Um por vez, para não sobrecarregar a VPS. */
-function gerarPdf(url, { timeout = 30000, headers } = {}) {
+function gerarPdf(url, { timeout = 30000, headers, origem } = {}) {
   const tarefa = fila.then(async () => {
     const contexto = await (await abrir()).newContext(headers ? { extraHTTPHeaders: headers } : {});
     try {
       const pagina = await contexto.newPage();
       await pagina.goto(url, { waitUntil: 'networkidle', timeout });
       await pagina.evaluate(() => document.fonts?.ready);
+      // A página é aberta pelo endereço interno: sem isto, os links relativos do PDF apontariam para 127.0.0.1
+      if (origem) await pagina.evaluate((base) => document.querySelectorAll('a[href^="/"]').forEach((a) => { a.href = new URL(a.getAttribute('href'), base).href; }), origem);
       return await pagina.pdf({ preferCSSPageSize: true, printBackground: true });
     } finally {
       await contexto.close().catch(() => {});

@@ -206,7 +206,9 @@ test('usuários: cria comercial e impede autoexclusão', async () => {
 });
 
 test('dashboard e financeiro respondem', async () => {
-  assert.equal((await req('GET', '/api/dashboard', { token })).status, 200);
+  const painel = await req('GET', '/api/dashboard', { token });
+  assert.equal(painel.status, 200);
+  assert.ok(Array.isArray(painel.body.pendencias.semFoto) && Array.isArray(painel.body.pendencias.semAnalise) && Array.isArray(painel.body.acoesAbertas));
   assert.equal((await req('GET', '/api/financeiro', { token })).status, 200);
 });
 
@@ -767,7 +769,7 @@ test('apresentação: mapa ao lado da foto quando há coordenadas; sem luvas', a
   const html = await (await fetch(`${getBase()}/apresentacao/${im.id}`)).text();
   assert.match(html, /class="hero-row has-map"/);
   assert.equal((html.match(/tile\.openstreetmap\.org\/16\//g) || []).length, 15);
-  assert.match(html, /<b>CDU<\/b><small>Cessão de direito de uso · CAPEX<\/small>/);
+  assert.match(html, /<b>CDU<\/b><small>Direito de uso · CAPEX<\/small>/);
   assert.doesNotMatch(html, /Luvas/);
   const semCoord = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua sem mapa', cidade: 'Rio de Janeiro' } })).body;
   assert.match(await (await fetch(`${getBase()}/apresentacao/${semCoord.id}`)).text(), /class="hero-row"/);
@@ -980,9 +982,13 @@ test('apresentação: ABL só no destaque, entorno em 1 km no lugar das fotos, d
   assert.equal((html.match(/class="sheet-mark"/g) || []).length, 2);
   // documentos: ícone por tipo e título limpo (nome de câmera vira o tipo numerado)
   assert.equal((segunda.match(/class="doc-ico"/g) || []).length, 5);
+  // na versão digital fica claro que abre: botão visível, nome acessível e instrução da seção
+  assert.equal((segunda.match(/class="doc-abrir digital-only"/g) || []).length, 5);
+  assert.match(segunda, /aria-label="Abrir Planta 0 em uma nova aba"/);
+  assert.match(segunda, /Toque ou clique em um documento/);
   const camera = renderApresentacao({ ...base, documentos: [{ tipo: 'planta', nome: 'IMG_0371.webp', url: 'https://x.com/a' }, { tipo: 'planta', nome: 'IMG_0372.webp', url: 'https://x.com/b' }, { tipo: 'avcb', nome: 'AVCB 2026', url: 'https://x.com/c' }] }, 'data:image/png;base64,AAAA', { completa: true });
-  assert.match(camera, /<strong>Planta do imóvel 1<\/strong><\/a>/);
-  assert.match(camera, /<strong>Planta do imóvel 2<\/strong><\/a>/);
+  assert.match(camera, /<strong>Planta do imóvel 1<\/strong><span class="doc-abrir/);
+  assert.match(camera, /<strong>Planta do imóvel 2<\/strong><span class="doc-abrir/);
   assert.match(camera, /<strong>AVCB 2026<\/strong><small>AVCB<\/small>/);
   assert.doesNotMatch(camera, /IMG_0371/);
 
