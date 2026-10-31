@@ -106,6 +106,17 @@ const ICONES = {
   altura: '<path d="M12 3v18M8 7l4-4 4 4M8 17l4 4 4-4"/>',
   vagas: '<path d="M5 15v-4l2-5h10l2 5v4"/><path d="M4 15h16v4H4z"/><circle cx="8" cy="17" r=".8"/><circle cx="16" cy="17" r=".8"/>',
 };
+// Ícones de traço (24×24) dos tipos de documento técnico
+const DOC_ICONES = {
+  planta: '<rect x="3" y="3" width="18" height="18" rx="1"/><path d="M3 12h7v9M10 12V3M14 7h4M14 10h4"/>',
+  inteligencia: '<path d="M4 20h16"/><path d="M6 16l4-5 3 3 5-7"/><circle cx="18" cy="7" r="1.2"/>',
+  rgi: '<path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><circle cx="12" cy="10" r="3"/><path d="M9 16h6"/>',
+  avcb: '<path d="M12 21c-4 0-6.5-2.6-6.5-6 0-3 2.5-5 3.5-7.5 1 1.5 2 2.5 2 4 1.5-1 2-3.5 2-6 2.5 2.5 5.5 5.5 5.5 9.5 0 3.4-2.5 6-6.5 6z"/>',
+  convencao: '<path d="M4 5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v15a2 2 0 0 0-2-2H4z"/><path d="M20 5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v15a2 2 0 0 1 2-2h6z"/>',
+  regimento: '<rect x="5" y="4" width="14" height="17" rx="1.5"/><path d="M9 3h6v3H9z"/><path d="M8.5 11l1.5 1.5L13 9.5M8.5 16l1.5 1.5L13 14.5M15 12h1M15 17h1"/>',
+  iptu_doc: '<path d="M3 11l9-7 9 7"/><path d="M5 10v10h14V10"/><path d="M12 12v6M10 13.5h3a1.5 1.5 0 0 1 0 3h-3"/>',
+};
+const docIcone = tipo => `<i class="doc-ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${DOC_ICONES[tipo] || DOC_ICONES.regimento}</svg></i>`;
 const icone = nome => `<i class="ico" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">${ICONES[nome]}</svg></i>`;
 // [ícone, rótulo, subtítulo, valor] → cartão com ícone, rótulo e valor
 const linhaFicha = ([ic, rotulo, sub, valor]) => `<li>${icone(ic)}<span class="rot"><b>${esc(rotulo)}</b>${sub ? `<small>${esc(sub)}</small>` : ''}</span><strong class="val">${esc(valor)}</strong></li>`;
@@ -117,6 +128,15 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const docs = (i.documentos || []).filter(d => DOC_PUBLICOS.has(d.tipo)).map(d => ({
     ...d, href: d.arquivo ? uploadUrl(d.arquivo) : safeUrl(d.url),
   })).filter(d => d.href);
+  // Nome de arquivo de câmera/scanner ("IMG_0371.webp") não serve de título: usa o tipo, numerado quando se repete
+  const generico = nome => !nome || /^(IMG|DSC\w*|PHOTO|SCAN|PXL|WhatsApp Image|Captura|Screenshot)[ _-]/i.test(nome) || /^[\w-]+\.(pdf|png|jpe?g|webp|dwg)$/i.test(nome);
+  const porTipo = docs.reduce((m, d) => (m[d.tipo] = (m[d.tipo] || 0) + 1, m), {});
+  const vistos = {};
+  for (const d of docs) {
+    vistos[d.tipo] = (vistos[d.tipo] || 0) + 1;
+    d.generico = generico(d.nome);
+    d.titulo = d.generico ? `${labels[d.tipo]}${porTipo[d.tipo] > 1 ? ` ${vistos[d.tipo]}` : ''}` : d.nome;
+  }
   const completeCost = [i.aluguel, i.condominio, i.iptu].every(present);
   const cost = completeCost ? [i.aluguel, i.condominio, i.iptu]
     .reduce((sum, value) => sum.plus(String(value)), new Prisma.Decimal(0)).toString() : null;
@@ -141,17 +161,18 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const context = contextSection(i, contexto);
   const infra = infraSection(contexto);
   const entorno1km = entornoSection(contexto);
-  const header = `<header class="document-header"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
+  const timbre = '<span class="spine" aria-hidden="true">Prospecção Brasil · Retail &amp; Real Estate · CJ 8762 / RJ</span><img class="sheet-mark" src="/images/monograma-pb.png" alt="" aria-hidden="true">';
+  const header = `<header class="document-header banner slim"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
   const hasDetails = Boolean(i.descricao?.trim() || docs.length || infra || entorno1km);
-  const footer = `<footer class="document-footer"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
+  const footer = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p></div></section>`;
   const footerBand = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const title = i.titulo || address(i);
   return `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
 <title>${esc(i.codigo)} - Apresentação comercial</title><style>${styles}</style></head><body class="${completa ? 'complete' : 'compact'}">
 <nav class="toolbar" aria-label="Ações da apresentação"><div><strong>Apresentação do imóvel</strong><span>Documento A4 · pronto para compartilhar</span></div>${hasDetails ? `<a href="?formato=${completa ? 'resumo' : 'completa'}">${completa ? 'Ver só o resumo · 1 folha' : 'Ver completa · 2 folhas'}</a>` : ''}<a class="toolbar-pdf" href="/apresentacao/${i.id}/pdf${completa ? '' : '?formato=resumo'}" target="_blank" rel="noopener">Imprimir / Baixar PDF</a></nav>
-<main><article class="sheet" aria-label="Ficha comercial">${headerFirst}
+<main><article class="sheet" aria-label="Ficha comercial">${timbre}${headerFirst}
 <section class="intro"><div class="eyebrow">${esc(categories[i.categoria] || 'Imóvel comercial')} <span>/</span> ${deal} <span class="status">${esc(statuses[i.status] || 'Status sob consulta')}</span></div><h1 class="digital-only">${esc(title)}</h1><h1 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h1>${i.titulo ? `<p class="street">${esc(address(i))}</p>` : ''}<p class="location">${esc(subtitle)}</p></section>
 <div class="hero-row${mapa ? ' has-map' : ''}"><figure class="hero">${photos[0] ? `${photos.length > 1 ? `<button type="button" class="hero-open" data-foto="0" aria-label="Ver as ${photos.length} fotos do imóvel">` : ''}<img src="${esc(uploadUrl(photos[0].arquivo))}" alt="${esc(photos[0].legenda || `Foto do imóvel ${i.codigo}`)}" loading="eager">${photos.length > 1 ? `<span class="hero-count digital-only">1 / ${photos.length} · ver fotos</span></button>` : ''}` : '<div class="no-photo"><span>PROSPECÇÃO BRASIL</span><strong>Fotografia não cadastrada</strong><p>Solicite imagens à nossa equipe comercial.</p></div>'}<figcaption>${photos[0] ? '01 / Imagem cadastrada do imóvel' : 'Imagens sob consulta'}<span>${esc(i.codigo)}</span></figcaption></figure>${mapa ? mapFigure(i, mapa) : ''}</div>
 <div class="painel"><section class="highlights${porM2 ? ' three' : ''}" aria-label="Informações principais"><div>${sale ? '<span class="small-label">Valor de venda</span>' : '<span class="small-label">OPEX</span><span class="card-name">Custo total de ocupação</span>'}<strong>${money(sale ? i.precoVenda : cost)}</strong><small>${sale ? 'Condições de negociação sob consulta' : completeCost ? 'Aluguel + condomínio + IPTU/cota*' : 'Há valores pendentes de confirmação'}</small></div>${porM2 ? `<div><span class="small-label">${sale ? 'Valor por m²' : 'Aluguel por m²'}</span><span class="card-name">${sale ? 'Venda por metro quadrado' : 'Locação por metro quadrado'}</span><strong>${porM2}</strong><small>${sale ? 'Valor de venda ÷ ABL' : 'Aluguel ÷ ABL, sem encargos'}</small></div>` : ''}<div><span class="small-label">ABL</span><span class="card-name">Área bruta locável</span><strong>${measure(i.areaTotal)}</strong><small>${present(i.areaUtil) ? `Área útil: ${measure(i.areaUtil)}` : 'Conforme cadastro do imóvel'}</small></div></section>
@@ -159,11 +180,11 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
 ${visita(hasDetails ? 'visit-resumo' : '')}
 <p class="disclaimer">${sale ? 'Encargos apresentados conforme cadastro.' : '* Composição conforme valores cadastrados. Confirmar a periodicidade da cota de IPTU.'} CDU não integra o total mensal. Valores ausentes permanecem sob consulta.<br>Disponibilidade e condições sujeitas a confirmação. Esta apresentação não substitui a documentação técnica do imóvel.</p>
 ${context ? `<div class="first-foot">${context}${footer}</div>` : footer}</article>
-${hasDetails ? `<article class="sheet details" aria-label="Informações complementares">${header}<div class="section-intro"><span class="eyebrow">Informações complementares</span><h2 class="digital-only">${esc(title)}</h2><h2 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h2><p>${esc(subtitle)}</p></div>
+${hasDetails ? `<article class="sheet details" aria-label="Informações complementares">${timbre}${header}<div class="section-intro"><span class="eyebrow">Informações complementares</span><h2 class="digital-only">${esc(title)}</h2><h2 class="print-only">${esc(title.slice(0,160))}${title.length > 160 ? '…' : ''}</h2><p>${esc(subtitle)}</p></div>
 ${i.descricao?.trim() ? `<section class="description"><h3>Sobre o imóvel</h3><p class="digital-only">${esc(i.descricao)}</p><p class="print-only">${esc(i.descricao.slice(0, 600))}${i.descricao.length > 600 ? '… Descrição completa na versão digital.' : ''}</p></section>` : ''}
 ${infra}
 ${entorno1km}
-${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul class="doc-grid">${docs.map((d, n) => `<li class="${n > 5 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer"><span><strong>${esc(d.nome || labels[d.tipo])}</strong><small>${esc(labels[d.tipo])}</small></span><span aria-hidden="true">↗</span></a></li>`).join('')}</ul>${docs.length > 6 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
+${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print">Links disponíveis na versão digital. Somente anexos públicos são apresentados.</p><ul class="doc-grid" style="--docs:${Math.min(docs.length, 7)}">${docs.map((d, n) => `<li class="${n > 6 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer">${docIcone(d.tipo)}<strong>${esc(d.titulo)}</strong>${d.generico ? '' : `<small>${esc(labels[d.tipo])}</small>`}</a></li>`).join('')}</ul>${docs.length > 7 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
 ${visita()}
 ${footerBand}</article>` : ''}
 </main>${photos.length > 1 ? `<div class="viewer" hidden role="dialog" aria-modal="true" aria-label="Fotos do imóvel"><button type="button" class="viewer-close" aria-label="Fechar">×</button><button type="button" class="viewer-nav prev" aria-label="Foto anterior">‹</button><figure><img alt=""><figcaption></figcaption></figure><button type="button" class="viewer-nav next" aria-label="Próxima foto">›</button></div>

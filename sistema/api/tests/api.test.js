@@ -926,7 +926,7 @@ test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalh
   const rodape = primeira.match(/<div class="first-foot">([\s\S]*)<\/div>\s*<\/article>/)[1];
   assert.match(rodape, /Indicadores de Inteligência Territorial e Comercial/);
   assert.equal((rodape.match(/<div><span class="small-label">/g) || []).length, 4);
-  assert.match(rodape, /class="document-footer"/);
+  assert.match(rodape, /class="document-footer band"/);
   assert.doesNotMatch(html, /Contexto do ponto|Fontes: IBGE/);
   // a lista de equipamentos não fica sob os cartões: vai para a seção de infraestrutura da 2ª folha
   assert.doesNotMatch(rodape, /Itaú|class="nearby"/);
@@ -967,14 +967,23 @@ test('apresentação: ABL só no destaque, entorno em 1 km no lugar das fotos, d
   assert.match(segunda, /class="doc-grid"/);
   assert.equal((segunda.match(/<li class="">/g) || []).length, 5);
 
-  // visita: no fim da 2ª folha; na 1ª só como faixa do resumo impresso; rodapé verde só na 2ª folha
+  // visita: no fim da 2ª folha; na 1ª só como faixa do resumo impresso; papel timbrado (faixa verde no cabeçalho e no rodapé) nas duas folhas
   assert.match(primeira, /class="contact visit-resumo"/);
   assert.match(segunda, /<section class="contact ">/);
   assert.ok(segunda.indexOf('class="contact ') > segunda.indexOf('Documentos técnicos para consulta'));
   assert.ok(segunda.indexOf('class="contact ') < segunda.indexOf('document-footer band'));
-  assert.doesNotMatch(primeira, /document-footer band/);
+  assert.match(primeira, /document-footer band/);
   assert.match(primeira, /class="document-header banner"/);
-  assert.doesNotMatch(segunda.match(/<header[\s\S]*?<\/header>/)[0], /banner/);
+  assert.match(segunda.match(/<header[\s\S]*?<\/header>/)[0], /banner slim/);
+  assert.equal((html.match(/class="spine"/g) || []).length, 2);
+  assert.equal((html.match(/class="sheet-mark"/g) || []).length, 2);
+  // documentos: ícone por tipo e título limpo (nome de câmera vira o tipo numerado)
+  assert.equal((segunda.match(/class="doc-ico"/g) || []).length, 5);
+  const camera = renderApresentacao({ ...base, documentos: [{ tipo: 'planta', nome: 'IMG_0371.webp', url: 'https://x.com/a' }, { tipo: 'planta', nome: 'IMG_0372.webp', url: 'https://x.com/b' }, { tipo: 'avcb', nome: 'AVCB 2026', url: 'https://x.com/c' }] }, 'data:image/png;base64,AAAA', { completa: true });
+  assert.match(camera, /<strong>Planta do imóvel 1<\/strong><\/a>/);
+  assert.match(camera, /<strong>Planta do imóvel 2<\/strong><\/a>/);
+  assert.match(camera, /<strong>AVCB 2026<\/strong><small>AVCB<\/small>/);
+  assert.doesNotMatch(camera, /IMG_0371/);
 
   // sem 2ª folha, a visita fica na 1ª folha como sempre
   const semSegunda = renderApresentacao({ ...base, fotos: [], documentos: [] }, 'data:image/png;base64,AAAA', {});
