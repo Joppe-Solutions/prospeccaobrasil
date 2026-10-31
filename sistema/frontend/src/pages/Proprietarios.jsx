@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, Buildings, CheckCircle, EnvelopeSimple, IdentificationCard, Phone, Plus, Trash, User, UsersThree } from '@phosphor-icons/react';
+import { avisar } from '../lib/avisos';
 import { api } from '../lib/api';
 import DataTable from '../components/DataTable';
 import EmpresaVinculo from '../components/EmpresaVinculo';
@@ -16,7 +17,6 @@ export default function Proprietarios() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [tipo, setTipo] = useState('');
   const [papel, setPapel] = useState('');
   const [status, setStatus] = useState('');
@@ -51,7 +51,7 @@ export default function Proprietarios() {
         method: modal.type === 'create' ? 'POST' : 'PUT',
         body: JSON.stringify({ ...form, nome: form.nome.trim() }),
       });
-      setNotice(modal.type === 'create' ? 'Proprietário cadastrado.' : 'Proprietário atualizado.');
+      avisar(modal.type === 'create' ? 'Proprietário cadastrado.' : 'Proprietário atualizado.');
       setModal(null); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
@@ -59,7 +59,7 @@ export default function Proprietarios() {
     setBusy(true); setFormError('');
     try {
       await api(`/proprietarios/${deleting.id}`, { method: 'DELETE' });
-      setDeleting(null); setNotice('Proprietário excluído.'); await load();
+      setDeleting(null); avisar('Proprietário excluído.'); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
 
@@ -106,8 +106,7 @@ export default function Proprietarios() {
       description="Donos dos imóveis e operadores de pontos comerciais (passagem de ponto)."
       actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo cadastro</button>}
     />
-    {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
-    <div className="collection-stats">
+        <div className="collection-stats">
       <div><span className="collection-stat-icon"><UsersThree size={21} /></span><span><small>Proprietários</small><strong>{count(list.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><User size={21} /></span><span><small>Pessoa física</small><strong>{count(list.filter(p => p.tipoPessoa === 'pf').length)}</strong></span></div>
       <div><span className="collection-stat-icon is-gold"><Buildings size={21} /></span><span><small>Pessoa jurídica</small><strong>{count(list.filter(p => p.tipoPessoa === 'pj').length)}</strong></span></div>
@@ -120,7 +119,7 @@ export default function Proprietarios() {
       <DataTable
         columns={columns} data={filtered} loading={loading} error={error}
         searchPlaceholder="Buscar nome, empresa, documento ou cidade..." exportName="proprietarios.csv"
-        emptyTitle="Nenhum proprietário encontrado" emptyDescription="Cadastre PF ou PJ donos dos imóveis."
+        emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo cadastro</button>} emptyTitle="Nenhum proprietário encontrado" emptyDescription="Cadastre PF ou PJ donos dos imóveis."
         toolbar={<>
           <label className="collection-select"><UsersThree size={16} /><select aria-label="Filtrar papel" value={papel} onChange={e => setPapel(e.target.value)}><option value="">Todos os papéis</option><option value="proprietario">Proprietários</option><option value="operador">Operadores</option></select></label>
           <label className="collection-select"><User size={16} /><select aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">PF e PJ</option><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></select></label>

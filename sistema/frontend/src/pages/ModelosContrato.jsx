@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ArrowSquareOut, FileText, PencilSimple, Plus, Trash } from '@phosphor-icons/react';
+import Confirmacao from '../components/Confirmacao';
+import { avisar } from '../lib/avisos';
 import { api, getUser } from '../lib/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -29,9 +31,9 @@ export default function ModelosContrato() {
       setForm(null); await load();
     } catch (err) { setFormError(err.message); } finally { setBusy(false); }
   }
+  const [removendo, setRemovendo] = useState(null);
   async function remove(m) {
-    if (!window.confirm(`Excluir o modelo "${m.nome}"?`)) return;
-    try { await api(`/modelos-contrato/${m.id}`, { method: 'DELETE' }); await load(); } catch (err) { setError(err.message); }
+    try { await api(`/modelos-contrato/${m.id}`, { method: 'DELETE' }); setRemovendo(null); avisar('Modelo excluído.'); await load(); } catch (err) { setError(err.message); setRemovendo(null); }
   }
 
   const columns = [
@@ -42,14 +44,15 @@ export default function ModelosContrato() {
       <a className="btn btn-ghost btn-sm" href={m.url} target="_blank" rel="noopener noreferrer"><ArrowSquareOut size={15} /> Abrir</a>
       {isAdmin && <>
         <button type="button" className="icon-button" aria-label={`Editar ${m.nome}`} onClick={() => { setFormError(''); setForm({ ...m, descricao: m.descricao || '' }); }}><PencilSimple size={16} /></button>
-        <button type="button" className="icon-button collection-delete" aria-label={`Excluir ${m.nome}`} onClick={() => remove(m)}><Trash size={16} /></button>
+        <button type="button" className="icon-button collection-delete" aria-label={`Excluir ${m.nome}`} onClick={() => setRemovendo(m)}><Trash size={16} /></button>
       </>}
     </div> },
   ];
 
   return <div className="collection-page">
     <PageHeader eyebrow="Conhecimento" title="Modelos de contratos" description="Minutas e modelos-padrão para as operações da Prospecção Brasil."
-      actions={isAdmin && <button className="btn btn-gold" onClick={() => { setFormError(''); setForm(VAZIO); }}><Plus size={18} weight="bold" /> Novo modelo</button>} />
+      actions={isAdmin && <button className="btn btn-gold" onClick={() => { setFormError(''); setForm(VAZIO); }}><Plus size={18} weight="bold" />
+    <Confirmacao pedido={removendo && { titulo: 'Excluir modelo?', texto: `"${removendo.nome}" será removido da lista de modelos.`, rotulo: 'Excluir', perigo: true }} onClose={() => setRemovendo(null)} onConfirm={() => remove(removendo)} /> Novo modelo</button>} />
     <section className="panel collection-panel">
       <div className="collection-section-head">
         <div><h2>Biblioteca de modelos</h2><p>Cada modelo aponta para o arquivo oficial (Drive, OneDrive ou outro link).</p></div>

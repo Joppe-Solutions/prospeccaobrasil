@@ -319,6 +319,20 @@ tr:hover td { background: var(--surface-2); }
 .score-ring span { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 50%; background: #12312d; }
 @media (max-width: 640px) { .detail-links { grid-template-columns: 1fr; } .ai-body { flex-direction: column; } }
 
+/* ---------- Snackbar e acesso por teclado ---------- */
+.snackbar-area { position: fixed; left: 0; right: 0; bottom: 24px; z-index: 120; display: flex; justify-content: center; pointer-events: none; padding: 0 16px; }
+.snackbar { display: flex; align-items: center; gap: 10px; max-width: 520px; padding: 12px 12px 12px 16px; border-radius: var(--r-sm); background: var(--brand-900); color: var(--on-brand); font-size: var(--fs-sm); box-shadow: var(--shadow-2); pointer-events: auto; animation: snackbar-in .2s ease; }
+.snackbar svg:first-child { color: #8fd8b8; flex: none; }
+.snackbar.is-erro { background: var(--danger); }
+.snackbar.is-erro svg:first-child { color: #fff; }
+.snackbar button { display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--r-sm); background: rgba(255,255,255,.1); color: inherit; }
+.snackbar button:hover { background: rgba(255,255,255,.2); }
+@keyframes snackbar-in { from { opacity: 0; transform: translateY(8px); } }
+.skip-link { position: absolute; left: 16px; top: -48px; z-index: 200; padding: 10px 14px; border-radius: var(--r-sm); background: var(--brand-900); color: var(--on-brand); font-weight: 600; text-decoration: none; transition: top var(--motion); }
+.skip-link:focus { top: 12px; }
+.main:focus { outline: 0; box-shadow: none; }
+.empty-state .btn { margin-top: 14px; }
+
 /* ---------- Dashboard ---------- */
 .dashboard-side { display: flex; flex-direction: column; gap: 16px; }
 .dashboard-side .panel { margin-bottom: 0; }

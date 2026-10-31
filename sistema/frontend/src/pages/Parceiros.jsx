@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle, EnvelopeSimple, Handshake, Phone, Plus, Storefront, Trash, UsersThree } from '@phosphor-icons/react';
+import { avisar } from '../lib/avisos';
 import { api, registroProfissional, TIPOS_PARCEIRO, UFS } from '../lib/api';
 import { mascararDocumento } from '../lib/numeros';
 import ParceiroCampos, { validarParceiro } from '../components/ParceiroCampos';
@@ -16,7 +17,6 @@ export default function Parceiros() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [tipo, setTipo] = useState('');
   const [status, setStatus] = useState('');
   const [modal, setModal] = useState(null);
@@ -55,7 +55,7 @@ export default function Parceiros() {
         method: modal.type === 'create' ? 'POST' : 'PUT',
         body: JSON.stringify({ ...form, nome: form.nome.trim() }),
       });
-      setNotice(modal.type === 'create' ? 'Parceiro cadastrado.' : 'Parceiro atualizado.');
+      avisar(modal.type === 'create' ? 'Parceiro cadastrado.' : 'Parceiro atualizado.');
       setModal(null); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
@@ -63,7 +63,7 @@ export default function Parceiros() {
     setBusy(true); setFormError('');
     try {
       await api(`/parceiros/${deleting.id}`, { method: 'DELETE' });
-      setDeleting(null); setNotice('Parceiro excluído.'); await load();
+      setDeleting(null); avisar('Parceiro excluído.'); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
 
@@ -108,8 +108,7 @@ export default function Parceiros() {
       description="Corretores e quem traz imóveis para o portfólio."
       actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo parceiro</button>}
     />
-    {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
-    <div className="collection-stats">
+        <div className="collection-stats">
       <div><span className="collection-stat-icon"><Handshake size={21} /></span><span><small>Parceiros</small><strong>{count(list.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><UsersThree size={21} /></span><span><small>Ativos</small><strong>{count(list.filter(p => p.status === 'ativo').length)}</strong></span></div>
       <div><span className="collection-stat-icon is-gold"><Storefront size={21} /></span><span><small>Corretores</small><strong>{count(list.filter(p => p.tipo === 'corretor').length)}</strong></span></div>
@@ -122,7 +121,7 @@ export default function Parceiros() {
       <DataTable
         columns={columns} data={filtered} loading={loading} error={error}
         searchPlaceholder="Buscar parceiro, telefone ou cidade..." exportName="parceiros.csv"
-        emptyTitle="Nenhum parceiro encontrado" emptyDescription="Cadastre consultores, advogados, corretores, imobiliárias e indicadores."
+        emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo parceiro</button>} emptyTitle="Nenhum parceiro encontrado" emptyDescription="Cadastre consultores, advogados, corretores, imobiliárias e indicadores."
         toolbar={<>
           <label className="collection-select"><Storefront size={16} /><select aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
           <label className="collection-select"><CheckCircle size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></select></label>

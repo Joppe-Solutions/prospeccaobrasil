@@ -6,6 +6,8 @@ import PhotoUploader from '../components/PhotoUploader';
 import Modal from '../components/Modal';
 import { DinheiroInput } from '../components/NumberFields';
 import { ArrowSquareOut } from '@phosphor-icons/react';
+import Confirmacao from '../components/Confirmacao';
+import { avisar } from '../lib/avisos';
 
 const DOC_TIPOS = [['planta', 'Planta (PDF)'], ['dwg', 'Planta (DWG)'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
@@ -25,7 +27,6 @@ export default function ImovelDetalhe() {
   const [docNome, setDocNome] = useState('');
   const [docUrl, setDocUrl] = useState('');
   const [despesaForm, setDespesaForm] = useState({ descricao: '', valor: '', data: '' });
-  const [toast, setToast] = useState('');
   const [gerando, setGerando] = useState(false);
   const [loadError, setLoadError] = useState('');
   const [enviando, setEnviando] = useState(false);
@@ -37,7 +38,8 @@ export default function ImovelDetalhe() {
     load();
     api('/empresas').then(setEmpresas).catch(() => setEmpresas([]));
   }, [id]);
-  const flash = (m) => { setToast(m); setTimeout(() => setToast(''), 3000); };
+  const flash = (m) => avisar(m);
+  const [estorno, setEstorno] = useState(null); // despesa a estornar
   const nav = useNavigate();
   const [excluir, setExcluir] = useState(null); // null | { erro, ocupado }
 
@@ -102,9 +104,8 @@ export default function ImovelDetalhe() {
       load(); flash('Despesa adicionada');
     } catch (e) { flash(e.message || 'Falha ao adicionar despesa'); }
   }
-  async function estornarDespesa(despesaId) {
-    const motivo = window.prompt('Motivo do estorno (opcional):');
-    if (motivo === null) return;
+  async function estornarDespesa(despesaId, motivo) {
+    setEstorno(null);
     try {
       await api(`/imoveis/${id}/despesas/${despesaId}/estornar`, { method: 'POST', body: JSON.stringify({ motivo }) });
       load(); flash('Despesa estornada');
@@ -132,7 +133,7 @@ export default function ImovelDetalhe() {
 
   return (
     <>
-      {toast && <div className="toast">{toast}</div>}
+      <Confirmacao pedido={estorno && { titulo: 'Estornar despesa?', texto: `${estorno.descricao} · ${fmtMoney(estorno.valor)}. A despesa fica no histórico como estornada.`, rotulo: 'Estornar', perigo: true, campo: 'Motivo (opcional)' }} onClose={() => setEstorno(null)} onConfirm={motivo => estornarDespesa(estorno.id, motivo)} />
       {excluir && <Modal title="Excluir imóvel?" description={`${i.codigo} — ${i.endereco}${i.numero ? `, ${i.numero}` : ''}`} onClose={() => !excluir.ocupado && setExcluir(null)}
         footer={<><button className="btn btn-ghost" disabled={excluir.ocupado} onClick={() => setExcluir(null)}>Cancelar</button>
           {excluir.erro && i.status !== 'inativo' && <button className="btn btn-outline" disabled={excluir.ocupado} onClick={arquivar}>Marcar como inativo</button>}
@@ -215,7 +216,7 @@ export default function ImovelDetalhe() {
                 <td>{d.descricao}{d.estornada && <span className="badge perdido">Estornada</span>}</td>
                 <td>{fmtMoney(d.valor)}</td>
                 <td>{d.data ? String(d.data).slice(0, 10).split('-').reverse().join('/') : '—'}</td>
-                <td>{!d.estornada && <button className="btn btn-ghost btn-sm collection-delete" onClick={() => estornarDespesa(d.id)}>Estornar</button>}</td>
+                <td>{!d.estornada && <button className="btn btn-ghost btn-sm collection-delete" onClick={() => setEstorno(d)}>Estornar</button>}</td>
               </tr>
             ))}</tbody>
             <tfoot><tr><td><b>Total</b></td><td colSpan={3}><b>{fmtMoney(i.despesas.filter(d => !d.estornada).reduce((s, d) => s + Number(d.valor || 0), 0))}</b></td></tr></tfoot>

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
-import { ArrowRight, CheckCircle, Handshake, MapPin, PencilSimple, Plus, Presentation, Trash, WarningCircle } from '@phosphor-icons/react';
+import { ArrowRight, Handshake, MapPin, PencilSimple, Plus, Presentation, Trash, WarningCircle } from '@phosphor-icons/react';
+import { avisar } from '../lib/avisos';
 import { api, fmtMoney } from '../lib/api';
 import { DinheiroInput } from '../components/NumberFields';
 import DataTable from '../components/DataTable';
@@ -21,7 +22,6 @@ export default function Oportunidades() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [stage, setStage] = useState('');
   const [propostaFiltro, setPropostaFiltro] = useState('');
   const [bairro, setBairro] = useState('');
@@ -53,17 +53,17 @@ export default function Oportunidades() {
     e.preventDefault(); setFormError(''); setBusy(true);
     try {
       await api(modal.type === 'create' ? '/oportunidades' : `/oportunidades/${modal.oportunidade.id}`, { method: modal.type === 'create' ? 'POST' : 'PUT', body: JSON.stringify(form) });
-      setNotice(modal.type === 'create' ? 'Oportunidade criada com sucesso.' : 'Oportunidade atualizada.'); setModal(null); await load();
+      avisar(modal.type === 'create' ? 'Oportunidade criada com sucesso.' : 'Oportunidade atualizada.'); setModal(null); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
   async function move(o, etapa) {
-    setMoving(o.id); setError(''); setNotice('');
+    setMoving(o.id); setError('');
     try { const updated = await api(`/oportunidades/${o.id}`, { method: 'PUT', body: JSON.stringify({ etapa }) }); setList(items => items.map(item => item.id === o.id ? updated : item)); }
     catch (e) { setError(e.message); } finally { setMoving(null); }
   }
   async function remove() {
     setBusy(true); setFormError('');
-    try { await api(`/oportunidades/${deleting.id}`, { method: 'DELETE' }); setDeleting(null); setNotice('Oportunidade excluída.'); await load(); }
+    try { await api(`/oportunidades/${deleting.id}`, { method: 'DELETE' }); setDeleting(null); avisar('Oportunidade excluída.'); await load(); }
     catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
 
@@ -93,9 +93,8 @@ export default function Oportunidades() {
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <div className="collection-row-actions"><button className="icon-button" aria-label={`Editar oportunidade de ${row.original.empresa?.nome}`} onClick={() => openEdit(row.original)}><PencilSimple size={18} /></button><button className="icon-button collection-delete" aria-label={`Excluir oportunidade de ${row.original.empresa?.nome}`} onClick={() => { setFormError(''); setDeleting(row.original); }}><Trash size={18} /></button></div> },
   ];
   return <div className="collection-page">
-    <PageHeader eyebrow="Relacionamento comercial" title="Ações das operações" description="Expansão de redes, locação direta, passagem de ponto e ativos à venda — do início à conclusão." actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo relacionamento</button>} />
-    {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
-    <div className="opportunity-pipeline">{Object.entries(ETAPAS).map(([value, label], idx) => <button key={value} className={`pipeline-step stage-${value} ${stage === value ? 'is-selected' : ''}`} onClick={() => setStage(s => s === value ? '' : value)} aria-pressed={stage === value}><span className="pipeline-step-label"><i />{label}</span><strong>{loading || error ? '—' : list.filter(o => o.etapa === value).length}</strong>{idx < 5 && <ArrowRight className="pipeline-arrow" size={16} />}</button>)}</div>
+    <PageHeader eyebrow="Relacionamento comercial" title="Ações das operações" description="Expansão de redes, locação direta, passagem de ponto e ativos à venda — do início à conclusão." actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Nova ação</button>} />
+        <div className="opportunity-pipeline">{Object.entries(ETAPAS).map(([value, label], idx) => <button key={value} className={`pipeline-step stage-${value} ${stage === value ? 'is-selected' : ''}`} onClick={() => setStage(s => s === value ? '' : value)} aria-pressed={stage === value}><span className="pipeline-step-label"><i />{label}</span><strong>{loading || error ? '—' : list.filter(o => o.etapa === value).length}</strong>{idx < 5 && <ArrowRight className="pipeline-arrow" size={16} />}</button>)}</div>
     <section className="panel collection-panel"><div className="collection-section-head"><div><h2>{stage ? `Oportunidades · ${ETAPAS[stage]}` : 'Todas as oportunidades'}</h2><p>Atualize as etapas e mantenha a negociação em movimento.</p></div><span className="collection-section-symbol"><Handshake size={22} /></span></div>
       <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, empresa ou observação..." exportName="oportunidades.csv" emptyTitle="O próximo negócio começa aqui" emptyDescription="Crie uma oportunidade conectando um imóvel a uma empresa." toolbar={<>
         <label className="collection-select"><MapPin size={16} /><select aria-label="Filtrar por bairro" value={bairro} onChange={e => setBairro(e.target.value)}><option value="">Todos os bairros</option>{bairros.map(b => <option key={b} value={b}>{b}</option>)}</select></label>

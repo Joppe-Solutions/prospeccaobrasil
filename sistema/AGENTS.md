@@ -33,6 +33,9 @@
 - Visão geral é operacional: `GET /api/dashboard` devolve `pendencias` (disponíveis sem foto / sem análise) e `acoesAbertas`
   (etapa fora de fechado/perdido, as paradas há mais tempo primeiro). Sem banner de marketing. Detalhe do imóvel sem estilo
   embutido: formulários em linha usam `.inline-form` + `.field`; tabelas internas `.detail-table`; vínculos em `dl.detail-links`.
+- Avisos: um só padrão, o snackbar (`lib/avisos.js` → `avisar('Imóvel salvo.')`, montado no Layout); nunca `.alert.success`,
+  `.toast` nem `window.confirm/prompt`. Confirmações usam `components/Confirmacao.jsx` (com `campo` para pedir motivo).
+  Estados vazios das listagens levam a ação principal (`DataTable emptyAction`). `.skip-link` pula para `#main-content`.
 - Campos em pt-BR camelCase no Prisma, `@map` snake_case no banco
 - Rotas Express montadas como fábrica `(prisma) => Router`
 - Acesso teste: admin@prospeccaobrasil.com.br / prospeccao123 (trocar em prod)

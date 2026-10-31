@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ArrowRight, CheckCircle, EnvelopeSimple, Handshake, Phone, Plus, Target, Trash, UserFocus } from '@phosphor-icons/react';
+import { avisar } from '../lib/avisos';
 import { api } from '../lib/api';
 import DataTable from '../components/DataTable';
 import Modal from '../components/Modal';
@@ -21,7 +22,6 @@ export default function Leads() {
   const [list, setList] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [status, setStatus] = useState('');
   const [origem, setOrigem] = useState('');
   const [modal, setModal] = useState(null);
@@ -55,7 +55,7 @@ export default function Leads() {
         ...(conv.criarOportunidade ? { imovelId: Number(conv.imovelId) } : {}),
       };
       await api(`/leads/${converting.id}/converter`, { method: 'POST', body: JSON.stringify(body) });
-      setConverting(null); setNotice('Lead convertido.'); await load();
+      setConverting(null); avisar('Lead convertido.'); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
 
@@ -88,7 +88,7 @@ export default function Leads() {
         method: modal.type === 'create' ? 'POST' : 'PUT',
         body: JSON.stringify(body),
       });
-      setNotice(modal.type === 'create' ? 'Lead cadastrado.' : 'Lead atualizado.');
+      avisar(modal.type === 'create' ? 'Lead cadastrado.' : 'Lead atualizado.');
       setModal(null); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
@@ -96,7 +96,7 @@ export default function Leads() {
     setBusy(true); setFormError('');
     try {
       await api(`/leads/${deleting.id}`, { method: 'DELETE' });
-      setDeleting(null); setNotice('Lead excluído.'); await load();
+      setDeleting(null); avisar('Lead excluído.'); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
 
@@ -145,8 +145,7 @@ export default function Leads() {
       description="Quem liga do site ou anúncio — acompanhe o primeiro contato."
       actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo lead</button>}
     />
-    {notice && <div className="alert success" role="status"><CheckCircle size={18} />{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
-    <div className="collection-stats">
+        <div className="collection-stats">
       <div><span className="collection-stat-icon"><UserFocus size={21} /></span><span><small>Leads cadastrados</small><strong>{count(list.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><Target size={21} /></span><span><small>Novos</small><strong>{count(list.filter(l => l.status === 'novo').length)}</strong></span></div>
       <div><span className="collection-stat-icon is-gold"><CheckCircle size={21} /></span><span><small>Convertidos</small><strong>{count(list.filter(l => l.status === 'convertido').length)}</strong></span></div>
@@ -159,7 +158,7 @@ export default function Leads() {
       <DataTable
         columns={columns} data={filtered} loading={loading} error={error}
         searchPlaceholder="Buscar lead, telefone ou interesse..." exportName="leads.csv"
-        emptyTitle="Nenhum lead encontrado" emptyDescription="Cadastre quem ligou do site ou anúncio."
+        emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo lead</button>} emptyTitle="Nenhum lead encontrado" emptyDescription="Cadastre quem ligou do site ou anúncio."
         toolbar={<>
           <label className="collection-select"><Target size={16} /><select aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS_LEAD).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}</select></label>
           <label className="collection-select"><UserFocus size={16} /><select aria-label="Filtrar origem" value={origem} onChange={e => setOrigem(e.target.value)}><option value="">Todas as origens</option>{Object.entries(ORIGENS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>

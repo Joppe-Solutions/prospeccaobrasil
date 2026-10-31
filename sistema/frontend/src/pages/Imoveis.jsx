@@ -69,7 +69,7 @@ export default function Imoveis() {
           ))}
         </div>
       </div>
-      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<>
+      <DataTable columns={columns} data={filtered} loading={loading} error={error} searchPlaceholder="Buscar imóvel, código ou bairro..." exportName="imoveis.csv" emptyAction={<Link className="btn btn-primary btn-sm" to="/imoveis/novo" state={{ backgroundLocation: location }}><Plus size={16} /> Novo imóvel</Link>} emptyTitle="Nenhum imóvel encontrado" emptyDescription="Ajuste os filtros ou cadastre um imóvel para começar." toolbar={<>
         <label className="collection-select"><Handshake size={16} /><select aria-label="Filtrar por tipo de negócio" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os negócios</option>{Object.entries(TIPOS_IMOVEL).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         <label className="collection-select"><SlidersHorizontal size={16} /><select aria-label="Filtrar por status" value={status} onChange={e => updateStatus(e.target.value)}><option value="">Todos os status</option>{Object.entries(STATUS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</select></label>
         {(status || tipo || categoria) && <button className="btn btn-ghost btn-sm" onClick={() => { updateStatus(''); setTipo(''); setCategoria(''); }}>Limpar filtros</button>}

@@ -5,6 +5,7 @@ import {
   List, MapPinArea, SignOut, SquaresFour, Storefront, UserCircle, UserFocus, UsersThree, X,
 } from '@phosphor-icons/react';
 import { getUser, logout } from '../lib/api';
+import Snackbar from './Snackbar';
 import { Avatar } from './UI';
 
 // Estrutura do menu lateral "Espaço Work" definida pelo cliente (PDF Espaco_Work_Menu_Lateral).
@@ -92,6 +93,7 @@ export default function Layout() {
   );
 
   return <div className="shell">
+    <a className="skip-link" href="#main-content">Ir para o conteúdo</a>
     {open && <button className="sidebar-scrim" aria-label="Fechar navegação" onClick={() => setOpen(false)} />}
     <aside className={`sidebar ${open ? 'is-open' : ''}`}>
       <div className="sidebar-brand">
@@ -133,7 +135,8 @@ export default function Layout() {
           <Link className="profile-shortcut" to="/perfil" aria-label="Abrir meu perfil"><Avatar name={u?.nome} size={32} /></Link>
         </div>
       </header>
-      <main className="main" id="main-content"><Outlet /></main>
+      <main className="main" id="main-content" tabIndex={-1}><Outlet /></main>
+      <Snackbar />
       <footer className="workspace-footer"><span>© {new Date().getFullYear()} Prospecção Brasil</span><span>Inteligência para conectar bons negócios.</span></footer>
     </div>
   </div>;

@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowUpRight, Buildings, CurrencyDollar, Paperclip, PencilSimple, Plus, Receipt, Trash, TrendUp, Wallet, Warning } from '@phosphor-icons/react';
+import Confirmacao from '../components/Confirmacao';
+import { avisar } from '../lib/avisos';
 import { api, fmtMoney, useArquivoToken } from '../lib/api';
 import { DinheiroInput } from '../components/NumberFields';
 import DataTable from '../components/DataTable';
@@ -24,7 +26,6 @@ export default function Financeiro() {
   const [empresas, setEmpresas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [notice, setNotice] = useState('');
   const [modal, setModal] = useState(false);
   const [editing, setEditing] = useState(null);
   const [form, setForm] = useState(EMPTY_L);
@@ -67,7 +68,7 @@ export default function Financeiro() {
           beneficiario: form.beneficiario || null,
         }),
       });
-      setModal(false); setEditing(null); setNotice(editing ? 'Lançamento atualizado.' : 'Lançamento registrado.'); await load();
+      setModal(false); setEditing(null); avisar(editing ? 'Lançamento atualizado.' : 'Lançamento registrado.'); await load();
     } catch (e2) { setFormError(e2.message); } finally { setBusy(false); }
   };
 
@@ -89,7 +90,7 @@ export default function Financeiro() {
     setBusy(true); setFormError('');
     try {
       await api(`/financeiro/lancamentos/${l.id}/duplicar`, { method: 'POST' });
-      setNotice('Lançamento duplicado.'); await load();
+      avisar('Lançamento duplicado.'); await load();
     } catch (e2) { setFormError(e2.message); } finally { setBusy(false); }
   };
 
@@ -99,7 +100,7 @@ export default function Financeiro() {
     try {
       const fd = new FormData(); fd.append('comprovante', file);
       await api(`/financeiro/lancamentos/${l.id}/comprovante`, { method: 'POST', body: fd });
-      setNotice('Comprovante anexado.'); await load();
+      avisar('Comprovante anexado.'); await load();
     } catch (e2) { setFormError(e2.message); } finally { setBusy(false); }
   };
 
@@ -114,23 +115,21 @@ export default function Financeiro() {
         method: 'POST',
         body: JSON.stringify({ pagoEm: baixaForm.pagoEm || null, valorPago: baixaForm.valorPago, formaPagamento: baixaForm.formaPagamento }),
       });
-      setBaixa(null); setNotice('Baixa registrada.'); await load();
+      setBaixa(null); avisar('Baixa registrada.'); await load();
     } catch (e2) { setFormError(e2.message); } finally { setBusy(false); }
   };
+  const [pedido, setPedido] = useState(null); // { tipo: 'excluir' | 'estornar', l }
   const excluirLancamento = async (l) => {
-    if (!window.confirm(`Excluir o lançamento previsto "${l.descricao}"? Esta ação não pode ser desfeita.`)) return;
     setBusy(true); setFormError('');
-    try { await api(`/financeiro/lancamentos/${l.id}`, { method: 'DELETE' }); setNotice('Lançamento excluído.'); await load(); }
-    catch (e2) { setFormError(e2.message); setNotice(''); } finally { setBusy(false); }
+    try { await api(`/financeiro/lancamentos/${l.id}`, { method: 'DELETE' }); avisar('Lançamento excluído.'); await load(); }
+    catch (e2) { setFormError(e2.message); return false; } finally { setBusy(false); }
   };
-  const estornar = async (l) => {
-    const motivo = window.prompt('Motivo do estorno (opcional):');
-    if (motivo === null) return;
+  const estornar = async (l, motivo) => {
     setBusy(true); setFormError('');
     try {
       await api(`/financeiro/lancamentos/${l.id}/estornar`, { method: 'POST', body: JSON.stringify({ motivo }) });
-      setNotice('Lançamento estornado.'); await load();
-    } catch (e2) { setFormError(e2.message); setNotice(''); } finally { setBusy(false); }
+      avisar('Lançamento estornado.'); await load();
+    } catch (e2) { setFormError(e2.message); return false; } finally { setBusy(false); }
   };
 
   const columns = useMemo(() => [
@@ -196,8 +195,8 @@ export default function Financeiro() {
             <input type="file" accept=".pdf,.jpg,.jpeg,.png,.webp" style={{ display: 'none' }} onChange={e => uploadComprovante(l, e.target.files?.[0])} />
           </label>
           <button className="icon-button" title="Duplicar" aria-label={`Duplicar ${l.descricao}`} onClick={() => duplicar(l)}>⧉</button>
-          <button className="icon-button collection-delete" title="Estornar" aria-label={`Estornar ${l.descricao}`} onClick={() => estornar(l)}>↩</button>
-          {l.status === 'previsto' && <button className="icon-button collection-delete" title="Excluir (lançado por engano)" aria-label={`Excluir ${l.descricao}`} onClick={() => excluirLancamento(l)}><Trash size={16} /></button>}
+          <button className="icon-button collection-delete" title="Estornar" aria-label={`Estornar ${l.descricao}`} onClick={() => setPedido({ tipo: 'estornar', l: l })}>↩</button>
+          {l.status === 'previsto' && <button className="icon-button collection-delete" title="Excluir (lançado por engano)" aria-label={`Excluir ${l.descricao}`} onClick={() => setPedido({ tipo: 'excluir', l: l })}><Trash size={16} /></button>}
         </>}
       </div>;
     } },
@@ -211,12 +210,16 @@ export default function Financeiro() {
       title="Financeiro"
       description="Receitas, despesas, vencimentos e resultado por negócio."
       actions={<div style={{ display: 'flex', gap: 10 }}>
-        <button className="btn btn-ghost" onClick={() => openCreate('despesa')}><Plus size={18} weight="bold" /> Nova despesa</button>
+        <button className="btn btn-ghost" onClick={() => openCreate('despesa')}><Plus size={18} weight="bold" />
+    <Confirmacao pedido={pedido && (pedido.tipo === 'excluir'
+      ? { titulo: 'Excluir lançamento previsto?', texto: `"${pedido.l.descricao}" será apagado. Esta ação não pode ser desfeita.`, rotulo: 'Excluir', perigo: true }
+      : { titulo: 'Estornar lançamento?', texto: `"${pedido.l.descricao}" fica no histórico como estornado.`, rotulo: 'Estornar', perigo: true, campo: 'Motivo (opcional)' })}
+      busy={busy} erro={formError} onClose={() => { setPedido(null); setFormError(''); }}
+      onConfirm={async motivo => { const ok = pedido.tipo === 'excluir' ? await excluirLancamento(pedido.l) : await estornar(pedido.l, motivo); if (ok !== false) setPedido(null); }} /> Nova despesa</button>
         <button className="btn btn-gold" onClick={() => openCreate('receita')}><Plus size={18} weight="bold" /> Nova receita</button>
       </div>}
     />
-    {notice && <div className="alert success" role="status">{notice}<button className="collection-dismiss" onClick={() => setNotice('')} aria-label="Fechar mensagem">×</button></div>}
-    {formError && !modal && !baixa && <div className="alert error" role="alert">{formError}</div>}
+        {formError && !modal && !baixa && <div className="alert error" role="alert">{formError}</div>}
     <div className="collection-stats">
       <div>
         <span className="collection-stat-icon is-green"><TrendUp size={21} /></span>

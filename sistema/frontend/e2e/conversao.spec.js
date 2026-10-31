@@ -22,7 +22,7 @@ test('conversão de lead em modal cria empresa e oportunidade vinculadas', async
   await modal.locator('#conv-imovel').selectOption({ index: 1 });
   await modal.getByRole('button', { name: /Converter lead/ }).click();
 
-  await expect(page.locator('.alert.success')).toContainText('Lead convertido');
+  await expect(page.locator('.snackbar')).toContainText('Lead convertido');
   await expect(modal).toHaveCount(0);
 
   // Empresa criada com dados do lead

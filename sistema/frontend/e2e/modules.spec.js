@@ -108,7 +108,7 @@ test('menu: Institucional é só um grupo (sem página própria) e módulos remo
 test('ações das operações: acompanhamento da proposta', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/oportunidades');
-  await page.getByRole('button', { name: 'Novo relacionamento' }).click();
+  await page.getByRole('button', { name: 'Nova ação' }).click();
   const modal = page.locator('.modal');
   await expect(modal.locator('#op-imovel option', { hasText: 'PB-E2E' })).toHaveCount(1);
   await modal.locator('#op-imovel').selectOption(await modal.locator('#op-imovel option', { hasText: 'PB-E2E' }).getAttribute('value'));
