@@ -92,7 +92,7 @@ a.kpi:hover { border-color: var(--line-strong); }
 .sec-label { font-size: var(--fs-sm); font-weight: 600; color: var(--brand-700); margin: 22px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 8px; }
 .required { color: var(--wt-error); }
 form.collection-modal-form { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--wt-space-4) var(--wt-space-4); }
-form.collection-modal-form > :not(.field), form.collection-modal-form > .field:has(textarea) { grid-column: 1 / -1; }
+form.collection-modal-form > :not(.field), form.collection-modal-form > .field:has(textarea), form.collection-modal-form > .modelo-arquivo { grid-column: 1 / -1; }
 
 /* Selecao: dropdown do TourFlow sobre um <select> real invisível */
 .selecao { position: relative; min-width: 0; }
@@ -178,6 +178,7 @@ form.collection-modal-form > :not(.field), form.collection-modal-form > .field:h
 /* Formulário em modal = gaveta à direita, como o FormDrawer do TourFlow */
 .modal-overlay:has(.modal-body form):not(:has(.wz-root)) { justify-content: flex-end; align-items: stretch; padding: 0; background: rgba(15, 23, 42, .45); backdrop-filter: blur(2px); }
 .modal-overlay:has(.modal-body form):not(:has(.wz-root)) .modal { width: min(680px, 96vw); max-height: none; height: 100%; border-radius: 0; animation: gaveta-in .22s cubic-bezier(.32, .72, 0, 1); }
+.modal-overlay:has(.modal-body form):not(:has(.wz-root)) .modal-body { flex: 1; }
 @keyframes gaveta-in { from { transform: translateX(32px); opacity: 0; } }
 
 /* ---------- Detalhe do imóvel ---------- */

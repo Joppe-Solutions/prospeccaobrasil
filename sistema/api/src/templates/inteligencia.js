@@ -291,7 +291,7 @@ function renderInteligencia(imovel, analise, demo) {
     base && present(base.domiciliosVagos) && base.domicilios && ['Domicílios vagos', perc(base.domiciliosVagos, base.domicilios), 'do total'],
     base && present(base.moradoresPorDomicilio) && ['Moradores/domicílio', dec(base.moradoresPorDomicilio), 'média'],
     ent && ['Estabelecimentos', num(ent.total1000), 'até 1 km'],
-    ent && ['Transporte', num((ent.transporte[0]?.r1000 || 0) + (ent.transporte[1]?.r1000 || 0)), 'pontos até 1 km'],
+    ent && ['Transporte', num(ent.transporte.reduce((n, l) => n + (l.r1000 || 0), 0)), 'pontos até 1 km'],
   ].filter(Boolean);
   const razao = (x, y) => (present(x) && present(y) && Number(y) ? (Number(x) / Number(y)) * 100 : null);
   const comparativo = b && m ? [

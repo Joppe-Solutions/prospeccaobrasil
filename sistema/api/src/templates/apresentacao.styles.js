@@ -134,12 +134,13 @@ h3 { font:600 22px/1.2 var(--serif); margin:0 0 12px; }.details h3,.documents>.f
 .painel .highlights>div+div { border-left:1px solid #ffffff38; }
 .painel .highlights .small-label { color:var(--salvia); font-weight:700; font-size:11px; letter-spacing:1.6px; }
 .painel .highlights .card-name { color:var(--suave); font-weight:600; font-size:9px; letter-spacing:.2px; text-transform:uppercase; white-space:nowrap; margin-top:2px; }
+.painel .highlights .por-m2 .small-label,.painel .highlights .por-m2 .card-name { color:#d5ad62; }
 .painel .highlights strong { color:var(--creme); font-size:30px; letter-spacing:-.5px; white-space:nowrap; overflow-wrap:normal; margin:6px 0 2px; }
 .painel .highlights.three strong { font-size:25px; }
 .painel .highlights small { color:var(--suave); }
 .ficha { display:grid; grid-template-columns:1fr 1fr; }
 .bloco { min-width:0; padding-right:16px; }.bloco+.bloco { padding:0 0 0 16px; border-left:1px solid #ffffff38; }
-.caixa { margin:0 0 12px; text-align:center; font:600 22px/1.2 var(--serif); color:var(--creme); }
+.caixa { margin:0 0 12px; text-align:center; font:600 22px/1.2 var(--serif); color:var(--creme); text-transform:uppercase; letter-spacing:.6px; text-decoration:underline; text-decoration-thickness:1px; text-underline-offset:4px; }
 .linhas { list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:8px; }
 .linhas li { display:grid; grid-template-columns:22px minmax(0,1fr) auto; align-items:center; gap:9px; height:44px; padding:0 13px; border-radius:11px; background:var(--salvia); color:var(--tinta); }
 .ico { display:grid; place-items:center; color:var(--tinta); }

@@ -43,6 +43,13 @@ app.get('/uploads/:arquivo', async (req, res) => {
       res.setHeader('Cache-Control', 'private, no-store');
       return res.sendFile(filePath);
     }
+    const modelo = await prisma.modeloContrato.findFirst({ where: { arquivo } });
+    if (modelo) {
+      // Modelo de contrato: interno, baixa com o nome original
+      if (!(await usuarioDaRequisicao(req))) return res.status(401).json({ error: 'Documento restrito' });
+      res.setHeader('Cache-Control', 'private, no-store');
+      return res.download(filePath, modelo.arquivoNome || arquivo);
+    }
     const doc = await prisma.imovelDocumento.findFirst({ where: { arquivo } });
     if (doc && !DOC_PUBLICOS.has(doc.tipo)) {
       // Documento privado: exige sessão válida

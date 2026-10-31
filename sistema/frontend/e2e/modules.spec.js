@@ -77,15 +77,17 @@ test('inteligência: gera o relatório de um imóvel pela lista', async ({ page 
   await expectNoErrors(errors);
 });
 
-test('modelos de contrato: admin cadastra e abre o link', async ({ page }) => {
+test('modelos de contrato: admin envia o arquivo, escolhe o tipo e filtra', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/modelos-contratos');
   await page.getByRole('button', { name: 'Novo modelo' }).click();
   await page.getByLabel('Nome do modelo').fill('Contrato de locação E2E');
-  await page.getByLabel('Link do arquivo').fill('https://example.com/locacao.docx');
+  await page.locator('input[type=file]').setInputFiles({ name: 'locacao.docx', mimeType: 'application/octet-stream', buffer: Buffer.from('modelo') });
   await page.getByRole('button', { name: 'Salvar' }).click();
   await expect(page.locator('#main-content')).toContainText('Contrato de locação E2E');
-  await expect(page.locator('#main-content').getByRole('link', { name: 'Abrir' })).toHaveAttribute('href', 'https://example.com/locacao.docx');
+  await expect(page.locator('#main-content').getByRole('link', { name: 'Abrir' })).toHaveAttribute('href', /\/uploads\/.+\.docx\?token=/);
+  await page.getByLabel('Filtrar por tipo de contrato').selectOption('compra_venda', { force: true });
+  await expect(page.locator('#main-content')).not.toContainText('Contrato de locação E2E');
   await expectNoErrors(errors);
 });
 

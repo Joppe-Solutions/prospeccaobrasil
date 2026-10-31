@@ -1,0 +1,165 @@
+.wt-upload-container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-space-2);
+}
+
+.wt-upload-label {
+  font-size: var(--wt-text-sm);
+  font-weight: var(--wt-font-semibold);
+  color: var(--wt-text);
+}
+
+.wt-upload-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--wt-space-2);
+  padding: var(--wt-space-8) var(--wt-space-4);
+  border: 2px dashed var(--wt-border);
+  border-radius: var(--wt-radius-lg);
+  background: var(--wt-surface-hover);
+  cursor: pointer;
+  transition: all var(--wt-duration-normal);
+}
+
+.wt-upload-zone:hover {
+  border-color: var(--wt-primary);
+  background: var(--wt-primary-light);
+}
+
+.wt-upload-zone-active {
+  border-color: var(--wt-primary);
+  background: var(--wt-primary-light);
+}
+
+.wt-upload-zone-disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.wt-upload-icon {
+  font-size: 2.5rem;
+  color: var(--wt-text-muted);
+  transition: color var(--wt-duration-fast);
+}
+
+.wt-upload-zone-active .wt-upload-icon,
+.wt-upload-zone:hover .wt-upload-icon {
+  color: var(--wt-primary);
+}
+
+.wt-upload-drag-label {
+  margin: 0;
+  font-size: var(--wt-text-sm);
+  color: var(--wt-text-secondary);
+  text-align: center;
+}
+
+.wt-upload-hint {
+  margin: 0;
+  font-size: var(--wt-text-caption);
+  color: var(--wt-text-muted);
+  text-align: center;
+}
+
+.wt-upload-files {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--wt-space-2);
+}
+
+.wt-upload-file {
+  display: flex;
+  align-items: center;
+  gap: var(--wt-space-3);
+  padding: var(--wt-space-2) var(--wt-space-3);
+  background: var(--wt-surface);
+  border: 1px solid var(--wt-border);
+  border-radius: var(--wt-radius-md);
+  transition: background var(--wt-duration-fast);
+}
+
+.wt-upload-file:hover {
+  background: var(--wt-surface-hover);
+}
+
+.wt-upload-preview {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--wt-radius-sm);
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--wt-surface-hover);
+}
+
+.wt-upload-preview img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.wt-upload-file-icon {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--wt-primary-light);
+  border-radius: var(--wt-radius-sm);
+  color: var(--wt-primary);
+  flex-shrink: 0;
+  font-size: var(--wt-text-body);
+}
+
+.wt-upload-file-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.wt-upload-file-name {
+  font-size: var(--wt-text-sm);
+  color: var(--wt-text);
+  font-weight: var(--wt-font-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.wt-upload-file-size {
+  font-size: var(--wt-text-caption);
+  color: var(--wt-text-muted);
+}
+
+.wt-upload-remove {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  border-radius: var(--wt-radius-sm);
+  cursor: pointer;
+  color: var(--wt-text-muted);
+  font-size: var(--wt-text-sm);
+  transition: all var(--wt-duration-fast);
+  flex-shrink: 0;
+}
+
+.wt-upload-remove:hover:not(:disabled) {
+  background: var(--wt-error-light);
+  color: var(--wt-error);
+}
+
+.wt-upload-error-text {
+  font-size: var(--wt-text-caption);
+  color: var(--wt-error);
+}

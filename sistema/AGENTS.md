@@ -118,7 +118,8 @@
   A API de propostas (`/api/propostas`, `/proposta/:id`, `templates/proposta.js`) e a tabela
   `propostas_servico` continuam no sistema, sem tela, para não perder dados.
 - Conhecimento: `/inteligencia` (um relatório por imóvel), `/benchmark` (rental rate),
-  `/modelos-contratos` (links; só admin mantém).
+  `/modelos-contratos` (arquivo PDF/Word/ODT enviado, tipo em `CATEGORIAS` na rota e na página; só admin mantém; `/uploads` exige sessão e baixa com o nome
+  original; `url` é legado dos modelos antigos). Transporte do entorno: uma linha por tipo de estação (metrô, trem, BRT, VLT), contada por nome; bonde fica de fora.
 - Apresentação do imóvel (`templates/apresentacao.js`): 1ª folha com faixa verde no cabeçalho (QR
   code de localização à direita), mapa ao lado da foto e "Indicadores de Inteligência Territorial e
   Comercial" (4 cartões) no rodapé. 2ª folha ("complementos"): descrição, Infraestrutura Urbana e

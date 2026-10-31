@@ -205,6 +205,20 @@ test('usuários: cria comercial e impede autoexclusão', async () => {
   assert.equal((await req('DELETE', `/api/usuarios/${created.body.id}`, { token })).status, 200);
 });
 
+test('entorno: uma contagem por tipo de estação, sem repetir a mesma estação nem contar o bonde', () => {
+  const { resumir } = require('../src/services/entorno');
+  const geo = { lat: -22.9, lon: -43.2 };
+  const el = (tags) => ({ type: 'node', lat: -22.9, lon: -43.2, tags });
+  const r = resumir([
+    el({ railway: 'station', station: 'subway', name: 'Tijuca' }), { type: 'way', center: { lat: -22.9, lon: -43.2 }, tags: { railway: 'station', station: 'subway', name: 'Tijuca' } },
+    el({ railway: 'station', train: 'yes', name: 'Méier' }),
+    el({ highway: 'bus_stop', name: 'Taquara', network: 'BRT Rio' }), el({ highway: 'bus_stop', name: 'Taquara', operator: 'BRT Rio' }),
+    el({ railway: 'tram_stop', name: 'Cinelândia', network: 'VLT Carioca' }), el({ railway: 'tram_stop', name: 'Carioca', network: 'Bonde de Santa Teresa' }),
+    el({ highway: 'bus_stop', name: 'Ponto' }),
+  ], geo, { endereco: 'Rua A' });
+  assert.deepEqual(r.transporte.map(l => [l.rotulo, l.r1000]), [['Pontos de ônibus', 1], ['Estações de metrô', 1], ['Estações de trem', 1], ['Estações de BRT', 1], ['Estações de VLT', 1], ['Terminais de barcas', 0]]);
+});
+
 test('dashboard e financeiro respondem', async () => {
   const painel = await req('GET', '/api/dashboard', { token });
   assert.equal(painel.status, 200);
@@ -828,21 +842,32 @@ test('inteligência: Censo 2022 por bairro, entorno da rua e documento sem campo
   assert.doesNotMatch(semBairro, /undefined|NaN/);
 });
 
-test('modelos de contrato: todos leem, só admin mantém, link validado', async () => {
-  const criar = (body, t = token) => req('POST', '/api/modelos-contrato', { token: t, body });
-  assert.equal((await criar({ nome: 'Locação', url: 'javascript:alert(1)' })).status, 400);
-  assert.equal((await criar({ url: 'https://a.b/c.docx' })).status, 400);
-  assert.equal((await criar({ nome: 'X', url: 'https://a.b', categoria: 'inventada' })).status, 400);
-  const ok = await criar({ nome: ' Locação comercial ', categoria: 'locacao', url: 'https://a.b/locacao.docx' });
+test('modelos de contrato: todos leem, só admin mantém, arquivo enviado e restrito', async () => {
+  const enviar = (campos, { t = token, metodo = 'POST', caminho = '/api/modelos-contrato', nome = 'locação.docx' } = {}) => {
+    const fd = new FormData();
+    for (const [k, v] of Object.entries(campos)) fd.append(k, v);
+    if (nome) fd.append('arquivo', new Blob(['modelo']), nome);
+    return fetch(`${getBase()}${caminho}`, { method: metodo, headers: { Authorization: `Bearer ${t}` }, body: fd }).then(async r => ({ status: r.status, body: await r.json() }));
+  };
+  assert.equal((await enviar({ nome: 'Sem arquivo' }, { nome: null })).status, 400);
+  assert.equal((await enviar({ categoria: 'locacao' })).status, 400);
+  assert.equal((await enviar({ nome: 'X', categoria: 'inventada' })).status, 400);
+  assert.equal((await enviar({ nome: 'X' }, { nome: 'virus.exe' })).status, 400);
+  const ok = await enviar({ nome: ' Locação comercial ', categoria: 'locacao' });
   assert.equal(ok.status, 200);
-  assert.equal(ok.body.nome, 'Locação comercial');
+  assert.deepEqual([ok.body.nome, ok.body.arquivoNome, ok.body.url], ['Locação comercial', 'locação.docx', null]);
   await req('POST', '/api/usuarios', { token, body: { nome: 'Comercial MC', email: 'mc@teste.dev', senha: '12345678', role: 'comercial' } });
   const ct = (await login('mc@teste.dev', '12345678')).body.token;
   assert.equal((await req('GET', '/api/modelos-contrato', { token: ct })).body.length, 1);
-  assert.equal((await criar({ nome: 'Y', url: 'https://a.b' }, ct)).status, 403);
+  assert.equal((await enviar({ nome: 'Y' }, { t: ct })).status, 403);
+  // Arquivo só com sessão
+  assert.equal((await fetch(`${getBase()}/uploads/${ok.body.arquivo}`)).status, 401);
+  assert.equal((await fetch(`${getBase()}/uploads/${ok.body.arquivo}`, { headers: { Authorization: `Bearer ${ct}` } })).status, 200);
   assert.equal((await req('DELETE', `/api/modelos-contrato/${ok.body.id}`, { token: ct })).status, 403);
-  assert.equal((await req('PUT', `/api/modelos-contrato/${ok.body.id}`, { token, body: { descricao: 'Padrão 2026' } })).body.descricao, 'Padrão 2026');
-  assert.equal((await req('PUT', '/api/modelos-contrato/99999', { token, body: { descricao: 'x' } })).status, 404);
+  const editado = await enviar({ descricao: 'Padrão 2026' }, { metodo: 'PUT', caminho: `/api/modelos-contrato/${ok.body.id}`, nome: 'nova.pdf' });
+  assert.deepEqual([editado.body.descricao, editado.body.arquivoNome], ['Padrão 2026', 'nova.pdf']);
+  assert.equal((await fetch(`${getBase()}/uploads/${ok.body.arquivo}`, { headers: { Authorization: `Bearer ${ct}` } })).status, 404);
+  assert.equal((await enviar({ descricao: 'x' }, { metodo: 'PUT', caminho: '/api/modelos-contrato/99999', nome: null })).status, 404);
   assert.equal((await req('DELETE', `/api/modelos-contrato/${ok.body.id}`, { token })).status, 200);
 });
 

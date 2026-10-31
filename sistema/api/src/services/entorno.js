@@ -35,9 +35,19 @@ const OUTRAS_LOJAS = 'Outras lojas e serviços';
 const brt = (t) => (t.highway === 'bus_stop' || t.amenity === 'bus_station' || Boolean(t.public_transport))
   && /\b(BRT|Trans(Oeste|Carioca|Ol[ií]mpica|Brasil))\b/i.test([t.name, t.network, t.operator].filter(Boolean).join(' '));
 const estacao = (t) => ['station', 'tram_stop'].includes(t.railway) || brt(t);
+// Tipo da estação pelas etiquetas do OSM. Bonde de Santa Teresa e plano inclinado do Dona Marta ("Estação 1"...) não são VLT e ficam de fora.
+function tipoEstacao(t) {
+  if (!estacao(t) || !t.name) return null;
+  if (brt(t)) return 'brt';
+  if (t.railway === 'tram_stop' || t.station === 'light_rail' || t.light_rail === 'yes') return /bonde/i.test(t.network || '') || /^esta[cç][aã]o \d+$/i.test(t.name.trim()) ? null : 'vlt';
+  return t.station === 'subway' || t.subway === 'yes' ? 'metro' : 'trem';
+}
 const TRANSPORTE = [
   ['Pontos de ônibus', (t) => t.highway === 'bus_stop' && !brt(t)],
-  ['Estações de metrô, trem, BRT ou VLT', estacao],
+  ['Estações de metrô', 'metro'],
+  ['Estações de trem', 'trem'],
+  ['Estações de BRT', 'brt'],
+  ['Estações de VLT', 'vlt'],
   ['Terminais de barcas', (t) => t.amenity === 'ferry_terminal'],
 ];
 // Geradores de fluxo: o mais próximo de cada tipo entra na lista de destaques
@@ -108,7 +118,12 @@ function resumir(elementos, geo, imovel) {
   const contar = (teste, raio) => pontos.filter((p) => p.dist <= raio && teste(p.t)).length;
   const linhas = [...CATEGORIAS.map(([r]) => r), OUTRAS_LOJAS]
     .map((rotulo) => ({ rotulo, r500: contar((t) => categoria(t) === rotulo, 500), r1000: contar((t) => categoria(t) === rotulo, RAIO) }));
-  const transporte = TRANSPORTE.map(([rotulo, teste]) => ({ rotulo, r500: contar(teste, 500), r1000: contar(teste, RAIO) }));
+  // Estação com vários elementos no mapa (prédio, plataformas, sentidos) conta uma vez, pelo nome
+  const contarEstacoes = (tipo, raio) => new Set(pontos.filter((p) => p.dist <= raio && tipoEstacao(p.t) === tipo).map((p) => p.t.name.trim().toLowerCase())).size;
+  const transporte = TRANSPORTE.map(([rotulo, teste]) => {
+    const contagem = typeof teste === 'string' ? (raio) => contarEstacoes(teste, raio) : (raio) => contar(teste, raio);
+    return { rotulo, r500: contagem(500), r1000: contagem(RAIO) };
+  });
   const destaques = DESTAQUES.map(([rotulo, teste]) => {
     const p = pontos.find((x) => teste(x.t) && x.t.name);
     return p ? { rotulo, nome: p.t.name, dist: Math.round(p.dist / 10) * 10 } : null;
