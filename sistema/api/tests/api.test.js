@@ -957,7 +957,8 @@ test('apresentação: ABL só no destaque, entorno em 1 km no lugar das fotos, d
   assert.doesNotMatch(corpo(html), /Flash de Mercado/);
   const entorno = { total1000: 101, linhas: [{ rotulo: 'Alimentação (restaurantes, bares, cafés)', r1000: 26 }, { rotulo: 'Farmácias e saúde', r1000: 15 }, { rotulo: 'Outras lojas e serviços', r1000: 60 }], transporte: [{ rotulo: 'Pontos de ônibus', r1000: 7 }, { rotulo: 'Estações de metrô, trem ou VLT', r1000: 0 }], destaques: [{ rotulo: 'Farmácia', nome: 'Pacheco', dist: 100 }] };
   const comEntorno = renderApresentacao({ ...base, fotos, documentos: docs, descricao: 'Texto' }, 'data:image/png;base64,AAAA', { completa: true, contexto: { entorno } }).split('<article class="sheet details"')[1];
-  assert.match(corpo(comEntorno), /Comércio, serviços e transporte em 1 km[\s\S]*Pontos de ônibus<\/td><td>7[\s\S]*Total de estabelecimentos<\/td><td>101/);
+  assert.match(corpo(comEntorno), /Comércio, serviços e transporte em 1 km[\s\S]*Pontos de ônibus<\/td><td>7/);
+  assert.doesNotMatch(comEntorno, /Total de estabelecimentos/);
   const rosca = comEntorno.match(/<figure class="composicao">[\s\S]*?<\/figure>/)[0];
   assert.match(rosca, /<svg/);
   assert.match(rosca, /Alimentação/);

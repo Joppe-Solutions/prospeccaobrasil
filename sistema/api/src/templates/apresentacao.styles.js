@@ -56,7 +56,7 @@ h2 { font-size:12px; margin:0 0 10px; line-height:1.4; }h2>span { font-size:9px;
 .disclaimer { font-size:8px; color:var(--muted); margin:5px 0 15px; }
 .document-footer { border-top:1px solid var(--line); padding-top:10px; display:flex; justify-content:space-between; gap:20px; font-size:8px; color:var(--muted); }.document-footer span { display:block; }.document-footer strong { font-size:9px; color:var(--ink); }.document-footer>div:last-child { text-align:right; }
 .section-intro { margin:25px 0; }.section-intro h2 { font:28px/1.2 Georgia,serif; margin:8px 0; }.section-intro p { color:var(--muted); font-size:11px; }
-h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.description p { white-space:pre-line; line-height:1.8; font-size:12px; }
+h3 { font-size:14px; margin:0 0 12px; }.details h3,.documents>.fine-print { text-align:center; }.description { margin-bottom:24px; }.description p { white-space:pre-line; line-height:1.8; font-size:12px; }
 .gallery { display:grid; grid-template-columns:1fr 1fr; gap:20px 16px; }.gallery img { display:block; width:100%; height:55mm; object-fit:contain; background:#f5f6f3; }.gallery figure { break-inside:avoid; }.gallery figcaption { font-size:10px; color:var(--muted); padding-top:7px; }.gallery figcaption span { color:var(--gold); font-size:9px; margin-right:6px; }
 .documents { margin:26px 0; }.documents ul { list-style:none; padding:0; margin:12px 0 0; }.documents li { break-inside:avoid; min-width:0; }.documents strong { font-size:10px; line-height:1.3; }.documents small { display:block; color:var(--gold); font-size:7.5px; letter-spacing:1px; text-transform:uppercase; font-weight:700; }.details .document-footer { margin-top:28px; }
 .document-header.banner { margin:-13mm -14mm 0 -17mm; padding:9mm 14mm 8mm 17mm; border-bottom:0; background:linear-gradient(105deg,#0a3431 0%,#0d4a43 62%,#15463f 100%); }
@@ -76,7 +76,6 @@ h3 { font-size:14px; margin:0 0 12px; }.description { margin-bottom:24px; }.desc
 .transporte th { background:var(--ink); color:#fff; text-align:left; font-size:9px; letter-spacing:.8px; text-transform:uppercase; padding:7px 10px; }
 .transporte th:last-child,.transporte td:last-child { text-align:right; }
 .transporte td { padding:6px 10px; border-bottom:1px solid var(--line); }
-.transporte tr.total td { font-weight:700; background:#f2f5f1; }
 .composicao { margin:0; border:1px solid var(--line); border-radius:6px; padding:8px 10px 4px; }
 .composicao figcaption { font-size:10px; font-weight:700; margin-bottom:4px; }
 .composicao svg { display:block; width:100%; height:auto; }

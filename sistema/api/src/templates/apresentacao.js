@@ -89,7 +89,7 @@ function entornoSection(contexto) {
   const resto = cats.slice(5).reduce((n, l) => n + l.r1000, 0);
   if (resto) fatias.push({ rotulo: 'Demais categorias', valor: resto, cor: cores[5] });
   return `<section class="entorno1km"><h3>Comércio, serviços e transporte em 1 km</h3><div class="entorno1km-grid">
-<table class="transporte"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${(e.transporte || []).map(l => `<tr><td>${esc(l.rotulo)}</td><td>${int(l.r1000)}</td></tr>`).join('')}<tr class="total"><td>Total de estabelecimentos</td><td>${int(e.total1000)}</td></tr></tbody></table>
+<table class="transporte"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${(e.transporte || []).map(l => `<tr><td>${esc(l.rotulo)}</td><td>${int(l.r1000)}</td></tr>`).join('')}</tbody></table>
 ${fatias.length > 1 ? `<figure class="composicao"><figcaption>Composição do comércio e serviços</figcaption>${G.rosca({ fatias, centro: { valor: int(e.total1000), titulo: 'estabelecimentos' }, largura: 400, altura: 170, descricao: 'Composição do comércio e serviços em 1 km' })}</figure>` : ''}
 </div><p class="fine-print">Fonte: OpenStreetMap · mapeamento colaborativo: as contagens indicam o mínimo existente.</p></section>`;
 }
