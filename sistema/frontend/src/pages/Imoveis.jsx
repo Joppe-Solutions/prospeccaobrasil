@@ -8,6 +8,7 @@ import { PageHeader, StatusBadge } from '../components/UI';
 import './collections.css';
 
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
+const statusDocumentos = i => ['planta', 'inteligencia', 'rgi', 'avcb', 'iptu_doc', ...(Number(i.condominio) > 0 ? ['convencao'] : [])].every(tipo => i.documentos?.some(d => d.tipo === tipo)) ? 'Completa' : 'Pendente';
 
 export default function Imoveis() {
   const location = useLocation();
@@ -45,11 +46,12 @@ export default function Imoveis() {
         <span className="collection-cell-stack"><span className="collection-code">{i.codigo}</span><strong>{i.endereco}{i.numero ? `, ${i.numero}` : ''}</strong><small>{i.bairro || 'Bairro não informado'}</small></span>
       </Link>;
     } },
-    { accessorKey: 'categoria', header: 'Categoria', cell: ({ getValue }) => getValue() ? <span className="collection-tag">{CATEGORIAS[getValue()] || getValue()}</span> : <span className="muted">—</span> },
+    { accessorKey: 'categoria', header: 'Categoria', exportValue: i => CATEGORIAS[i.categoria] || i.categoria, cell: ({ getValue }) => getValue() ? <span className="collection-tag">{CATEGORIAS[getValue()] || getValue()}</span> : <span className="muted">—</span> },
     { id: 'localizacao', header: 'Localização', accessorFn: i => `${i.cidade}/${i.uf}`, cell: ({ row }) => <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf}</small></span> },
     { accessorKey: 'areaTotal', header: 'ABL', cell: ({ getValue }) => <span className="collection-nowrap">{fmtNum(getValue(), 'm²')}</span> },
     { id: 'custo', header: 'Investimento', accessorFn: i => i.tipo === 'venda' ? Number(i.precoVenda || 0) : [i.aluguel, i.condominio, i.iptu].reduce((n, v) => n + Number(v || 0), 0), cell: ({ row, getValue }) => <span className="collection-cell-stack"><strong className="collection-money">{fmtMoney(getValue())}</strong><small>{row.original.tipo === 'venda' ? 'Valor de venda' : 'Custo mensal total'}</small></span> },
-    { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={STATUS[getValue()]} /> },
+    { id: 'documentacao', header: 'Documentação', exportValue: statusDocumentos, cell: ({ row }) => statusDocumentos(row.original) },
+    { accessorKey: 'status', header: 'Status', exportValue: i => STATUS[i.status] || i.status, cell: ({ getValue }) => <StatusBadge status={getValue()} label={STATUS[getValue()]} /> },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => <Link className="icon-button" to={`/imoveis/${row.original.id}`} aria-label={`Abrir imóvel ${row.original.codigo}`}><ArrowRight size={18} /></Link> },
   ], []);
   const count = value => loading || error ? '—' : value;

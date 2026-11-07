@@ -3,6 +3,7 @@ import Selecao from '../components/Selecao';
 import { BookOpen, PencilSimple, Plus } from '@phosphor-icons/react';
 import { api, getUser } from '../lib/api';
 import { PageHeader } from '../components/UI';
+import { useFonteExportacao } from '../components/Exportacao';
 import Modal from '../components/Modal';
 import BusinessFields from '../components/BusinessFields';
 import './collections.css';import './business.css';
@@ -14,6 +15,7 @@ export default function Glossario(){
  const load=useCallback(()=>api('/glossario').then(setTerms),[]);useEffect(()=>{load().catch(e=>setError(e.message)).finally(()=>setLoading(false));},[load]);
  const categories=useMemo(()=>[...new Set(terms.map(t=>t.categoria))].sort((a,b)=>a.localeCompare(b,'pt-BR')),[terms]);
  const filtered=useMemo(()=>terms.filter(t=>(!category||t.categoria===category)&&normalize([t.termo,t.nomeExtenso,t.significado,t.exemplo,t.aliases,t.relacionados].join(' ')).includes(normalize(q))).sort((a,b)=>a.termo.localeCompare(b.termo,'pt-BR')),[terms,q,category]);
+ useFonteExportacao('glossario', { nome:'glossario', colunas: fields.map(([key, titulo]) => ({ titulo, valor: item => item[key] })), linhas: filtered, loading, error });
  const isAdmin=getUser()?.role==='admin';const [confirmar,setConfirmar]=useState(false);
  async function excluir(){if(!confirmar)return setConfirmar(true);setBusy(true);setFormError('');try{await api(`/glossario/${form.id}`,{method:'DELETE'});setForm(null);setConfirmar(false);await load();}catch(e){setFormError(e.message);}finally{setBusy(false);}}
  async function save(e){e.preventDefault();setBusy(true);setFormError('');try{await api(form.id?`/glossario/${form.id}`:'/glossario',{method:form.id?'PUT':'POST',body:JSON.stringify(form)});setForm(null);await load();}catch(e){setFormError(e.message);}finally{setBusy(false);}}

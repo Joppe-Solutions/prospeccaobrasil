@@ -1,0 +1,5 @@
+.document-order .document-order-controls { white-space: nowrap; width: 1%; }
+.document-order-controls .icon-button { display: inline-flex; vertical-align: middle; }
+.document-order-controls .icon-button:disabled { opacity: .35; cursor: default; }
+.document-drag { display: inline-flex; vertical-align: middle; padding: 6px; color: var(--muted); cursor: grab; }
+.document-drag:active { cursor: grabbing; }

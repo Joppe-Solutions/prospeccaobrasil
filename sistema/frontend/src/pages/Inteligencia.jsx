@@ -9,7 +9,7 @@ import './business.css';
 
 const fmtData = (v) => v ? new Date(v).toLocaleDateString('pt-BR') : '—';
 const CONTEUDO = [
-  [UsersThree, 'Bairro', 'População, domicílios, faixa etária e renda do Censo 2022, comparados ao município.'],
+  [UsersThree, 'Bairro', 'População, domicílios, faixa etária e renda do Censo IBGE Atualizado, comparados ao município.'],
   [MapPin, 'Rua e entorno', 'Comércio, serviços e transporte até 1 km, tipo da via e geradores de fluxo mais próximos.'],
   [Sparkle, 'Triagem do ponto', 'Pontos fortes, pontos de atenção e segmentos sugeridos a partir do cadastro do imóvel.'],
 ];
@@ -82,7 +82,7 @@ export default function Inteligencia() {
     <section className="panel business-panel">
       <h2>O que o relatório traz</h2>
       <div className="business-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>{CONTEUDO.map(([Icon, titulo, texto]) => <article className="business-panel" key={titulo}><h2><Icon size={18} /> {titulo}</h2><p>{texto}</p></article>)}</div>
-      <p>Fontes: IBGE (Censo 2022 e estimativas de população) e OpenStreetMap. A triagem do ponto é uma leitura automática do cadastro e não substitui estudo de mercado. Valores de aluguel de referência ficam em <Link to="/benchmark">Benchmark</Link>.</p>
+      <p>Fontes: IBGE (Censo IBGE Atualizado e estimativas de população) e OpenStreetMap. A triagem do ponto é uma leitura automática do cadastro e não substitui estudo de mercado. Valores de aluguel de referência ficam em <Link to="/benchmark">Benchmark</Link>.</p>
     </section>
     <section className="panel collection-panel">
       <div className="collection-section-head">

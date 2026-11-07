@@ -95,40 +95,58 @@ test('wizard recusa coordenadas fora do formato ou do intervalo', async ({ page 
   await page.keyboard.press('Escape');
 });
 
-test('vínculos: cria proprietário na hora e, em passagem de ponto, pede o operador', async ({ page }) => {
+test('vínculos: proprietário, operador e executivo podem coexistir em qualquer tipo', async ({ page }) => {
   const errors = watchErrors(page);
   await page.goto('/imoveis/novo');
   const modal = page.locator('.modal');
   await expect(modal).toBeVisible();
   await modal.locator('#wz-titulo').fill('Imóvel Vínculos E2E');
   await modal.locator('#wz-tipo').selectOption('passagem_ponto');
-  const ate = async (n) => { for (let k = 0; k < n; k++) await modal.getByRole('button', { name: 'Próximo' }).click(); };
+  const ate = async n => { for (let k = 0; k < n; k++) await modal.getByRole('button', { name: 'Próximo' }).click(); };
   await ate(1);
   await modal.locator('#wz-endereco').fill('Rua do Wizard, 100');
   await modal.locator('#wz-cidade').fill('Rio de Janeiro');
   await ate(3);
-  await expect(modal.locator('#wz-vinc-proprietario, #wz-vinc-operador')).toHaveCount(1);
+  await expect(modal.locator('#wz-vinc-proprietario, #wz-vinc-operador, #wz-parceiroId')).toHaveCount(3);
 
-  // passagem de ponto: operador no lugar do proprietário
-  await expect(modal.locator('#wz-vinc-proprietario')).toHaveCount(0);
   await modal.getByRole('button', { name: /novo operador/ }).click();
-  await modal.locator('#nv-nome').fill('Operador Inline E2E');
-  await modal.locator('#nv-marca').fill('Marca Inline');
+  await modal.locator('#nvo-nome').fill('Operador Inline E2E');
+  await modal.locator('#nvo-marca').fill('Marca Inline');
   await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).click();
-  await expect(modal.locator('#wz-vinc-operador')).toHaveValue(/\d+/);
   await expect(modal.locator('#wz-vinc-operador option:checked')).toContainText('Operador Inline E2E');
-
-  // locação: proprietário, com cadastro novo direto no formulário
-  for (let k = 0; k < 4; k++) await modal.getByRole('button', { name: 'Voltar' }).click();
-  await modal.locator('#wz-tipo').selectOption('locacao');
-  await ate(4);
-  await expect(modal.locator('#wz-vinc-operador')).toHaveCount(0);
   await modal.getByRole('button', { name: /novo proprietário/ }).click();
-  await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).click();
-  await expect(modal).toContainText('Informe o nome');
   await modal.locator('#nv-nome').fill('Proprietário Inline E2E');
   await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).click();
   await expect(modal.locator('#wz-vinc-proprietario option:checked')).toContainText('Proprietário Inline E2E');
+  await modal.locator('#wz-parceiroId').selectOption({ label: 'Parceiro E2E' });
+  for (let k = 0; k < 4; k++) await modal.getByRole('button', { name: 'Voltar' }).click();
+  await modal.locator('#wz-tipo').selectOption('locacao');
+  await ate(4);
+  await expect(modal.locator('#wz-vinc-operador option:checked')).toContainText('Operador Inline E2E');
+  await expect(modal.locator('#wz-vinc-proprietario option:checked')).toContainText('Proprietário Inline E2E');
+  for (let k = 0; k < 4; k++) await modal.getByRole('button', { name: 'Voltar' }).click();
+  await modal.locator('#wz-tipo').selectOption('passagem_ponto');
+  await ate(6);
+  await expect(modal).toContainText('Proprietário Inline E2E');
+  await expect(modal).toContainText('Operador Inline E2E');
+  await modal.getByRole('button', { name: /Cadastrar|Salvar/ }).click();
+  const vinculos = page.locator('#main-content').getByRole('heading', { name: 'Vínculos', exact: true }).locator('..');
+  await expect(vinculos).toContainText('Proprietário Inline E2E');
+  await expect(vinculos).toContainText('Operador Inline E2E');
+  await expect(vinculos).toContainText('Parceiro E2E');
+  await page.reload();
+  await expect(vinculos).toContainText('Operador Inline E2E');
+  await expect(vinculos).toContainText('Proprietário Inline E2E');
+  // A ficha também exibe os dois vínculos após a mudança para locação.
+  const mudou = await page.evaluate(async () => {
+    const id = location.pathname.split('/').pop();
+    const res = await fetch(`/api/imoveis/${id}`, { method: 'PUT', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${localStorage.getItem('pb_token')}` }, body: JSON.stringify({ tipo: 'locacao' }) });
+    return res.status;
+  });
+  expect(mudou).toBe(200);
+  await page.reload();
+  await expect(vinculos).toContainText('Operador Inline E2E');
+  await expect(vinculos).toContainText('Proprietário Inline E2E');
   await expectNoErrors(errors);
 });
 
@@ -165,7 +183,7 @@ test('vínculos: parceiro cadastrado na hora com o registro do tipo (corretor �
   await modal.locator('#wz-endereco').fill('Rua do Parceiro, 1');
   await modal.locator('#wz-cidade').fill('Rio de Janeiro');
   await proximo(3);
-  await modal.getByRole('button', { name: '+ Cadastrar novo parceiro' }).click();
+  await modal.getByRole('button', { name: '+ Cadastrar executivo comercial' }).click();
   await modal.locator('#np-tipo').selectOption('corretor');
   await modal.locator('#np-nome').fill('Carlos Corretor E2E');
   await modal.getByRole('button', { name: 'Cadastrar e selecionar' }).last().click();

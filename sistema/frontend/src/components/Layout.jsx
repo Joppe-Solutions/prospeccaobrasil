@@ -3,6 +3,7 @@ import { Link, NavLink, Outlet, useLocation } from 'react-router-dom';
 import { getUser, logout } from '../lib/api';
 import { grupoAtivo, MENU, subitemAtivo } from '../lib/menu';
 import Snackbar from './Snackbar';
+import { ExportProvider } from './Exportacao';
 import '../tourflow/shell/Sidebar.css';
 import '../tourflow/shell/AppTopbar.css';
 
@@ -67,7 +68,7 @@ export default function Layout() {
       </div>
     </aside>
     <main id="main-content" tabIndex={-1} className={`app-shell__main ${recolhida ? 'app-shell__main--collapsed' : 'app-shell__main--expanded'}`}>
-      <div className="app-shell__content app-shell__content--dense"><Outlet /></div>
+      <div className="app-shell__content app-shell__content--dense"><ExportProvider><Outlet /></ExportProvider></div>
     </main>
     <Snackbar />
   </div>;

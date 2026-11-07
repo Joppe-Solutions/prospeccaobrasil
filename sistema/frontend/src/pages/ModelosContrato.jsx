@@ -69,7 +69,7 @@ export default function ModelosContrato() {
         <div><h2>Biblioteca de modelos</h2><p>Arquivos oficiais de cada tipo de contrato.</p></div>
         <span className="collection-section-symbol"><FileText size={22} /></span>
       </div>
-      <DataTable columns={columns} data={filtrados} loading={loading} error={error} searchPlaceholder="Buscar modelo..." toolbar={<Selecao aria-label="Filtrar por tipo de contrato" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(CATEGORIAS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Selecao>} emptyTitle="Nenhum modelo cadastrado"
+      <DataTable exportName="modelos-contrato.csv" columns={columns} data={filtrados} loading={loading} error={error} searchPlaceholder="Buscar modelo..." toolbar={<Selecao aria-label="Filtrar por tipo de contrato" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(CATEGORIAS).map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Selecao>} emptyTitle="Nenhum modelo cadastrado"
         emptyDescription={isAdmin ? 'Clique em “Novo modelo” para adicionar o primeiro.' : 'Peça a um administrador para cadastrar os modelos.'} />
     </section>
     {form && <Modal title={form.id ? 'Editar modelo' : 'Novo modelo de contrato'} onClose={() => !busy && setForm(null)}

@@ -60,7 +60,8 @@ function App() {
         <Route path="empresas/nova" element={<EmpresaWizard />} />
         <Route path="empresas/:id/editar" element={<EmpresaWizard />} />
         <Route path="proprietarios" element={<Proprietarios />} />
-        <Route path="parceiros" element={<Parceiros />} />
+        <Route path="executivos-comerciais" element={<Parceiros />} />
+        <Route path="parceiros" element={<Navigate to="/executivos-comerciais" replace />} />
         <Route path="leads" element={<Leads />} />
         <Route path="oportunidades" element={<Oportunidades />} />
         <Route path="financeiro" element={<Financeiro />} />

@@ -34,7 +34,7 @@ function locationUrl(i) {
   return MAPS_AUTO + encodeURIComponent([address(i), i.bairro, i.cidade, i.uf, i.cep].filter(Boolean).join(', '));
 }
 const labels = {
-  planta: 'Planta do imóvel', inteligencia: 'Inteligência de mercado', rgi: 'RGI / Habite-se',
+  planta: 'Planta do imóvel', dwg: 'Planta DWG', outro: 'Outro documento', inteligencia: 'Inteligência de mercado', rgi: 'RGI / Habite-se',
   avcb: 'AVCB', convencao: 'Convenção de condomínio', regimento: 'Regimento interno', iptu_doc: 'IPTU',
 };
 const statuses = { disponivel: 'Disponível', em_analise: 'Em análise', concluido: 'Concluído' };
@@ -52,16 +52,16 @@ function mapFigure(i, m) {
   return `<figure class="hero-map"><a class="map" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer" aria-label="Abrir a localização do imóvel no Google Maps">${corpo}</a><figcaption>${aproximada ? 'Localização aproximada' : 'Localização'}<span>${esc([i.bairro, i.cidade].filter(Boolean).join(' · '))}</span></figcaption></figure>`;
 }
 
-// Indicadores de inteligência territorial e comercial: moradores no raio de 1 km (setores do Censo 2022; sem eles, o bairro) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
+// Indicadores de inteligência territorial e comercial: moradores no raio de 1 km (setores do Censo IBGE Atualizado; sem eles, o bairro) e entorno (OpenStreetMap), no rodapé da 1ª folha. Só entra o que existe.
 function contextSection(i, contexto) {
   const raio = contexto?.raio || null, bairro = contexto?.bairro || null;
   const b = raio || bairro, e = contexto?.entorno;
   const int = v => Number(v).toLocaleString('pt-BR', { maximumFractionDigits: 0 });
   const tiles = [
-    b && present(b.populacao) && [raio ? 'Moradores em 1 km' : 'Moradores no bairro', int(b.populacao), raio ? 'raio do ponto · Censo 2022' : `${esc(b.nome)} · Censo 2022`],
+    b && present(b.populacao) && [raio ? 'Moradores em 1 km' : 'Moradores no bairro', int(b.populacao), raio ? 'raio do ponto · Censo IBGE Atualizado' : `${esc(b.nome)} · Censo IBGE Atualizado`],
     b && present(b.rendaMedia) && ['Renda média', `R$ ${int(b.rendaMedia)}`, 'do responsável pelo domicílio'],
-    raio && bairro && present(bairro.populacao) ? ['Moradores no bairro', int(bairro.populacao), `${esc(bairro.nome)} · Censo 2022`]
-      : b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), `${raio ? 'em 1 km' : 'no bairro'} · Censo 2022`],
+    raio && bairro && present(bairro.populacao) ? ['Moradores no bairro', int(bairro.populacao), `${esc(bairro.nome)} · Censo IBGE Atualizado`]
+      : b && present(b.domiciliosOcupados) && ['Domicílios ocupados', int(b.domiciliosOcupados), `${raio ? 'em 1 km' : 'no bairro'} · Censo IBGE Atualizado`],
     e && ['Comércio e serviços', int(e.total1000), 'mapeados a até 1 km'],
   ].filter(Boolean);
   if (!tiles.length) return '';
@@ -155,7 +155,7 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const areas = (i.areas || []).map(a => ['area', a.nome, '', measure(a.area)]);
   const dimensions = [['area', 'Área útil', '', measure(i.areaUtil)],
     ...(areas.length ? areas : [['area', 'Piso / área de venda', '', measure(i.pisoAreaVenda)], ['area', 'Jirau', '', measure(i.jirau)], ['area', 'Mezanino', '', measure(i.mezanino)]]),
-    ['ponto', 'Frente de loja', '', measure(i.frenteImovel, 'm')], ['altura', 'Pé-direito loja', '', measure(i.peDireito, 'm')], ...(present(i.vagas) ? [['vagas', 'Vagas', 'Estacionamento', String(i.vagas)]] : [])]
+    ['ponto', 'Frente de loja', '', measure(i.frenteImovel, 'mts')], ['altura', 'Pé-direito loja', '', measure(i.peDireito, 'mts')], ...(present(i.vagas) ? [['vagas', 'Vagas', 'Estacionamento', String(i.vagas)]] : [])]
     // Medida não cadastrada não vira linha vazia (a ABL aparece só no destaque da primeira folha)
     .filter(([, , , value]) => value !== 'Não informada');
   const base = sale ? i.precoVenda : i.aluguel;
@@ -166,7 +166,7 @@ function renderApresentacao(i, qrData, { completa = false, mapa = null, contexto
   const timbre = '<span class="spine" aria-hidden="true">Prospecção Brasil · Retail &amp; Real Estate · CJ 8762 / RJ</span><img class="sheet-mark" src="/images/monograma-pb.png" alt="" aria-hidden="true">';
   const header = `<header class="document-header banner slim"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div></header>`;
   const headerFirst = `<header class="document-header banner"><a href="https://prospeccaobrasil.com.br" aria-label="Prospecção Brasil"><img class="logo" src="/images/logo-wide.png" alt="Prospecção Brasil - Retail & Real Estate"></a><div class="header-right"><div class="reference"><span>Apresentação comercial</span><strong>${esc(i.codigo)}</strong></div><a class="qr" href="${esc(locationUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrData)}" alt="QR code para abrir a localização do imóvel"><span>Ver localização ↗</span></a></div></header>`;
-  const hasDetails = Boolean(i.descricao?.trim() || docs.length || infra || entorno1km);
+  const hasDetails = Boolean(i.descricao?.trim() || i.observacoes?.trim() || docs.length || infra || entorno1km);
   const footer = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
   const visita = (cls = '') => `<section class="contact ${cls}"><div><span class="small-label">Conheça o imóvel</span><h2>Agende uma visita.</h2><p>Luiz Claudio P. · <a href="https://wa.me/5521998423232">(21) 9 9842-3232</a></p><a class="email" href="mailto:comercial@prospeccaobrasil.com.br">comercial@prospeccaobrasil.com.br</a><p class="fine-print">Visitas mediante agendamento prévio.</p>${qrVisita && cls === '' ? `<a class="qr-visita" href="${esc(whatsappUrl(i))}" target="_blank" rel="noopener noreferrer"><img src="${esc(qrVisita)}" alt="QR code para falar no WhatsApp sobre o imóvel"><span>Falar no WhatsApp</span></a>` : ''}</div></section>`;
   const footerBand = `<footer class="document-footer band"><div><strong>Prospecção Brasil</strong><span>Retail & Real Estate · CJ 8762 / RJ</span></div><div><span>Atualizado em ${esc(updated)}</span><span>${esc(i.codigo)} · prospeccaobrasil.com.br</span></div></footer>`;
@@ -187,6 +187,7 @@ ${i.descricao?.trim() ? `<section class="description"><h3>Sobre o imóvel</h3><p
 ${infra}
 ${entorno1km}
 ${docs.length ? `<section class="documents"><h3>Documentos técnicos para consulta</h3><p class="fine-print digital-only">Toque ou clique em um documento para abri-lo em uma nova aba. Reunimos aqui os arquivos liberados para a sua análise.</p><p class="fine-print print-only">No PDF, clique no documento para abri-lo. Na versão impressa, solicite os arquivos à nossa equipe comercial.</p><ul class="doc-grid" style="--docs:${Math.min(docs.length, 7)}">${docs.map((d, n) => `<li class="${n > 6 ? 'digital-only' : ''}"><a href="${esc(d.href)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir ${esc(d.titulo)} em uma nova aba">${docIcone(d.tipo)}<strong>${esc(d.titulo)}</strong>${d.generico ? '' : `<small>${esc(labels[d.tipo])}</small>`}<span class="doc-abrir digital-only" aria-hidden="true">Abrir ↗</span></a></li>`).join('')}</ul>${docs.length > 7 ? '<p class="print-only fine-print">Seleção de documentos. Consulte a versão digital para ver todos.</p>' : ''}</section>` : ''}
+${i.observacoes?.trim() ? `<section class="observacoes"><h3>Observações</h3><p class="digital-only">${esc(i.observacoes.trim())}</p><p class="print-only">${esc(i.observacoes.trim().slice(0, 250))}${i.observacoes.trim().length > 250 ? '… Consulte a versão digital para o texto completo.' : ''}</p></section>` : ''}
 ${visita()}
 ${footerBand}</article>` : ''}
 </main>${photos.length > 1 ? `<div class="viewer" hidden role="dialog" aria-modal="true" aria-label="Fotos do imóvel"><button type="button" class="viewer-close" aria-label="Fechar">×</button><button type="button" class="viewer-nav prev" aria-label="Foto anterior">‹</button><figure><img alt=""><figcaption></figcaption></figure><button type="button" class="viewer-nav next" aria-label="Próxima foto">›</button></div>

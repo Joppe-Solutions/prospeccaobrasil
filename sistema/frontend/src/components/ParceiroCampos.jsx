@@ -14,7 +14,7 @@ export function mudarTipo(form, tipo) {
 /** Mensagem de erro (ou '') para os campos que dependem do tipo, antes de enviar à API */
 export function validarParceiro(form) {
   if (!form.nome?.trim()) return 'Informe o nome.';
-  if (form.tipo === 'consultor' && !form.documento) return 'Informe o CPF do consultor.';
+  if (form.tipo === 'consultor' && !form.documento) return 'Informe o CPF do executivo comercial.';
   if (form.documento && !documentoValido(form.documento, juridica(form.tipoPessoa))) return form.tipoPessoa === 'pj' ? 'CNPJ inválido: confira os 14 dígitos.' : 'CPF inválido: confira os 11 dígitos.';
   if (['corretor', 'imobiliaria'].includes(form.tipo) && !form.creci) return `Informe o ${form.tipo === 'imobiliaria' ? 'CRECI-PJ' : 'CRECI-PF'}.`;
   if (form.tipo === 'advogado' && !form.oab) return 'Informe o número da OAB.';
@@ -28,7 +28,7 @@ export default function ParceiroCampos({ form, setForm, prefixo = 'parc', Campo 
   const pj = form.tipoPessoa === 'pj';
   const docObrigatorio = form.tipo === 'consultor';
   return <>
-    <Campo className={classe}><label htmlFor={`${prefixo}-tipo`}>Tipo de parceiro</label>
+    <Campo className={classe}><label htmlFor={`${prefixo}-tipo`}>Qualificação</label>
       <Selecao id={`${prefixo}-tipo`} value={form.tipo} onChange={e => setForm(f => mudarTipo(f, e.target.value))}>{Object.entries(TIPOS_PARCEIRO).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao></Campo>
     {form.tipo === 'indicador' && <Campo className={classe}><label htmlFor={`${prefixo}-pessoa`}>Pessoa</label>
       <Selecao id={`${prefixo}-pessoa`} value={form.tipoPessoa} onChange={e => setForm(f => ({ ...f, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao></Campo>}

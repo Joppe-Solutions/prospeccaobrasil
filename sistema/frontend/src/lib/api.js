@@ -74,7 +74,7 @@ export const PADRAO_COORDENADAS = `\\s*${LAT}\\s*(?:[,;]\\s*|\\s+)${LON}\\s*`;
 
 export const UFS = ['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'];
 
-export const TIPOS_PARCEIRO = { consultor: 'Consultor', advogado: 'Advogado', corretor: 'Corretor', imobiliaria: 'Imobiliária', indicador: 'Indicador' };
+export const TIPOS_PARCEIRO = { consultor: 'Executivo comercial', advogado: 'Advogado', corretor: 'Corretor', imobiliaria: 'Imobiliária', indicador: 'Indicador' };
 // Pessoa definida pelo tipo (indicador pode ser física ou jurídica)
 export const PESSOA_PARCEIRO = { consultor: 'pf', advogado: 'pf', corretor: 'pf', imobiliaria: 'pj' };
 

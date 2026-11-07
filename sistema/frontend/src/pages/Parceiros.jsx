@@ -56,7 +56,7 @@ export default function Parceiros() {
         method: modal.type === 'create' ? 'POST' : 'PUT',
         body: JSON.stringify({ ...form, nome: form.nome.trim() }),
       });
-      avisar(modal.type === 'create' ? 'Parceiro cadastrado.' : 'Parceiro atualizado.');
+      avisar(modal.type === 'create' ? 'Executivo comercial cadastrado.' : 'Executivo comercial atualizado.');
       setModal(null); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
@@ -64,7 +64,7 @@ export default function Parceiros() {
     setBusy(true); setFormError('');
     try {
       await api(`/parceiros/${deleting.id}`, { method: 'DELETE' });
-      setDeleting(null); avisar('Parceiro excluído.'); await load();
+      setDeleting(null); avisar('Executivo comercial excluído.'); await load();
     } catch (e) { setFormError(e.message); } finally { setBusy(false); }
   }
 
@@ -73,7 +73,7 @@ export default function Parceiros() {
   ), [list, tipo, status]);
 
   const columns = [
-    { accessorKey: 'nome', header: 'Parceiro', cell: ({ row }) => (
+    { accessorKey: 'nome', header: 'Executivo comercial', exportValue: p => [p.nome, TIPOS[p.tipo] || p.tipo, registroProfissional(p)].filter(Boolean).join(' · '), cell: ({ row }) => (
       <div className="collection-identity">
         <Avatar name={row.original.nome} />
         <span className="collection-cell-stack">
@@ -91,7 +91,7 @@ export default function Parceiros() {
     ) },
     { id: 'cidade', header: 'Cidade', accessorFn: p => `${p.cidade || ''} ${p.uf || ''}`, cell: ({ row }) => row.original.cidade ? <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf || ''}</small></span> : '—' },
     { id: 'imoveis', header: 'Imóveis', accessorFn: p => p._count?.imoveis || 0, cell: ({ getValue }) => <span className="collection-nowrap">{getValue()}</span> },
-    { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={getValue() === 'ativo' ? 'Ativo' : 'Inativo'} /> },
+    { accessorKey: 'status', header: 'Status', exportValue: item => item.status === 'ativo' ? 'Ativo' : 'Inativo', cell: ({ getValue }) => <StatusBadge status={getValue()} label={getValue() === 'ativo' ? 'Ativo' : 'Inativo'} /> },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => (
       <div className="collection-row-actions">
         <button className="icon-button" aria-label={`Editar ${row.original.nome}`} onClick={() => openEdit(row.original)}><ArrowRight size={18} /></button>
@@ -105,24 +105,24 @@ export default function Parceiros() {
   return <div className="collection-page">
     <PageHeader
       eyebrow="Relacionamentos"
-      title="Consultores"
+      title="Executivos comerciais"
       description="Corretores e quem traz imóveis para o portfólio."
-      actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo parceiro</button>}
+      actions={<button className="btn btn-gold" onClick={openCreate}><Plus size={18} weight="bold" /> Novo executivo comercial</button>}
     />
         <div className="collection-stats">
-      <div><span className="collection-stat-icon"><Handshake size={21} /></span><span><small>Parceiros</small><strong>{count(list.length)}</strong></span></div>
+      <div><span className="collection-stat-icon"><Handshake size={21} /></span><span><small>Executivos comerciais</small><strong>{count(list.length)}</strong></span></div>
       <div><span className="collection-stat-icon is-green"><UsersThree size={21} /></span><span><small>Ativos</small><strong>{count(list.filter(p => p.status === 'ativo').length)}</strong></span></div>
       <div><span className="collection-stat-icon is-gold"><Storefront size={21} /></span><span><small>Corretores</small><strong>{count(list.filter(p => p.tipo === 'corretor').length)}</strong></span></div>
     </div>
     <section className="panel collection-panel">
       <div className="collection-section-head">
-        <div><h2>Rede de parceiros</h2><p>Quem indica e traz oportunidades de imóvel.</p></div>
+        <div><h2>Executivos comerciais</h2><p>Quem indica e traz oportunidades de imóvel.</p></div>
         <span className="collection-section-symbol"><Handshake size={20} /></span>
       </div>
       <DataTable
         columns={columns} data={filtered} loading={loading} error={error}
-        searchPlaceholder="Buscar parceiro, telefone ou cidade..." exportName="parceiros.csv"
-        emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo parceiro</button>} emptyTitle="Nenhum parceiro encontrado" emptyDescription="Cadastre consultores, advogados, corretores, imobiliárias e indicadores."
+        searchPlaceholder="Buscar executivo comercial, telefone ou cidade..." exportName="executivos-comerciais.csv"
+        emptyAction={<button className="btn btn-primary btn-sm" onClick={openCreate}><Plus size={16} /> Novo executivo comercial</button>} emptyTitle="Nenhum executivo comercial encontrado" emptyDescription="Cadastre executivos comerciais, advogados, corretores, imobiliárias e indicadores."
         toolbar={<>
           <Selecao aria-label="Filtrar tipo" value={tipo} onChange={e => setTipo(e.target.value)}><option value="">Todos os tipos</option>{Object.entries(TIPOS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}</Selecao>
           <Selecao aria-label="Filtrar status" value={status} onChange={e => setStatus(e.target.value)}><option value="">Todos os status</option><option value="ativo">Ativos</option><option value="inativo">Inativos</option></Selecao>
@@ -133,8 +133,8 @@ export default function Parceiros() {
     </section>
 
     {modal && <Modal
-      title={modal.type === 'create' ? 'Novo parceiro' : 'Editar parceiro'}
-      description="Consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliária (CRECI-PJ) ou indicador."
+      title={modal.type === 'create' ? 'Novo executivo comercial' : 'Editar executivo comercial'}
+      description="Executivo comercial (CPF), advogado (OAB), corretor (CRECI-PF), imobiliária (CRECI-PJ) ou indicador."
       onClose={() => !busy && setModal(null)}
       footer={<><button className="btn btn-ghost" disabled={busy} onClick={() => setModal(null)}>Cancelar</button><button className="btn btn-primary" type="submit" form="parc-form" disabled={busy}>{busy ? 'Salvando...' : modal.type === 'create' ? 'Cadastrar' : 'Salvar alterações'}<ArrowRight size={17} /></button></>}
     >
@@ -151,7 +151,7 @@ export default function Parceiros() {
       </form>
     </Modal>}
 
-    {deleting && <Modal title="Excluir parceiro?" description="Imóveis vinculados ficarão sem parceiro cadastrado." onClose={() => !busy && setDeleting(null)} footer={<><button className="btn btn-ghost" disabled={busy} onClick={() => setDeleting(null)}>Cancelar</button><button className="btn btn-danger" disabled={busy} onClick={remove}>{busy ? 'Excluindo...' : 'Excluir'}</button></>}>
+    {deleting && <Modal title="Excluir executivo comercial?" description="Imóveis vinculados ficarão sem executivo comercial cadastrado." onClose={() => !busy && setDeleting(null)} footer={<><button className="btn btn-ghost" disabled={busy} onClick={() => setDeleting(null)}>Cancelar</button><button className="btn btn-danger" disabled={busy} onClick={remove}>{busy ? 'Excluindo...' : 'Excluir'}</button></>}>
       <div className="collection-modal-form">{formError && <div className="alert error" role="alert">{formError}</div>}<div className="collection-identity"><Avatar name={deleting.nome} /><span className="collection-cell-stack"><strong>{deleting.nome}</strong><small>{TIPOS[deleting.tipo] || deleting.tipo}</small></span></div></div>
     </Modal>}
   </div>;

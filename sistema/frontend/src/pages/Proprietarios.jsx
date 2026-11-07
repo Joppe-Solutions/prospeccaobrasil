@@ -89,7 +89,7 @@ export default function Proprietarios() {
     ) },
     { id: 'cidade', header: 'Cidade', accessorFn: p => `${p.cidade || ''} ${p.uf || ''}`, cell: ({ row }) => row.original.cidade ? <span className="collection-cell-stack"><span>{row.original.cidade}</span><small>{row.original.uf || ''}</small></span> : '—' },
     { id: 'imoveis', header: 'Imóveis', accessorFn: p => (p._count?.imoveis || 0) + (p._count?.imoveisOperados || 0), cell: ({ getValue }) => <span className="collection-nowrap">{getValue()}</span> },
-    { accessorKey: 'status', header: 'Status', cell: ({ getValue }) => <StatusBadge status={getValue()} label={getValue() === 'ativo' ? 'Ativo' : 'Inativo'} /> },
+    { accessorKey: 'status', header: 'Status', exportValue: item => item.status === 'ativo' ? 'Ativo' : 'Inativo', cell: ({ getValue }) => <StatusBadge status={getValue()} label={getValue() === 'ativo' ? 'Ativo' : 'Inativo'} /> },
     { id: 'acoes', header: '', enableSorting: false, enableHiding: false, cell: ({ row }) => (
       <div className="collection-row-actions">
         <button className="icon-button" aria-label={`Editar ${row.original.nome}`} onClick={() => openEdit(row.original)}><ArrowRight size={18} /></button>

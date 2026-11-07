@@ -6,12 +6,14 @@ import { api, enviarFotos, fmtMoney, fmtNum, mapsUrl, registroProfissional, STAT
 import PhotoUploader from '../components/PhotoUploader';
 import Modal from '../components/Modal';
 import { DinheiroInput } from '../components/NumberFields';
-import { ArrowSquareOut } from '@phosphor-icons/react';
+import { ArrowSquareOut, PencilSimple, DotsSixVertical, ArrowUp, ArrowDown } from '@phosphor-icons/react';
 import Confirmacao from '../components/Confirmacao';
 import { PageHeader } from '../components/UI';
 import { avisar } from '../lib/avisos';
+import './documentos.css';
 
 const DOC_TIPOS = [['planta', 'Planta (PDF)'], ['dwg', 'Planta (DWG)'], ['inteligencia', 'Inteligência de mercado'], ['pre_analise', 'Pré-análise'], ['rgi', 'RGI / Habite-se'], ['avcb', 'AVCB'], ['convencao', 'Convenção Cond.'], ['regimento', 'Regimento'], ['iptu_doc', 'IPTU'], ['doc_locatario', 'Documentação do locatário'], ['outro', 'Outro']];
+const DOC_PADRAO = [['planta', 'Planta'], ['inteligencia', 'Inteligência de mercado'], ['rgi', 'RGI'], ['avcb', 'AVCB'], ['convencao', 'Condomínio'], ['iptu_doc', 'IPTU']];
 const ETAPAS = { apresentado: 'Apresentado', visita: 'Visita', proposta: 'Proposta', negociacao: 'Negociação', fechado: 'Fechado', perdido: 'Perdido' };
 const CATEGORIAS = { loja: 'Loja', predio: 'Prédio', terreno: 'Terreno', outro: 'Outro' };
 
@@ -27,6 +29,9 @@ export default function ImovelDetalhe() {
   const [empSel, setEmpSel] = useState('');
   const [docTipo, setDocTipo] = useState('planta');
   const [docNome, setDocNome] = useState('');
+  const [editDoc, setEditDoc] = useState(null);
+  const [ordenando, setOrdenando] = useState(false);
+  const arrastandoDoc = useRef(null);
   const [docUrl, setDocUrl] = useState('');
   const [despesaForm, setDespesaForm] = useState({ descricao: '', valor: '', data: '' });
   const [gerando, setGerando] = useState(false);
@@ -83,6 +88,22 @@ export default function ImovelDetalhe() {
       load(); flash('Documento adicionado');
     } catch { flash('Falha ao adicionar documento'); }
   }
+  async function ordenarDocs(origem, destino) {
+    if (ordenando || origem === destino || origem < 0 || destino < 0 || origem >= i.documentos.length || destino >= i.documentos.length) return;
+    const docs = [...i.documentos];
+    docs.splice(destino, 0, docs.splice(origem, 1)[0]);
+    setI(atual => ({ ...atual, documentos: docs }));
+    setOrdenando(true);
+    try {
+      await api(`/imoveis/${id}/documentos/ordem`, { method: 'PUT', body: JSON.stringify({ ids: docs.map(d => d.id) }) });
+      flash('Ordem dos documentos salva');
+    } catch (e) { await load(); flash(e.message || 'Não foi possível salvar a ordem'); }
+    finally { setOrdenando(false); }
+  }
+  async function renomearDoc(e) {
+    e.preventDefault();
+    try { await api(`/imoveis/${id}/documentos/${editDoc.id}`, { method: 'PATCH', body: JSON.stringify({ nome: editDoc.nome }) }); setEditDoc(null); await load(); flash('Documento renomeado'); } catch (e) { flash(e.message); }
+  }
   async function gerarIA() {
     setGerando(true);
     try {
@@ -135,6 +156,7 @@ export default function ImovelDetalhe() {
 
   return (
     <>
+      {editDoc && <Modal title="Renomear documento" onClose={() => setEditDoc(null)}><form onSubmit={renomearDoc} className="inline-form"><div className="field grow"><label htmlFor="novo-nome-doc">Nome</label><input id="novo-nome-doc" required maxLength={255} value={editDoc.nome} onChange={e => setEditDoc({ ...editDoc, nome: e.target.value })} /></div><button className="btn btn-primary">Salvar</button></form></Modal>}
       <Confirmacao pedido={estorno && { titulo: 'Estornar despesa?', texto: `${estorno.descricao} · ${fmtMoney(estorno.valor)}. A despesa fica no histórico como estornada.`, rotulo: 'Estornar', perigo: true, campo: 'Motivo (opcional)' }} onClose={() => setEstorno(null)} onConfirm={motivo => estornarDespesa(estorno.id, motivo)} />
       {excluir && <Modal title="Excluir imóvel?" description={`${i.codigo} — ${i.endereco}${i.numero ? `, ${i.numero}` : ''}`} onClose={() => !excluir.ocupado && setExcluir(null)}
         footer={<><button className="btn btn-ghost" disabled={excluir.ocupado} onClick={() => setExcluir(null)}>Cancelar</button>
@@ -142,7 +164,7 @@ export default function ImovelDetalhe() {
           {!excluir.erro && <button className="btn btn-danger" disabled={excluir.ocupado} onClick={confirmarExclusao}>{excluir.ocupado ? 'Excluindo...' : 'Excluir definitivamente'}</button>}</>}>
         <div className="collection-modal-form">
           {excluir.erro ? <div className="alert error" role="alert">{excluir.erro}</div>
-            : <p>O imóvel, as fotos, os documentos e as análises serão apagados e não podem ser recuperados. Se ele já teve negociação, prefira marcá-lo como inativo.</p>}
+            : <p>O imóvel, as fotos, os documentos, as análises e as despesas vinculadas serão apagados e não podem ser recuperados. Se ele já teve negociação, prefira marcá-lo como inativo.</p>}
         </div>
       </Modal>}
       <PageHeader title={`${i.codigo} — ${i.endereco}${i.numero ? `, ${i.numero}` : ''}`} actions={<div className="page-actions">
@@ -187,16 +209,18 @@ export default function ImovelDetalhe() {
         <h2>Vínculos</h2>
         <dl className="detail-links">
           <div>
-            <dt>{i.tipo === 'passagem_ponto' ? 'Operador do ponto' : 'Proprietário'}</dt>
-            {i.tipo === 'passagem_ponto'
-              ? <dd><strong>{i.operador?.nome || '—'}</strong>{i.operador && <small>{[i.operador.marca, i.operador.telefone].filter(Boolean).join(' · ')}</small>}</dd>
-              : <dd><strong>{i.proprietarioRel?.nome || i.proprietario || '—'}</strong>{(i.proprietarioRel?.telefone || i.telProprietario) && <small>{i.proprietarioRel?.telefone || i.telProprietario}</small>}</dd>}
+            <dt>Proprietário</dt>
+            <dd><strong>{i.proprietarioRel?.nome || i.proprietario || '—'}</strong>{(i.proprietarioRel?.telefone || i.telProprietario) && <small>{i.proprietarioRel?.telefone || i.telProprietario}</small>}</dd>
           </div>
           <div>
-            <dt>Parceiro</dt>
+            <dt>Operador do ponto</dt>
+            <dd><strong>{i.operador?.nome || '—'}</strong>{i.operador && <small>{[i.operador.marca, i.operador.telefone].filter(Boolean).join(' · ')}</small>}</dd>
+          </div>
+          <div>
+            <dt>Executivo comercial</dt>
             <dd><strong>{i.parceiro?.nome || '—'}</strong>{i.parceiro && <small>{[TIPOS_PARCEIRO[i.parceiro.tipo], registroProfissional(i.parceiro), i.parceiro.telefone].filter(Boolean).join(' · ')}</small>}</dd>
           </div>
-          {i.observacoes && <div className="detail-links-wide"><dt>Observações internas</dt><dd className="detail-prewrap">{i.observacoes}</dd></div>}
+          {i.observacoes && <div className="detail-links-wide"><dt>Observações na apresentação</dt><dd className="detail-prewrap">{i.observacoes}</dd></div>}
         </dl>
       </div>
 
@@ -237,6 +261,8 @@ export default function ImovelDetalhe() {
 
       <div className="panel">
         <h2>Documentos</h2>
+        <p>Documentação: <strong>{DOC_PADRAO.filter(([tipo]) => tipo !== 'convencao' || Number(i.condominio) > 0).every(([tipo]) => i.documentos.some(d => d.tipo === tipo)) ? 'Completa' : 'Pendente'}</strong></p>
+        <ul>{DOC_PADRAO.map(([tipo, nome]) => <li key={tipo}>{nome}: {i.documentos.some(d => d.tipo === tipo) ? 'Recebido' : tipo === 'convencao' && !(Number(i.condominio) > 0) ? 'Quando aplicável' : 'Pendente'}</li>)}</ul>
         <form onSubmit={addDoc} className="inline-form">
           <div className="field"><label htmlFor="doc-tipo">Tipo</label><Selecao id="doc-tipo" value={docTipo} onChange={e => setDocTipo(e.target.value)}>{DOC_TIPOS.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</Selecao></div>
           <div className="field grow"><label htmlFor="doc-nome">Nome <span className="collection-optional">Opcional</span></label><input id="doc-nome" value={docNome} onChange={e => setDocNome(e.target.value)} /></div>
@@ -245,12 +271,18 @@ export default function ImovelDetalhe() {
           <button className="btn btn-ghost">Adicionar documento</button>
         </form>
         {i.documentos.length === 0 && <p className="muted">Nenhum documento anexado.</p>}
-        <table className="detail-table"><tbody>
-          {i.documentos.map(d => (
-            <tr key={d.id}>
+        {i.documentos.length > 1 && <p className="muted">Arraste os documentos para ordená-los ou use as setas. A apresentação segue essa ordem.</p>}
+        <table className="detail-table document-order"><tbody>
+          {i.documentos.map((d, index) => (
+            <tr key={d.id} onDragOver={e => { if (arrastandoDoc.current !== null && !ordenando) e.preventDefault(); }} onDrop={e => { e.preventDefault(); const origem = i.documentos.findIndex(doc => doc.id === arrastandoDoc.current); arrastandoDoc.current = null; ordenarDocs(origem, index); }}>
+              <td className="document-order-controls">
+                <span className="document-drag" draggable={!ordenando} onDragStart={e => { arrastandoDoc.current = d.id; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', String(d.id)); }} onDragEnd={() => { arrastandoDoc.current = null; }} aria-hidden="true" title="Arrastar para reorganizar"><DotsSixVertical size={20} /></span>
+                <button type="button" className="icon-button" aria-label={`Mover ${d.nome} para cima`} disabled={ordenando || index === 0} onClick={() => ordenarDocs(index, index - 1)}><ArrowUp size={16} /></button>
+                <button type="button" className="icon-button" aria-label={`Mover ${d.nome} para baixo`} disabled={ordenando || index === i.documentos.length - 1} onClick={() => ordenarDocs(index, index + 1)}><ArrowDown size={16} /></button>
+              </td>
               <td><b>{DOC_TIPOS.find(t => t[0] === d.tipo)?.[1] || d.tipo}</b></td>
               <td>{d.url || d.arquivo ? <a href={d.url || `/uploads/${d.arquivo}?token=${arquivoToken}`} target="_blank" rel="noopener noreferrer">{d.nome}</a> : d.nome}</td>
-              <td className="col-acoes"><button className="btn btn-ghost btn-sm collection-delete" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
+              <td className="col-acoes"><button type="button" className="btn btn-ghost btn-sm" aria-label={`Renomear ${d.nome}`} onClick={() => setEditDoc({ id: d.id, nome: d.nome })}><PencilSimple size={18} /></button><button className="btn btn-ghost btn-sm collection-delete" onClick={() => api(`/imoveis/${id}/documentos/${d.id}`, { method: 'DELETE' }).then(load)}>Excluir</button></td>
             </tr>
           ))}
         </tbody></table>
@@ -283,20 +315,20 @@ export default function ImovelDetalhe() {
       </div>
 
       <div className="panel">
-        <h2>Clientes compatíveis</h2><p className="muted">Clientes cujas premissas (bairros de interesse e faixa de área) batem com este imóvel. Ao apresentar, a negociação passa a ser acompanhada em <Link to="/oportunidades">Ações das operações</Link>.</p>
+        <h2>Clientes por bairro de interesse</h2><p className="muted">Clientes com interesse neste bairro e área compatível. Quando não for possível verificar a área, o cadastro aparece para conferência. Ao apresentar, a negociação passa a ser acompanhada em <Link to="/oportunidades">Ações das operações</Link>.</p>
         {(() => {
           const apresentadas = new Set(i.oportunidades.map(o => o.empresaId));
           const ativos = empresas.filter(e => e.status !== 'inativo');
-          const sugeridos = ativos.map(e => ({ e, p: premissasDoCliente(e, i) }))
+          const sugeridos = !['disponivel', 'em_analise'].includes(i.status) ? [] : ativos.map(e => ({ e, p: premissasDoCliente(e, i) }))
             .filter(({ e, p }) => ['compativel', 'parcial'].includes(p.nivel) && !apresentadas.has(e.id))
             .sort((a, b) => (a.p.nivel === b.p.nivel ? a.e.nome.localeCompare(b.e.nome) : a.p.nivel === 'compativel' ? -1 : 1));
           const marca = (ok, rotulo) => ok == null ? null : <span className={`match-crit ${ok ? 'ok' : 'no'}`}>{ok ? '✓' : '✗'} {rotulo}</span>;
           return <>
             {sugeridos.length ? <ul className="match-clientes">{sugeridos.map(({ e, p }) => <li key={e.id}>
               <span><strong>{e.nome}</strong><small>{[e.segmento, listaBairros(e.regioesInteresse).join(', ')].filter(Boolean).join(' · ') || 'Sem premissas'}</small></span>
-              <span className="match-crits"><span className={`badge ${p.nivel === 'compativel' ? 'disponivel' : 'negociacao'}`}>{p.nivel === 'compativel' ? 'Compatível' : 'Parcial'}</span>{marca(p.bairro, 'Bairro')}{marca(p.area, 'Área')}</span>
+              <span className="match-crits"><span className={`badge ${p.nivel === 'compativel' ? 'disponivel' : 'negociacao'}`}>{p.nivel === 'compativel' ? 'Compatível' : 'Conferir área'}</span>{marca(p.bairro, 'Bairro')}{marca(p.area, 'Área')}{p.motivo && <span className="match-crit no">{p.motivo}</span>}</span>
               <button className="btn btn-primary btn-sm" onClick={() => addOportunidade(e.id)} aria-label={`Apresentar para ${e.nome}`}>Apresentar</button>
-            </li>)}</ul> : <p className="muted">Nenhum cliente ainda não apresentado tem premissas compatíveis com este imóvel.</p>}
+            </li>)}</ul> : <p className="muted">Nenhum cliente disponível para apresentar tem interesse neste bairro e área compatível ou pendente de conferência.</p>}
             <div className="inline-form">
               <div className="field grow"><label htmlFor="apr-empresa">Apresentar para outro cliente</label><Selecao id="apr-empresa" value={empSel} onChange={e => setEmpSel(e.target.value)}>
                 <option value="">Selecionar cliente…</option>

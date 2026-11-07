@@ -50,9 +50,9 @@ const STEPS = [
       { k: 'carenciaMeses', l: 'Carência (meses)', fmt: 'inteiro' },
       { k: 'precoVenda', l: 'Preço de venda (R$)', fmt: 'dinheiro' }, { k: 'periodoContrato', l: 'Período de contrato', ph: '5 anos' },
     ] },
-  { id: 'vinculos', title: 'Vínculos', subtitle: 'Responsável e parceiro', heading: 'Proprietário (ou operador), parceiro e observações', description: 'Quem é o dono (ou o operador do ponto), quem trouxe o imóvel e o texto usado na apresentação.',
+  { id: 'vinculos', title: 'Vínculos', subtitle: 'Responsável e executivo comercial', heading: 'Proprietário, operador, executivo comercial e observações', description: 'Identifique o proprietário, o operador do ponto e quem trouxe o imóvel.',
     fields: [
-      { k: 'descricao', l: 'Descrição', type: 'textarea', full: true }, { k: 'observacoes', l: 'Observações internas', type: 'textarea', full: true },
+      { k: 'descricao', l: 'Descrição', type: 'textarea', full: true }, { k: 'observacoes', l: 'Observações (exibidas na apresentação pública)', type: 'textarea', full: true },
     ] },
 ];
 
@@ -97,7 +97,8 @@ const PESSOA_VAZIA = { tipoPessoa: 'pf', nome: '', documento: '', empresaId: nul
 // Seleciona um cadastro existente (proprietário ou operador do ponto) ou cria um novo ali mesmo.
 function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
   const operador = papel === 'operador';
-  const rotulo = operador ? 'Operador do ponto comercial' : 'Proprietário';
+  const rotulo = operador ? 'Operador do ponto' : 'Proprietário';
+  const prefixo = operador ? 'nvo' : 'nv';
   const [criando, setCriando] = useState(false);
   const [nova, setNova] = useState(PESSOA_VAZIA);
   const [erro, setErro] = useState('');
@@ -124,13 +125,13 @@ function VinculoPessoa({ papel, value, onChange, lista, onCriado }) {
       <strong>{operador ? 'Novo operador do ponto' : 'Novo proprietário'}</strong>
       {erro && <div className="alert error" role="alert">{erro}</div>}
       <div className="wz-grid">
-        <div className="wz-field"><label htmlFor="nv-tipo">Tipo de pessoa</label><Selecao id="nv-tipo" value={nova.tipoPessoa} onChange={e => setNova(n => ({ ...n, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao></div>
-        <div className="wz-field"><label htmlFor="nv-nome">{nova.tipoPessoa === 'pj' ? 'Razão social' : 'Nome'}</label><input id="nv-nome" value={nova.nome} onChange={e => set('nome', e.target.value)} /></div>
-        {operador && <div className="wz-field"><label htmlFor="nv-marca">Marca / bandeira</label><input id="nv-marca" value={nova.marca} onChange={e => set('marca', e.target.value)} placeholder="Ex.: Farmácia Exemplo" /></div>}
-        <div className="wz-field"><label htmlFor="nv-doc">{nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id="nv-doc" inputMode="numeric" value={nova.documento} onChange={e => set('documento', mascararDocumento(e.target.value, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica'))} /></div>
-        {nova.tipoPessoa === 'pj' && <EmpresaVinculo id="nv-empresa" className="wz-field" empresaId={nova.empresaId} empresaNome={nova.empresaNome} onChange={v => setNova(n => ({ ...n, ...v }))} />}
-        <div className="wz-field"><label htmlFor="nv-tel">Telefone</label><input id="nv-tel" value={nova.telefone} onChange={e => set('telefone', e.target.value)} /></div>
-        <div className="wz-field"><label htmlFor="nv-email">E-mail</label><input id="nv-email" type="email" value={nova.email} onChange={e => set('email', e.target.value)} /></div>
+        <div className="wz-field"><label htmlFor={`${prefixo}-tipo`}>Tipo de pessoa</label><Selecao id={`${prefixo}-tipo`} value={nova.tipoPessoa} onChange={e => setNova(n => ({ ...n, tipoPessoa: e.target.value, documento: '' }))}><option value="pf">Pessoa física</option><option value="pj">Pessoa jurídica</option></Selecao></div>
+        <div className="wz-field"><label htmlFor={`${prefixo}-nome`}>{nova.tipoPessoa === 'pj' ? 'Razão social' : 'Nome'}</label><input id={`${prefixo}-nome`} value={nova.nome} onChange={e => set('nome', e.target.value)} /></div>
+        {operador && <div className="wz-field"><label htmlFor={`${prefixo}-marca`}>Marca / bandeira</label><input id={`${prefixo}-marca`} value={nova.marca} onChange={e => set('marca', e.target.value)} placeholder="Ex.: Farmácia Exemplo" /></div>}
+        <div className="wz-field"><label htmlFor={`${prefixo}-doc`}>{nova.tipoPessoa === 'pj' ? 'CNPJ' : 'CPF'}</label><input id={`${prefixo}-doc`} inputMode="numeric" value={nova.documento} onChange={e => set('documento', mascararDocumento(e.target.value, nova.tipoPessoa === 'pj' ? 'juridica' : 'fisica'))} /></div>
+        {nova.tipoPessoa === 'pj' && <EmpresaVinculo id={`${prefixo}-empresa`} className="wz-field" empresaId={nova.empresaId} empresaNome={nova.empresaNome} onChange={v => setNova(n => ({ ...n, ...v }))} />}
+        <div className="wz-field"><label htmlFor={`${prefixo}-tel`}>Telefone</label><input id={`${prefixo}-tel`} value={nova.telefone} onChange={e => set('telefone', e.target.value)} /></div>
+        <div className="wz-field"><label htmlFor={`${prefixo}-email`}>E-mail</label><input id={`${prefixo}-email`} type="email" value={nova.email} onChange={e => set('email', e.target.value)} /></div>
       </div>
       <div className="wz-inline-actions"><button type="button" className="btn btn-ghost btn-sm" disabled={busy} onClick={() => { setCriando(false); setErro(''); }}>Cancelar</button><button type="button" className="btn btn-primary btn-sm" disabled={busy} onClick={criar}>{busy ? 'Salvando...' : 'Cadastrar e selecionar'}</button></div>
     </div>}
@@ -155,14 +156,14 @@ function VinculoParceiro({ value, onChange, lista, onCriado }) {
     } catch (e) { setErro(e.message); } finally { setBusy(false); }
   }
   return <div className="wz-field wz-full">
-    <label htmlFor="wz-parceiroId">Parceiro (quem trouxe)</label>
+    <label htmlFor="wz-parceiroId">Executivo comercial (quem trouxe)</label>
     <Selecao id="wz-parceiroId" value={value ?? ''} onChange={e => onChange(e.target.value)}>
       <option value="">Não vinculado</option>
       {lista.map(o => <option key={o.id} value={String(o.id)}>{[o.nome, TIPOS_PARCEIRO[o.tipo], registroProfissional(o)].filter(Boolean).join(' · ')}</option>)}
     </Selecao>
-    {!criando && <small><button type="button" className="wz-link" onClick={() => setCriando(true)}>+ Cadastrar novo parceiro</button></small>}
+    {!criando && <small><button type="button" className="wz-link" onClick={() => setCriando(true)}>+ Cadastrar executivo comercial</button></small>}
     {criando && <div className="wz-inline-create">
-      <strong>Novo parceiro</strong>
+      <strong>Novo executivo comercial</strong>
       {erro && <div className="alert error" role="alert">{erro}</div>}
       <div className="wz-grid">
         <ParceiroCampos form={novo} setForm={setNovo} prefixo="np" classe="wz-field" />
@@ -239,7 +240,6 @@ export default function ImovelWizard() {
 
   const close = () => nav(-1);
 
-  const passagem = form.tipo === 'passagem_ponto';
   const propNome = options.proprietarios.find(p => String(p.id) === String(form.proprietarioId))?.nome
     || form.proprietarioRel?.nome;
   const operNome = options.operadores.find(p => String(p.id) === String(form.operadorId))?.nome
@@ -267,9 +267,8 @@ export default function ImovelWizard() {
       ...step,
       content: <div className="wz-grid">
         {step.id === 'dimensoes' && <Dimensoes form={form} setForm={setForm} ablAuto={ablAuto} setAblAuto={setAblAuto} />}
-        {step.id === 'vinculos' && (passagem
-          ? <VinculoPessoa papel="operador" value={form.operadorId} lista={options.operadores} onCriado={criado('operador')} onChange={v => setForm(f => ({ ...f, operadorId: v }))} />
-          : <VinculoPessoa papel="proprietario" value={form.proprietarioId} lista={options.proprietarios} onCriado={criado('proprietario')} onChange={v => setForm(f => ({ ...f, proprietarioId: v }))} />)}
+        {step.id === 'vinculos' && <VinculoPessoa papel="proprietario" value={form.proprietarioId} lista={options.proprietarios} onCriado={criado('proprietario')} onChange={v => setForm(f => ({ ...f, proprietarioId: v }))} />}
+        {step.id === 'vinculos' && <VinculoPessoa papel="operador" value={form.operadorId} lista={options.operadores} onCriado={criado('operador')} onChange={v => setForm(f => ({ ...f, operadorId: v }))} />}
         {step.id === 'vinculos' && <VinculoParceiro value={form.parceiroId} lista={options.parceiros} onCriado={p => setOptions(o => ({ ...o, parceiros: [...o.parceiros, p] }))} onChange={v => setForm(f => ({ ...f, parceiroId: v }))} />}
         {step.fields.map(def => (
           <Field key={def.k} def={def} value={form[def.k]} options={options}
@@ -309,7 +308,7 @@ export default function ImovelWizard() {
           { title: 'Endereço', items: [['Logradouro', [form.endereco, form.numero].filter(Boolean).join(', ')], ['Bairro', form.bairro], ['Cidade/UF', [form.cidade, form.uf].filter(Boolean).join(' / ')], ['CEP', form.cep], ['Coordenadas', coord ? `${coord.lat}, ${coord.lon}` : '']] },
           { title: 'Dimensões', items: [['ABL', form.areaTotal && `${fmtNum(form.areaTotal)} m²`], ['Área útil', form.areaUtil && `${fmtNum(form.areaUtil)} m²`], ['Áreas', form.areas.filter(a => a.nome.trim() && a.area !== '').map(a => `${a.nome.trim()}: ${fmtNum(a.area)} m²`).join(' · ')], ['Pé direito', form.peDireito && `${fmtNum(form.peDireito)} mts`], ['Frente', form.frenteImovel && `${fmtNum(form.frenteImovel)} mts`], ['Vagas', form.vagas], ['Acessibilidade', form.acessibilidade], ['Infraestrutura', form.infraestrutura], ['Restrições', form.restricoesUso]] },
           { title: 'Termos', items: [['CDU', form.cdu && `R$ ${fmtNum(form.cdu)}`], ['Aluguel', form.aluguel && `R$ ${fmtNum(form.aluguel)}`], ['IPTU', form.iptu && `R$ ${fmtNum(form.iptu)}`], ['Condomínio', form.condominio && `R$ ${fmtNum(form.condominio)}`], ['Carência (meses)', form.carenciaMeses], ['Preço de venda', form.precoVenda && `R$ ${fmtNum(form.precoVenda)}`], ['Contrato', form.periodoContrato]] },
-          { title: 'Vínculos', items: [passagem ? ['Operador do ponto', operNome] : ['Proprietário', propNome], ['Parceiro', parcNome], ['Descrição', form.descricao], ['Observações internas', form.observacoes]] },
+          { title: 'Vínculos', items: [['Proprietário', propNome], ['Operador do ponto', operNome], ['Executivo comercial', parcNome], ['Descrição', form.descricao], ['Observações na apresentação', form.observacoes]] },
           { title: 'Fotos', items: [['Fotos', itensFoto.length ? `${itensFoto.length} ${itensFoto.length === 1 ? 'foto' : 'fotos'}${pendentes.length ? ` (${pendentes.length} a enviar)` : ''}` : '']] },
         ]} /> },
   ];
@@ -334,8 +333,8 @@ export default function ImovelWizard() {
         ...form,
         latitude: ponto ? ponto.lat : null,
         longitude: ponto ? ponto.lon : null,
-        proprietarioId: passagem || form.proprietarioId === '' ? null : form.proprietarioId,
-        operadorId: !passagem || form.operadorId === '' ? null : form.operadorId,
+        proprietarioId: form.proprietarioId === '' ? null : form.proprietarioId,
+        operadorId: form.operadorId === '' ? null : form.operadorId,
         parceiroId: form.parceiroId === '' ? null : form.parceiroId,
       };
       // Se as fotos falharem depois de criar o imóvel, tentar de novo atualiza em vez de duplicar

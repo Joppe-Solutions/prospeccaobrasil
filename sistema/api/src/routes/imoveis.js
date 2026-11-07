@@ -6,7 +6,6 @@ const multer = require('multer');
 const auth = require('../middleware/auth');
 const { requireRole } = auth;
 const asyncHandler = require('../middleware/async');
-const paginate = require('../lib/paginate');
 const { gerarAnalise } = require('../services/inteligencia');
 const { fail, urlHttp } = require('../lib/validar');
 const { aquecerLocalizacao } = require('../services/aquecer');
@@ -157,16 +156,24 @@ module.exports = (prisma) => {
       { codigo: { contains: q } }, { endereco: { contains: q } },
       { bairro: { contains: q } }, { titulo: { contains: q } }, { cidade: { contains: q } },
     ];
-    await paginate(req, res, prisma.imovel, {
-      where, orderBy: { criadoEm: 'desc' },
+    const query = {
+      where,
       include: {
         fotos: { where: { principal: true }, take: 1 },
         proprietarioRel: { select: { id: true, nome: true } },
         operador: { select: { id: true, nome: true } },
         parceiro: { select: { id: true, nome: true } },
+        documentos: { select: { tipo: true } },
         _count: { select: { fotos: true, documentos: true } },
       },
-    });
+    };
+    const items = await prisma.imovel.findMany(query);
+    items.sort((a, b) => a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric: true, sensitivity: 'base' }));
+    const { pagina, porPagina } = req.query;
+    if (!pagina && !porPagina) return res.json(items);
+    const page = Math.max(1, +pagina || 1);
+    const per = Math.min(200, Math.max(1, +porPagina || 25));
+    res.json({ items: items.slice((page - 1) * per, page * per), total: items.length, pagina: page, paginas: Math.ceil(items.length / per) });
   }));
 
   // Localiza um endereço ainda não salvo (mapa do formulário): o usuário confere e ajusta o marcador
@@ -185,7 +192,7 @@ module.exports = (prisma) => {
       include: {
         fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] },
         ...AREAS,
-        documentos: { orderBy: { criadoEm: 'desc' } },
+        documentos: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }] },
         analises: { orderBy: { criadoEm: 'desc' }, take: 5 },
         oportunidades: { include: { empresa: true }, orderBy: { criadoEm: 'desc' } },
         // despesas são financeiras: só admin recebe no payload
@@ -305,14 +312,10 @@ module.exports = (prisma) => {
 
   r.delete('/:id', requireRole('admin'), asyncHandler(async (req, res) => {
     const id = +req.params.id;
-    const [despesas, oportunidades] = await Promise.all([
-      prisma.imovelDespesa.count({ where: { imovelId: id } }),
-      prisma.oportunidade.count({ where: { imovelId: id } }),
-    ]);
-    if (despesas > 0 || oportunidades > 0) {
+    const oportunidades = await prisma.oportunidade.count({ where: { imovelId: id } });
+    if (oportunidades > 0) {
       const { status } = await prisma.imovel.findUnique({ where: { id }, select: { status: true } }) || {};
       const vinculos = [
-        despesas && `${despesas} ${despesas > 1 ? 'despesas' : 'despesa'}`,
         oportunidades && `${oportunidades} ${oportunidades > 1 ? 'ações da operação' : 'ação da operação'}`,
       ].filter(Boolean).join(' e ');
       return res.status(409).json({
@@ -380,13 +383,41 @@ module.exports = (prisma) => {
       if (!DOC_TIPOS.includes(tipo)) fail('Tipo de documento inválido');
       const url = urlHttp(req.body.url);
       if (!url && !req.file) fail('Envie um arquivo ou informe um link');
-      res.json(await prisma.imovelDocumento.create({
-        data: { imovelId: +req.params.id, tipo, nome: String(nome || '').trim() || req.file?.originalname || url, url, arquivo: req.file?.filename || null },
-      }));
+      const documento = await prisma.$transaction(async (tx) => {
+        const ultimo = await tx.imovelDocumento.aggregate({ where: { imovelId: +req.params.id }, _max: { ordem: true } });
+        return tx.imovelDocumento.create({
+          data: { imovelId: +req.params.id, tipo, nome: String(nome || '').trim() || req.file?.originalname || url, url, arquivo: req.file?.filename || null, ordem: (ultimo._max.ordem ?? -1) + 1 },
+        });
+      });
+      res.json(documento);
     } catch (e) {
       if (req.file) { try { fs.unlinkSync(req.file.path); } catch {} }
       throw e;
     }
+  }));
+
+  // A lista completa impede que uma aba antiga apague a ordem de documentos novos.
+  r.put('/:id/documentos/ordem', asyncHandler(async (req, res) => {
+    const imovelId = +req.params.id;
+    const ids = req.body.ids;
+    if (!Array.isArray(ids) || ids.some(id => !Number.isSafeInteger(id) || id < 1) || new Set(ids).size !== ids.length) fail('Ordem de documentos inválida');
+    await prisma.$transaction(async tx => {
+      const imovel = await tx.imovel.findUnique({ where: { id: imovelId }, select: { id: true } });
+      if (!imovel) fail('Imóvel não encontrado', 404);
+      const docs = await tx.imovelDocumento.findMany({ where: { imovelId }, select: { id: true } });
+      const existentes = new Set(docs.map(d => d.id));
+      if (ids.length !== docs.length || ids.some(id => !existentes.has(id))) fail('A lista de documentos mudou. Atualize a página e tente novamente.', 409);
+      for (const [ordem, id] of ids.entries()) await tx.imovelDocumento.update({ where: { id }, data: { ordem } });
+    });
+    res.json({ ok: true });
+  }));
+
+  r.patch('/:id/documentos/:docId', asyncHandler(async (req, res) => {
+    const nome = typeof req.body.nome === 'string' ? req.body.nome.trim() : '';
+    if (!nome || nome.length > 255) fail('Informe um nome de até 255 caracteres');
+    const doc = await prisma.imovelDocumento.findFirst({ where: { id: +req.params.docId, imovelId: +req.params.id } });
+    if (!doc) return res.status(404).json({ error: 'Documento não encontrado' });
+    res.json(await prisma.imovelDocumento.update({ where: { id: doc.id }, data: { nome } }));
   }));
 
   r.delete('/:id/documentos/:docId', asyncHandler(async (req, res) => {

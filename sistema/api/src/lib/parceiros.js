@@ -1,5 +1,5 @@
 // Rótulos e registro profissional do parceiro (também usados no documento público de apresentação).
-const TIPOS_PARCEIRO = { consultor: 'Consultor', advogado: 'Advogado', corretor: 'Corretor', imobiliaria: 'Imobiliária', indicador: 'Indicador' };
+const TIPOS_PARCEIRO = { consultor: 'Executivo comercial', advogado: 'Advogado', corretor: 'Corretor', imobiliaria: 'Imobiliária', indicador: 'Indicador' };
 
 /** "CRECI-PF RJ-12345" (corretor), "CRECI-PJ RJ-9876" (imobiliária), "OAB RJ-123456" (advogado) ou '' (consultor, indicador) */
 function registroProfissional(p) {

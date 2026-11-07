@@ -27,7 +27,7 @@ const CRITERIO = [
 ];
 const fmt2 = (v) => Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Faixas do relatório → índices das faixas do Censo 2022 (services/censo2022.js)
+// Faixas do relatório → índices das faixas do Censo IBGE Atualizado (services/censo2022.js)
 const FAIXAS = [['0–14', [0, 1, 2]], ['15–29', [3, 4, 5]], ['30–39', [6]], ['40–49', [7]], ['50–59', [8]], ['60–69', [9]], ['70+', [10]]];
 const ROTULOS_PIRAMIDE = ['0–4', '5–9', '10–14', '15–19', '20–24', '25–29', '30–39', '40–49', '50–59', '60–69', '70+'];
 
@@ -87,7 +87,7 @@ function renderInteligencia(imovel, analise, demo) {
   const bairroCtx = raio ? censo?.bairro : null;
   const areas = [b && [raio ? 'Raio de 1 km' : `Bairro ${b.nome}`, b, G.COR.verde], bairroCtx && [`Bairro ${bairroCtx.nome}`, bairroCtx, G.COR.verde2], m && [m.nome, m, G.COR.dourado]].filter(Boolean);
   const semBairro = censo && !b
-    ? `<p class="note"><strong>Bairro não identificado.</strong> ${imovel.bairro ? `"${esc(imovel.bairro)}" não consta` : 'O cadastro não informa o bairro e por isso ele não consta'} ${censo.temBairros ? 'na base de bairros do Censo 2022 deste município — confira a grafia no cadastro do imóvel.' : 'neste recorte: o IBGE não divulga dados por bairro para este município.'} As análises usam o município.</p>` : '';
+    ? `<p class="note"><strong>Bairro não identificado.</strong> ${imovel.bairro ? `"${esc(imovel.bairro)}" não consta` : 'O cadastro não informa o bairro e por isso ele não consta'} ${censo.temBairros ? 'na base de bairros do Censo IBGE Atualizado deste município — confira a grafia no cadastro do imóvel.' : 'neste recorte: o IBGE não divulga dados por bairro para este município.'} As análises usam o município.</p>` : '';
   const tabela = (linhas, primeira = 'Indicador', cls = '') => `<table class="demo ${cls}"><thead><tr><th>${primeira}</th>${areas.map(([n]) => `<th>${esc(n)}</th>`).join('')}</tr></thead>
   <tbody>${linhas.map(([rotulo, fn, cls = '']) => `<tr class="${cls}"><td>${rotulo}</td>${areas.map(([, a]) => `<td>${fn(a)}</td>`).join('')}</tr>`).join('')}</tbody></table>`;
   const faixa = (a, idx) => idx.reduce((n, i) => n + (a.faixas[i] || 0), 0);
@@ -128,7 +128,7 @@ function renderInteligencia(imovel, analise, demo) {
       <div class="col texto">
         <p><strong>Geomarketing.</strong> Dados oficiais e mapeamento colaborativo organizados no mapa, a partir do ponto do imóvel, para descrever quem mora e consome no entorno e o que existe ao redor.</p>
         <ul>
-          <li><strong>Moradores:</strong> Censo 2022 (IBGE), somando os setores censitários a até 1 km do ponto. Sem coordenadas, usa-se o bairro.</li>
+          <li><strong>Moradores:</strong> Censo IBGE Atualizado (IBGE), somando os setores censitários a até 1 km do ponto. Sem coordenadas, usa-se o bairro.</li>
           <li><strong>Entorno:</strong> estabelecimentos, transporte e via no OpenStreetMap, até 1 km.</li>
         </ul>
       </div>
@@ -154,7 +154,7 @@ function renderInteligencia(imovel, analise, demo) {
       <div class="col">
         <table class="demo crit"><thead><tr><th>Classificação</th><th>Salários mínimos</th><th>Limite de rendimento R$</th><th>Média POF – IBGE</th></tr></thead>
         <tbody>${CRITERIO.map(([c, sms, teto, pof]) => `<tr><td><strong>${c}</strong></td><td>${sms}</td><td>${teto === null ? `Acima de ${fmt2(20 * SM)}` : fmt2(teto * SM)}</td><td>${fmt2(pof)}</td></tr>`).join('')}</tbody></table>
-        <p class="src">Fonte: IBGE / Critério Brasil — POF referente ao estado da federação do imóvel; limites calculados sobre o salário mínimo de ${money0(SM)} (referência do Censo 2022).</p>
+        <p class="src">Fonte: IBGE / Critério Brasil — POF referente ao estado da federação do imóvel; limites calculados sobre o salário mínimo de ${money0(SM)} (referência do Censo IBGE Atualizado).</p>
         <div class="exemplo"><strong>Como ler</strong><p>A classe é definida pela renda mensal do domicílio em salários mínimos. Exemplo: com renda de ${money0(8000)} (${dec(8000 / SM)} sm), o domicílio está na classe <b>B2</b> (de 6 a 10 sm). Nas páginas seguintes, os domicílios ${doLocal} e do município são distribuídos nessas classes.</p></div>
       </div>
       <div class="col chart-box"><h3>Média POF – IBGE (R$/mês)</h3><div class="chart">${G.barras({ itens: CRITERIO.map(([c, , , pof]) => ({ rotulo: c, valor: pof })), largura: 464, altura: 540, descricao: 'Média POF por classe social', formato: (v) => G.pt(v) })}</div></div>
@@ -182,7 +182,7 @@ function renderInteligencia(imovel, analise, demo) {
           ${present(imovel.cdu) ? `<div><dt>CDU</dt><dd>${money0(imovel.cdu)}</dd></div>` : ''}
         </dl>
         ${demo?.entorno ? `<table class="demo compact no-raio"><thead><tr><th>No entorno do ponto</th><th>Até 1 km</th></tr></thead><tbody>
-          ${raio ? `<tr class="hl"><td>Moradores (Censo 2022)</td><td>${num(raio.populacao)}</td></tr>` : ''}
+          ${raio ? `<tr class="hl"><td>Moradores (Censo IBGE Atualizado)</td><td>${num(raio.populacao)}</td></tr>` : ''}
           <tr class="hl"><td>Estabelecimentos mapeados</td><td>${num(demo.entorno.total1000)}</td></tr>
           ${demo.entorno.linhas.filter((l) => l.r1000 > 0).sort((a, c) => c.r1000 - a.r1000).slice(0, raio ? 3 : 4).map((l) => `<tr><td>${esc(l.rotulo.replace(/ \(.*\)/, ''))}</td><td>${num(l.r1000)}</td></tr>`).join('')}
           ${demo.entorno.transporte.filter((l) => l.r1000 > 0).slice(0, 2).map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r1000)}</td></tr>`).join('')}
@@ -194,7 +194,7 @@ function renderInteligencia(imovel, analise, demo) {
 
   // População e domicílios
   if (areas.length) {
-    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'População e domicílios — Censo 2022', `
+    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'População e domicílios — Censo IBGE Atualizado', `
       <div class="cols2 fill">
         <div class="col">${tabela([
           ['População residente', (a) => num(a.populacao), 'hl'],
@@ -222,7 +222,7 @@ function renderInteligencia(imovel, analise, demo) {
       <table class="demo classes"><thead><tr><th>Área de influência</th>${ids.map((id) => `<th>${id}</th>`).join('')}<th>Total</th></tr></thead>
       <tbody>${classes.map(({ nome, r }) => `<tr class="hl"><td>${esc(nome)}</td>${r.classes.map((c) => `<td>${num(c.qtd)}</td>`).join('')}<td>${num(r.total)}</td></tr><tr class="dim"><td>%</td>${r.classes.map((c) => `<td>${dec(c.pct)}%</td>`).join('')}<td>100%</td></tr>`).join('')}</tbody></table>
       <div class="chart-box grow"><h3>Participação de cada classe nos domicílios (%)</h3><div class="chart">${G.barrasAgrupadas({ categorias: ids, series: classes.map((c) => ({ nome: c.nome, cor: c.cor, valores: c.r.classes.map((x) => Number(x.pct.toFixed(1))) })), formato: (v) => `${G.pt(v, 1)}%`, largura: 976, altura: 392, descricao: 'Domicílios por classe social' })}</div></div>
-      <p class="note compacta"><strong>Estimativa.</strong> O IBGE não divulga domicílios por classe social. A distribuição foi calculada ${raio ? 'setor a setor, dentro do raio de 1 km, ' : ''}ajustando uma curva lognormal à média e à mediana do rendimento do responsável pelo domicílio (Censo 2022) e aplicando os limites do Critério Brasil sobre o salário mínimo de ${money0(SM)}. Como considera só o rendimento do responsável, tende a subestimar a renda total do domicílio. Use como ordem de grandeza.</p>`,
+      <p class="note compacta"><strong>Estimativa.</strong> O IBGE não divulga domicílios por classe social. A distribuição foi calculada ${raio ? 'setor a setor, dentro do raio de 1 km, ' : ''}ajustando uma curva lognormal à média e à mediana do rendimento do responsável pelo domicílio (Censo IBGE Atualizado) e aplicando os limites do Critério Brasil sobre o salário mínimo de ${money0(SM)}. Como considera só o rendimento do responsável, tende a subestimar a renda total do domicílio. Use como ordem de grandeza.</p>`,
     'Fonte: IBGE, Censo Demográfico 2022 (rendimento do responsável) · Critério Brasil · estimativa Prospecção Brasil');
   }
 
@@ -248,7 +248,7 @@ function renderInteligencia(imovel, analise, demo) {
 
   // Renda
   if (areas.length && areas.some(([, a]) => present(a.rendaMedia))) {
-    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'Renda — Censo 2022', `
+    folha(`${raio ? 'RAIO DE 1 KM' : 'BAIRRO'} E MUNICÍPIO`, 'Renda — Censo IBGE Atualizado', `
       <div class="cols2 fill">
         <div class="col">
           <div class="chart-box grow"><h3>Rendimento mensal do responsável pelo domicílio (R$)</h3><div class="chart">${G.barrasHorizontais({ categorias: ['Média', 'Mediana'], series: areas.map(([nome, a, cor]) => ({ nome, cor, valores: [a.rendaMedia, a.rendaMediana] })), formato: (v) => money0(v), largura: 464, altura: 525, rotuloLargura: 70, maxBarra: 44, tamRotulo: 13, margemDireita: 84, descricao: 'Rendimento médio e mediano' })}</div></div>
@@ -273,7 +273,7 @@ function renderInteligencia(imovel, analise, demo) {
       <div class="cols2 fill">
         <div class="col chart-box"><h3>Estabelecimentos mapeados por categoria</h3><div class="chart">${G.barrasHorizontais({ categorias: ent.linhas.map((l) => l.rotulo.replace(/ \(.*\)/, '')), series: [{ nome: 'Até 1 km', cor: G.COR.verde, valores: ent.linhas.map((l) => l.r1000) }], largura: 464, altura: 588, rotuloLargura: 190, maxBarra: 18, tamRotulo: 11.5, descricao: 'Estabelecimentos por categoria' })}</div></div>
         <div class="col">
-          <table class="demo"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${ent.transporte.map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r1000)}</td></tr>`).join('')}<tr class="hl"><td>Total de estabelecimentos</td><td>${num(ent.total1000)}</td></tr></tbody></table>
+          <table class="demo"><thead><tr><th>Transporte</th><th>Até 1 km</th></tr></thead><tbody>${ent.transporte.map((l) => `<tr><td>${esc(l.rotulo)}</td><td>${num(l.r1000)}</td></tr>`).join('')}</tbody></table>
           ${ent.via ? `<table class="demo"><thead><tr><th colspan="2">A via — ${esc(trunc(ent.via.nome, 36))}</th></tr></thead><tbody><tr><td>Tipo</td><td>${esc(ent.via.tipo)}</td></tr>${ent.via.faixas ? `<tr><td>Faixas</td><td>${esc(ent.via.faixas)}</td></tr>` : ''}${ent.via.maoUnica ? `<tr><td>Sentido</td><td>${esc(ent.via.maoUnica)}</td></tr>` : ''}${ent.via.velocidade ? `<tr><td>Velocidade máxima</td><td>${esc(ent.via.velocidade)}</td></tr>` : ''}</tbody></table>` : ''}
           ${ent.destaques.length ? `<table class="demo"><thead><tr><th>Mais próximo</th><th>Nome</th><th>Dist.</th></tr></thead><tbody>${ent.destaques.slice(0, 7).map((x) => `<tr><td>${esc(x.rotulo)}</td><td>${esc(trunc(x.nome, 26))}</td><td>${num(x.dist)} m</td></tr>`).join('')}</tbody></table>` : ''}
           ${(() => { const cores = [G.COR.verde, G.COR.dourado, G.COR.verde2, '#6f8fa8', G.COR.areia, '#b58b7a']; const cats = ent.linhas.filter((l) => l.r1000 > 0).sort((a, c) => c.r1000 - a.r1000); const topo = cats.slice(0, 5).map((l, k) => ({ rotulo: l.rotulo.replace(/ \(.*\)/, ''), valor: l.r1000, cor: cores[k] })); const resto = cats.slice(5).reduce((n, l) => n + l.r1000, 0); if (resto) topo.push({ rotulo: 'Demais categorias', valor: resto, cor: cores[5] }); return topo.length > 1 ? `<div class="chart-box grow"><h3>Composição do comércio e serviços em 1 km</h3><div class="chart">${G.rosca({ fatias: topo, centro: { valor: num(ent.total1000), titulo: 'estabelecimentos' }, largura: 464, altura: 184, descricao: 'Composição do entorno' })}</div></div>` : ''; })()}
@@ -329,7 +329,7 @@ function renderInteligencia(imovel, analise, demo) {
     </div>`, `Modelo: ${analise?.modelo || 'triagem-interna'} · Prospecção Brasil`);
 
   // Encerramento
-  const faltando = [!areas.length && 'dados do Censo 2022 (município não identificado na base do IBGE)', !ent && 'entorno da rua (serviço de mapas indisponível; abra o documento novamente em alguns minutos)'].filter(Boolean);
+  const faltando = [!areas.length && 'dados do Censo IBGE Atualizado (município não identificado na base do IBGE)', !ent && 'entorno da rua (serviço de mapas indisponível; abra o documento novamente em alguns minutos)'].filter(Boolean);
   folha('ENCERRAMENTO', 'Limitações e uso do documento', `
     <div class="cols2">
       <div class="col texto"><ul>

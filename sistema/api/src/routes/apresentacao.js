@@ -20,7 +20,7 @@ module.exports = (prisma) => {
     const imovel = await prisma.imovel.findUnique({
       where: { id },
       include: {
-        fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: true, parceiro: { select: PARCEIRO_PUBLICO },
+        fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] }, areas: { orderBy: { ordem: 'asc' } }, documentos: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }] }, parceiro: { select: PARCEIRO_PUBLICO },
       },
     });
     if (!imovel || imovel.status === 'inativo') return res.status(404).send('Imóvel não encontrado');

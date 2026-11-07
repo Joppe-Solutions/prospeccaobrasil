@@ -279,6 +279,7 @@ model ImovelDocumento {
   url       String?
   arquivo   String?
   criadoEm  DateTime @default(now()) @map("criado_em")
+  ordem     Int      @default(0)
   imovel    Imovel   @relation(fields: [imovelId], references: [id], onDelete: Cascade)
 
   @@map("imovel_documentos")

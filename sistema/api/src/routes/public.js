@@ -36,7 +36,7 @@ module.exports = (prisma) => {
       include: {
         fotos: { orderBy: [{ principal: 'desc' }, { ordem: 'asc' }] },
         areas: { orderBy: { ordem: 'asc' } },
-        documentos: true,
+        documentos: { orderBy: [{ ordem: 'asc' }, { id: 'asc' }] },
         analises: { orderBy: { criadoEm: 'desc' }, take: 1 },
       },
     });

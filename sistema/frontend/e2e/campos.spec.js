@@ -55,10 +55,10 @@ test('máscaras: dinheiro com R$, milhar e vírgula; decimais e inteiros no cada
 
 test('parceiros: consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliária (CRECI-PJ) e indicador', async ({ page }) => {
   const errors = watchErrors(page);
-  await page.goto('/parceiros');
-  await page.getByRole('button', { name: /Novo parceiro/ }).click();
+  await page.goto('/executivos-comerciais');
+  await page.getByRole('button', { name: /Novo executivo comercial/ }).click();
   const modal = page.locator('.modal');
-  const tipo = modal.getByLabel('Tipo de parceiro');
+  const tipo = modal.getByLabel('Qualificação');
 
   // consultor: CPF obrigatório, sem CRECI/OAB nem escolha de pessoa
   await expect(tipo).toHaveValue('consultor');
@@ -67,14 +67,14 @@ test('parceiros: consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliá
   await expect(modal.getByLabel('Pessoa', { exact: true })).toHaveCount(0);
   await modal.getByLabel(/Nome completo/).fill('Ana Consultora');
   await modal.getByRole('button', { name: /Cadastrar/ }).click();
-  await expect(modal).toContainText('Informe o CPF do consultor');
+  await expect(modal).toContainText('Informe o CPF do executivo comercial');
   await modal.getByLabel(/^CPF/).pressSequentially('11144477735');
   await modal.getByRole('button', { name: /Cadastrar/ }).click();
   const main = page.locator('#main-content');
-  await expect(main).toContainText('Consultor · Pessoa física');
+  await expect(main).toContainText('Executivo comercial · Pessoa física');
 
   // corretor: CRECI-PF; imobiliária: CRECI-PJ com CNPJ; advogado: OAB; indicador: escolhe a pessoa
-  await page.getByRole('button', { name: /Novo parceiro/ }).click();
+  await page.getByRole('button', { name: /Novo executivo comercial/ }).click();
   await tipo.selectOption('corretor');
   await expect(modal.getByLabel(/^CRECI-PF/)).toBeVisible();
   await tipo.selectOption('imobiliaria');

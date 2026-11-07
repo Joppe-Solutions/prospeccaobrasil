@@ -80,14 +80,14 @@ export default function Oportunidades() {
       const contato = [e?.contatoNome, e?.telefone || e?.email].filter(Boolean).join(' · ');
       return <span className="collection-cell-stack"><strong>{e?.nome || 'Empresa indisponível'}</strong><small>{e?.segmento || 'Sem segmento'}</small>{contato ? <small>{contato}</small> : <small className="muted">Sem contato</small>}</span>;
     } },
-    { accessorKey: 'modalidade', header: 'Modalidade', cell: ({ getValue }) => MODALIDADES[getValue()] || 'Não definida' },
+    { accessorKey: 'modalidade', header: 'Modalidade', exportValue: o => MODALIDADES[o.modalidade] || 'Não definida', cell: ({ getValue }) => MODALIDADES[getValue()] || 'Não definida' },
     { id: 'proposta', header: 'Proposta', accessorFn: o => PROPOSTA[o.propostaStatus] || 'Sem proposta', cell: ({ row: { original: o } }) => {
       const st = o.propostaStatus || 'sem_proposta';
       const linha = [o.propostaEnviadaEm && `enviada ${fmtData(o.propostaEnviadaEm)}`, o.propostaValor != null && fmtMoney(o.propostaValor), o.propostaRetornoEm && `retorno ${fmtData(o.propostaRetornoEm)}`].filter(Boolean).join(' · ');
       return <span className="collection-cell-stack"><span className={`proposta-badge proposta-${st}`}>{PROPOSTA[st]}</span>{linha && <small title={o.propostaObservacao || ''}>{linha}</small>}</span>;
     } },
     { accessorKey: 'proximaAcao', header: 'Próxima ação', cell: ({ row }) => <span className="collection-cell-stack"><span>{row.original.proximaAcao || '—'}</span><small>{row.original.proximaAcaoEm}</small></span> },
-    { accessorKey: 'etapa', header: 'Etapa', cell: ({ row, getValue }) => <select className={`collection-stage-select stage-${getValue()}`} value={getValue()} disabled={moving === row.original.id} aria-label={`Etapa de ${row.original.imovel?.codigo} para ${row.original.empresa?.nome}`} onChange={e => move(row.original, e.target.value)}>{Object.entries(ETAPAS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> },
+    { accessorKey: 'etapa', header: 'Etapa', exportValue: o => ETAPAS[o.etapa] || o.etapa, cell: ({ row, getValue }) => <select className={`collection-stage-select stage-${getValue()}`} value={getValue()} disabled={moving === row.original.id} aria-label={`Etapa de ${row.original.imovel?.codigo} para ${row.original.empresa?.nome}`} onChange={e => move(row.original, e.target.value)}>{Object.entries(ETAPAS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select> },
     { id: 'apresentacao', header: 'Link', enableSorting: false, cell: ({ row }) => <a className="collection-title-link" href={`/apresentacao/${row.original.imovelId}`} target="_blank" rel="noreferrer" aria-label={`Abrir apresentação de ${row.original.imovel?.codigo}`}><Presentation size={18} /> Abrir</a> },
     { accessorKey: 'observacao', header: 'Observações', cell: ({ getValue }) => <span className="collection-regions" title={getValue() || ''}>{getValue() || '—'}</span> },
     { accessorKey: 'atualizadoEm', header: 'Última atualização', cell: ({ getValue }) => new Date(getValue()).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short', year: 'numeric' }) },

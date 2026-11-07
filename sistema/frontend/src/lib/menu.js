@@ -5,7 +5,7 @@ export const MENU = [
   { tipo: 'grupo', rotulo: 'Cadastros', icone: 'fa-folder-open', subitens: [
     { rotulo: 'Imóveis', caminho: '/imoveis', icone: 'fa-location-dot' },
     { rotulo: 'Clientes', caminho: '/empresas', icone: 'fa-store' },
-    { rotulo: 'Consultores', caminho: '/parceiros', icone: 'fa-users' },
+    { rotulo: 'Executivos comerciais', caminho: '/executivos-comerciais', icone: 'fa-users' },
     { rotulo: 'Leads', caminho: '/leads', icone: 'fa-bullseye' },
     { rotulo: 'Proprietários e operadores', caminho: '/proprietarios', icone: 'fa-id-card' },
   ] },

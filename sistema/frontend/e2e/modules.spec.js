@@ -7,7 +7,7 @@ const MODULES = [
   { path: '/financeiro', label: 'Financeiro', marker: null },
   { path: '/imoveis', grupo: 'Cadastros', label: 'Imóveis', marker: 'PB-E2E' },
   { path: '/empresas', grupo: 'Cadastros', label: 'Clientes', marker: 'Empresa E2E' },
-  { path: '/parceiros', grupo: 'Cadastros', label: 'Consultores', marker: 'Parceiro E2E' },
+  { path: '/executivos-comerciais', grupo: 'Cadastros', label: 'Executivos comerciais', marker: 'Parceiro E2E' },
   { path: '/leads', grupo: 'Cadastros', label: 'Leads', marker: 'Lead E2E' },
   { path: '/proprietarios', grupo: 'Cadastros', label: 'Proprietários e operadores', marker: 'Proprietário E2E' },
   { path: '/glossario', grupo: 'Conhecimento', label: 'Glossário de Varejo', marker: 'Glossário de Varejo' },

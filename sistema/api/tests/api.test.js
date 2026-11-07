@@ -106,15 +106,25 @@ test('imóvel: cria, gera código, despesa e exclui', async () => {
   const desps = await req('GET', `/api/imoveis/${id}/despesas`, { token });
   assert.ok(Array.isArray(desps.body));
 
-  // Imóvel com despesa não pode ser excluído (preserva histórico)
-  assert.equal((await req('DELETE', `/api/imoveis/${id}`, { token })).status, 409);
-  // Despesa não é apagada — estorno preserva o lançamento
+  // A despesa não pode ser excluída isoladamente; ao excluir o imóvel, é removida junto.
   assert.equal((await req('DELETE', `/api/imoveis/${id}/despesas/${desp.body.id}`, { token })).status, 409);
-  const est = await req('POST', `/api/imoveis/${id}/despesas/${desp.body.id}/estornar`, { token, body: { motivo: 'Lançamento errado' } });
-  assert.equal(est.status, 200);
-  assert.equal(est.body.estornada, true);
-  // Estornado continua contando como histórico — imóvel segue bloqueado
-  assert.equal((await req('DELETE', `/api/imoveis/${id}`, { token })).status, 409);
+  assert.equal((await req('DELETE', `/api/imoveis/${id}`, { token })).status, 200);
+  assert.equal((await req('GET', `/api/imoveis/${id}`, { token })).status, 404);
+});
+
+test('imóveis: código real e ordenação numérica também na paginação', async () => {
+  const codigos = ['PB-90010', 'PB-90002', 'PB-90001'];
+  const imoveis = [];
+  for (const codigo of codigos) {
+    const r = await req('POST', '/api/imoveis', { token, body: { codigo, endereco: 'Rua Ordenação', cidade: 'RJ' } });
+    assert.equal(r.status, 200);
+    imoveis.push(r.body);
+  }
+  const lista = await req('GET', '/api/imoveis?q=Rua%20Ordena%C3%A7%C3%A3o', { token });
+  assert.deepEqual(lista.body.map(i => i.codigo), ['PB-90001', 'PB-90002', 'PB-90010']);
+  const pagina = await req('GET', '/api/imoveis?q=Rua%20Ordena%C3%A7%C3%A3o&pagina=2&porPagina=1', { token });
+  assert.equal(pagina.body.items[0].codigo, 'PB-90002');
+  for (const im of imoveis) await req('DELETE', `/api/imoveis/${im.id}`, { token });
 });
 
 test('despesa negativa ou inválida é rejeitada', async () => {
@@ -830,7 +840,7 @@ test('inteligência: Censo 2022 por bairro, entorno da rua e documento sem campo
   const html = renderInteligencia(imovel, analise, { censo: { municipio: rio, bairro: centro, temBairros: true }, entorno: ent, geo, fonte: 'x' });
   assert.match(html, /Bairro Centro/);
   assert.match(html, /23\.774/);
-  assert.match(html, /Renda — Censo 2022/);
+  assert.match(html, /Renda — Censo IBGE Atualizado/);
   assert.match(html, /Carioca/);
   assert.match(html, /Leitura dos dados/);
   assert.doesNotMatch(html, /undefined|NaN/);
@@ -910,6 +920,28 @@ test('proposta comercial: campos do modelo, numeração, documento e regras', as
   assert.equal((await req('DELETE', `/api/propostas/${segunda.body.id}`, { token })).status, 200);
 });
 
+test('ordem de documentos persiste no detalhe e na apresentação pública', async () => {
+  const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Ordenação de documentos', cidade: 'RJ' } })).body;
+  const add = async (tipo, nome) => (await req('POST', `/api/imoveis/${imovel.id}/documentos`, { token, body: { tipo, nome, url: 'https://example.com/doc' } })).body;
+  const planta = await add('planta', 'Planta Ordem');
+  const interno = await add('doc_locatario', 'Interno Ordem');
+  const iptu = await add('iptu_doc', 'IPTU Ordem');
+  const rota = `/api/imoveis/${imovel.id}/documentos/ordem`;
+  assert.equal((await req('PUT', rota, { body: { ids: [iptu.id, interno.id, planta.id] } })).status, 401);
+  assert.equal((await req('PUT', rota, { token, body: { ids: [iptu.id, planta.id] } })).status, 409);
+  assert.equal((await req('PUT', rota, { token, body: { ids: [iptu.id, iptu.id, planta.id] } })).status, 400);
+  assert.equal((await req('PUT', rota, { token, body: { ids: [iptu.id, interno.id, planta.id] } })).status, 200);
+  const detalhe = (await req('GET', `/api/imoveis/${imovel.id}`, { token })).body;
+  assert.deepEqual(detalhe.documentos.map(d => d.id), [iptu.id, interno.id, planta.id]);
+  const publico = (await req('GET', `/api/public/imoveis/${imovel.id}`)).body;
+  assert.deepEqual(publico.documentos.map(d => d.id), [iptu.id, planta.id]);
+  const html = (await req('GET', `/apresentacao/${imovel.id}`)).body;
+  assert.ok(html.indexOf('IPTU Ordem') < html.indexOf('Planta Ordem'));
+  assert.doesNotMatch(html, /Interno Ordem/);
+  const outro = await add('outro', 'Outro Ordem');
+  assert.deepEqual((await req('GET', `/api/imoveis/${imovel.id}`, { token })).body.documentos.map(d => d.id), [iptu.id, interno.id, planta.id, outro.id]);
+});
+
 test('documentos do imóvel: RGI, regimento e DWG; só os tipos públicos vão à apresentação', async () => {
   const im = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua dos Docs', cidade: 'Rio de Janeiro' } })).body;
   const enviar = (rota, arquivo, tipo, mime) => {
@@ -922,8 +954,12 @@ test('documentos do imóvel: RGI, regimento e DWG; só os tipos públicos vão �
   const link = (tipo) => req('POST', `/api/imoveis/${im.id}/documentos`, { token, body: { tipo, nome: `Link ${tipo}`, url: `https://exemplo.com/${tipo}` } });
 
   // tipos novos aceitos; o antigo "rig" (erro de digitação) não existe mais
-  for (const tipo of ['rgi', 'regimento', 'dwg', 'convencao', 'doc_locatario']) assert.equal((await link(tipo)).status, 200, tipo);
+  for (const tipo of ['rgi', 'regimento', 'dwg', 'convencao', 'doc_locatario', 'outro']) assert.equal((await link(tipo)).status, 200, tipo);
   assert.equal((await link('rig')).status, 400);
+  const doc = (await link('outro')).body;
+  const renomeado = await req('PATCH', `/api/imoveis/${im.id}/documentos/${doc.id}`, { token, body: { nome: 'Documento renomeado' } });
+  assert.equal(renomeado.body.nome, 'Documento renomeado');
+  assert.equal((await req('PATCH', `/api/imoveis/${im.id}/documentos/${doc.id}`, { token, body: { nome: '  ' } })).status, 400);
 
   // DWG sobe como documento (octet-stream ou tipo do AutoCAD), mas não como foto, e outros executáveis não passam
   assert.equal((await enviar('documentos', 'planta.dwg', 'dwg', 'application/octet-stream')).status, 200);
@@ -931,9 +967,24 @@ test('documentos do imóvel: RGI, regimento e DWG; só os tipos públicos vão �
   assert.equal((await enviar('fotos', 'planta.dwg', 'dwg', 'application/octet-stream')).status, 400);
   assert.equal((await enviar('documentos', 'virus.exe', 'outro', 'application/octet-stream')).status, 400);
 
-  // público: RGI e regimento aparecem; DWG e documentação do locatário ficam internos
+  // RGI, regimento e DWG são públicos; documentação do locatário permanece interna
   const publicos = (await req('GET', `/api/public/imoveis/${im.id}`)).body.documentos.map((d) => d.tipo).sort();
-  assert.deepEqual(publicos, ['convencao', 'regimento', 'rgi']);
+  assert.deepEqual(publicos, ['convencao', 'dwg', 'dwg', 'dwg', 'outro', 'outro', 'regimento', 'rgi']);
+});
+
+test('apresentação: observações públicas seguem os documentos e são escapadas', () => {
+  const { renderApresentacao } = require('../src/templates/apresentacao');
+  const base = { id: 8, codigo: 'PB-OBS', endereco: 'Rua das Flores', cidade: 'Rio de Janeiro', tipo: 'locacao', status: 'disponivel', criadoEm: '2026-10-01', fotos: [], documentos: [{ tipo: 'planta', nome: 'Planta', url: 'https://example.com/planta' }] };
+  const html = renderApresentacao({ ...base, observacoes: 'Primeira linha\n<script>teste</script>' }, 'data:image/png;base64,AAAA', { completa: true });
+  const detalhes = html.split('<article class="sheet details"')[1];
+  assert.ok(detalhes.indexOf('<section class="documents"') < detalhes.indexOf('<section class="observacoes"'));
+  assert.ok(detalhes.indexOf('<section class="observacoes"') < detalhes.indexOf('<section class="contact'));
+  assert.match(detalhes, /Primeira linha\n&lt;script&gt;teste&lt;\/script&gt;/);
+  assert.doesNotMatch(detalhes, /<script>teste<\/script>/);
+  const semDocumentos = renderApresentacao({ ...base, documentos: [], observacoes: 'Observação sem documentos' }, 'data:image/png;base64,AAAA', { completa: true });
+  assert.match(semDocumentos, /<article class="sheet details"[\s\S]*Observação sem documentos/);
+  const semObservacoes = renderApresentacao({ ...base, observacoes: '   ' }, 'data:image/png;base64,AAAA', { completa: true });
+  assert.doesNotMatch(semObservacoes, /<section class="observacoes"/);
 });
 
 test('apresentação: indicadores no rodapé da 1ª folha e QR code no cabeçalho', () => {
@@ -1167,11 +1218,11 @@ test('parceiros: consultor (CPF), advogado (OAB), corretor (CRECI-PF), imobiliá
   const { registroProfissional } = require('../src/lib/parceiros');
 
   // tipo obrigatório e só os cinco
-  assert.match(await msg({ nome: 'X' }), /Tipo de parceiro inválido/);
-  assert.match(await msg({ nome: 'X', tipo: 'outro' }), /Tipo de parceiro inválido/);
+  assert.match(await msg({ nome: 'X' }), /Tipo de executivo comercial inválido/);
+  assert.match(await msg({ nome: 'X', tipo: 'outro' }), /Tipo de executivo comercial inválido/);
 
   // consultor: CPF obrigatório e válido; sempre pessoa física
-  assert.equal(await msg({ nome: 'Ana Consultora', tipo: 'consultor' }), 'Informe o CPF do consultor');
+  assert.equal(await msg({ nome: 'Ana Consultora', tipo: 'consultor' }), 'Informe o CPF do executivo comercial');
   assert.equal(await msg({ nome: 'Ana Consultora', tipo: 'consultor', documento: '111.444.777-36' }), 'CPF inválido');
   const cons = await criar({ nome: 'Ana Consultora', tipo: 'consultor', tipoPessoa: 'pj', documento: '111.444.777-35', creci: '123', oab: '9' });
   assert.equal(cons.status, 200);
@@ -1412,6 +1463,7 @@ test('imóvel: clientes compatíveis por bairro e área, sem quem já recebeu a 
   const imovel = (await req('POST', '/api/imoveis', { token, body: { endereco: 'Rua Compatível', bairro: 'Vila Compatível', cidade: 'Rio de Janeiro', areaTotal: 400 } })).body;
   const total = await empresa('Compat Total', { regioesInteresse: 'Tijuca; Vila Compativel', areaMinima: 300, areaMaxima: 500 });
   const soBairro = await empresa('Compat Bairro', { regioesInteresse: 'Vila Compatível', areaMinima: 800 });
+  const semFaixa = await empresa('Compat Sem Faixa', { regioesInteresse: 'Vila Compatível' });
   const jaVisto = await empresa('Compat Já Apresentado', { regioesInteresse: 'Vila Compatível' });
   await empresa('Compat Inativo', { regioesInteresse: 'Vila Compatível', status: 'inativo' });
   await empresa('Compat Fora', { regioesInteresse: 'Bairro Distante Demais', areaMinima: 900 });
@@ -1420,10 +1472,11 @@ test('imóvel: clientes compatíveis por bairro e área, sem quem já recebeu a 
   const r = await req('GET', `/api/imoveis/${imovel.id}/clientes-compativeis`, { token });
   assert.equal(r.status, 200);
   const nomes = r.body.clientes.filter(c => c.nome.startsWith('Compat ')).map(c => [c.nome, c.nivel]);
-  assert.deepEqual(nomes, [['Compat Total', 'compativel'], ['Compat Bairro', 'parcial']]);
+  assert.deepEqual(nomes, [['Compat Total', 'compativel'], ['Compat Sem Faixa', 'parcial']]);
   assert.ok(r.body.compativeis >= 1 && r.body.parciais >= 1);
   assert.equal(r.body.clientes[0].id, total.id);
-  assert.ok(r.body.clientes.some(c => c.id === soBairro.id));
+  assert.ok(!r.body.clientes.some(c => c.id === soBairro.id));
+  assert.ok(r.body.clientes.some(c => c.id === semFaixa.id && c.motivo === 'Área de interesse não cadastrada'));
 
   await req('PUT', `/api/imoveis/${imovel.id}`, { token, body: { status: 'concluido' } });
   assert.deepEqual((await req('GET', `/api/imoveis/${imovel.id}/clientes-compativeis`, { token })).body, { compativeis: 0, parciais: 0, clientes: [] });

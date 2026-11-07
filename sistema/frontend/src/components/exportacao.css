@@ -1,0 +1,7 @@
+.export-menu { position: relative; }
+.export-menu-panel { position: absolute; right: 0; top: calc(100% + 6px); z-index: 50; min-width: 235px; padding: 12px; background: #fff; border: 1px solid #d9e3dc; border-radius: 10px; box-shadow: 0 8px 24px #153c3429; color: #153c34; }
+.export-menu-panel p { font-size: 12px; margin: 4px 0 8px; }
+.export-menu-panel label { display: grid; gap: 5px; font-size: 12px; font-weight: 600; }
+.export-menu-panel select { max-width: 240px; padding: 7px; }
+.export-menu-panel button { width: 100%; border: 0; border-radius: 5px; padding: 9px; text-align: left; background: transparent; cursor: pointer; }
+.export-menu-panel button:hover { background: #eef4ef; }

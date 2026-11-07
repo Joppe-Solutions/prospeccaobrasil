@@ -34,15 +34,15 @@ module.exports = (prisma) => {
   // Campos que não pertencem ao tipo escolhido são limpos para não ficar registro de outro tipo.
   function validar(d, atual, body) {
     const p = { tipoPessoa: 'pf', ...atual, ...d };
-    if (!p.tipo || !TIPOS.includes(p.tipo)) fail('Tipo de parceiro inválido: consultor, advogado, corretor, imobiliária ou indicador');
+    if (!p.tipo || !TIPOS.includes(p.tipo)) fail('Tipo de executivo comercial inválido');
     if (PESSOA[p.tipo]) p.tipoPessoa = d.tipoPessoa = PESSOA[p.tipo];
-    if (!['pf', 'pj'].includes(p.tipoPessoa)) fail('Informe se o parceiro é pessoa física ou jurídica');
+    if (!['pf', 'pj'].includes(p.tipoPessoa)) fail('Informe se é pessoa física ou jurídica');
     if (p.documento) {
       d.documento = soDigitos(p.documento);
       if (!documentoValido(d.documento, p.tipoPessoa)) fail(p.tipoPessoa === 'pj' ? 'CNPJ inválido' : 'CPF inválido');
     }
     const mexeuTipo = !atual || ['tipo', 'documento'].some((k) => k in body);
-    if (p.tipo === 'consultor' && mexeuTipo && !(d.documento ?? p.documento)) fail('Informe o CPF do consultor');
+    if (p.tipo === 'consultor' && mexeuTipo && !(d.documento ?? p.documento)) fail('Informe o CPF do executivo comercial');
     for (const k of ['uf', 'creciUf', 'oabUf']) {
       if (d[k]) { d[k] = d[k].toUpperCase(); if (!UFS.includes(d[k])) fail(`UF inválida: ${d[k]}`); }
     }
@@ -100,7 +100,7 @@ module.exports = (prisma) => {
 
   r.put('/:id', asyncHandler(async (req, res) => {
     const atual = await prisma.parceiro.findUnique({ where: { id: +req.params.id } });
-    if (!atual) return res.status(404).json({ error: 'Parceiro não encontrado' });
+    if (!atual) return res.status(404).json({ error: 'Executivo comercial não encontrado' });
     const d = validar(pickParceiro(req.body), atual, req.body);
     if ('nome' in d && !d.nome) return res.status(400).json({ error: 'Nome obrigatório' });
     res.json(await prisma.parceiro.update({ where: { id: atual.id }, data: d }));

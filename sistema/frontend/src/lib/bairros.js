@@ -15,7 +15,7 @@ export function avisoClientes({ compativeis = 0, parciais = 0 } = {}) {
 }
 
 // Cruza as premissas do cliente (bairros e faixa de área) com o imóvel.
-// compativel: bairro bate e a área não fica fora da faixa; parcial: só um dos dois; fora: nenhum.
+// Compatível exige bairro e área; parcial exige bairro e área não verificável.
 export function premissasDoCliente(cliente, imovel) {
   const bairros = listaBairros(cliente.regioesInteresse).map(norm);
   const locais = [imovel.bairro, imovel.cidade].map(norm).filter(Boolean);
@@ -25,8 +25,9 @@ export function premissasDoCliente(cliente, imovel) {
   const max = cliente.areaMaxima != null ? Number(cliente.areaMaxima) : null;
   const temFaixa = min != null || max != null;
   const areaOk = !temFaixa || area == null ? null : (min == null || area >= min) && (max == null || area <= max);
-  const nivel = bairro && areaOk !== false ? 'compativel'
-    : bairro || areaOk ? 'parcial'
+  const nivel = bairro === true && areaOk === true ? 'compativel'
+    : bairro === true && areaOk === null ? 'parcial'
     : bairro === null && areaOk === null ? 'sem_premissas' : 'fora';
-  return { nivel, bairro, area: areaOk };
+  const motivo = nivel === 'parcial' ? (!temFaixa ? 'Área de interesse não cadastrada' : 'Área do imóvel não informada') : null;
+  return { nivel, bairro, area: areaOk, motivo };
 }
